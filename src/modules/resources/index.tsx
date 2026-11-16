@@ -27,7 +27,7 @@ function ResourcesPage() {
           ) : (
             <ul class="list">
               {cat.links.map((link) => (
-                <li key={link.url}>
+                <li key={`${link.title}|${link.url}`}>
                   <div class="grow">
                     <ExternalLink url={link.url}>{link.title}</ExternalLink>
                     {link.description && <div class="muted small">{link.description}</div>}

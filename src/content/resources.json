@@ -1,9 +1,28 @@
 {
   "categories": [
     {
+      "name": "Class",
+      "links": [
+        {
+          "title": "Google Classroom",
+          "url": "https://classroom.google.com/",
+          "description": "Assignments and announcements for our class."
+        }
+      ]
+    },
+    {
       "name": "Textbook audio",
-      "description": "Audio tracks that go with our course textbook.",
-      "links": []
+      "description": "Audio that goes with our course textbook, Chinese Link Level 1.",
+      "links": [
+        {
+          "title": "Chinese Link Level 1 Audio Resource",
+          "url": "https://media.pearsoncmg.com/alt/mychineselab/chinese_link/level_1/cw/"
+        },
+        {
+          "title": "Pinyin chart with audio",
+          "url": "https://media.pearsoncmg.com/alt/mychineselab/chinese_link/level_1/cw/"
+        }
+      ]
     },
     {
       "name": "Dictionaries",
