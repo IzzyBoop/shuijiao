@@ -1083,3 +1083,36 @@ a > .icon {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- Highlighted differences ---------- */
+
+.diff-add,
+.diff-del {
+  border-radius: 3px;
+  padding: 0 2px;
+  text-decoration-thickness: 2px;
+}
+
+.diff-add {
+  background: color-mix(in srgb, var(--ok) 35%, transparent);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.diff-del {
+  background: color-mix(in srgb, var(--danger) 22%, transparent);
+  color: var(--text);
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+}
+
+.diff-field {
+  border-left: 3px solid var(--warn);
+  padding-left: 8px;
+  margin-left: -11px;
+}
+
+.diff-badge {
+  border-color: var(--warn);
+  color: var(--text);
+}

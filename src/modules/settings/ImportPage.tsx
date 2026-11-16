@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useMemo, useState } from 'preact/hooks';
 import {
   store,
@@ -9,9 +10,10 @@ import {
   type ImportPreview,
 } from '../../core/db/store';
 import type { Card } from '../../core/db/model';
+import { diffText } from '../../core/diff';
 import { andList } from '../../core/format';
 import { href } from '../../core/router';
-import { Pinyin, Simp, Trad } from '../../core/ui/chinese';
+import { Pinyin } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { clearPendingImport, getPendingImport, type PendingImport } from './pending-import';
@@ -316,19 +318,129 @@ function describeDuplicates(dups: readonly ImportDuplicate[]): string {
   return edited > 0 ? `${editedPart(true)}.` : `${otherPart(true)}.`;
 }
 
-function CardSummary({ card, deck, newer }: { card: Card; deck: string; newer: boolean }) {
+type Side = 'old' | 'new';
+
+/**
+ * Text with the parts that differ from the other version marked: removed text is
+ * struck through on "You have", added text highlighted on "In the backup".
+ */
+function DiffText({ text, other, side }: { text: string; other: string; side: Side }) {
+  if (text === other) return <>{text}</>;
+  const diff = side === 'old' ? diffText(text, other).before : diffText(other, text).after;
+  return (
+    <>
+      {diff.map((seg, i) =>
+        !seg.changed ? (
+          <span key={i}>{seg.text}</span>
+        ) : side === 'old' ? (
+          <del key={i} class="diff-del">
+            {seg.text}
+          </del>
+        ) : (
+          <ins key={i} class="diff-add">
+            {seg.text}
+          </ins>
+        ),
+      )}
+    </>
+  );
+}
+
+/** One field line; it gets a coloured bar when it differs from the other version. */
+function Field({
+  changed,
+  class: cls = '',
+  children,
+}: {
+  changed: boolean;
+  class?: string;
+  children: ComponentChildren;
+}) {
+  return <div class={`${cls}${changed ? ' diff-field' : ''}`}>{children}</div>;
+}
+
+function CardSummary({
+  card,
+  other,
+  side,
+  deck,
+  otherDeck,
+  newer,
+}: {
+  card: Card;
+  /** The version on the other side, to highlight differences against. */
+  other: Card;
+  side: Side;
+  deck: string;
+  otherDeck: string;
+  newer: boolean;
+}) {
+  const otherTags = new Set(other.tags);
+  const tagsChanged = card.tags.length !== other.tags.length || card.tags.some((t) => !otherTags.has(t));
+  const charsChanged = card.traditional !== other.traditional || card.simplified !== other.simplified;
   return (
     <div class="stack-tight">
-      <div class="row">
-        <Trad text={card.traditional} class="card-row-hanzi" />
-        {card.simplified !== card.traditional && <Simp text={card.simplified} class="muted" />}
-        <Pinyin text={card.pinyin} />
-      </div>
-      <div class="small">{card.meaning}</div>
-      {card.notes && <div class="small muted">Notes: {card.notes}</div>}
-      {card.tags.length > 0 && <div class="small muted">Tags: {card.tags.join(', ')}</div>}
+      <Field changed={charsChanged || card.pinyin !== other.pinyin} class="row">
+        <span lang="zh-Hant" class="hanzi-trad card-row-hanzi">
+          <DiffText text={card.traditional} other={other.traditional} side={side} />
+        </span>
+        {(card.simplified !== card.traditional || other.simplified !== other.traditional) && (
+          <span lang="zh-Hans" class="hanzi-simp muted">
+            <DiffText text={card.simplified} other={other.simplified} side={side} />
+          </span>
+        )}
+        {card.pinyin === other.pinyin ? (
+          <Pinyin text={card.pinyin} />
+        ) : (
+          <span class="pinyin">
+            <DiffText text={card.pinyin} other={other.pinyin} side={side} />
+          </span>
+        )}
+      </Field>
+      <Field changed={card.meaning !== other.meaning} class="small">
+        <DiffText text={card.meaning} other={other.meaning} side={side} />
+      </Field>
+      {(card.notes || other.notes) && (
+        <Field changed={card.notes !== other.notes} class="small muted">
+          {card.notes ? (
+            <>
+              Notes: <DiffText text={card.notes} other={other.notes} side={side} />
+            </>
+          ) : (
+            <em>(no notes)</em>
+          )}
+        </Field>
+      )}
+      {(card.tags.length > 0 || other.tags.length > 0) && (
+        <Field changed={tagsChanged} class="small muted">
+          {card.tags.length === 0 ? (
+            <em>(no tags)</em>
+          ) : (
+            <>
+              Tags:{' '}
+              {card.tags.map((tag, i) => (
+                <span key={tag}>
+                  {i > 0 && ', '}
+                  {otherTags.has(tag) ? (
+                    tag
+                  ) : side === 'old' ? (
+                    <del class="diff-del">{tag}</del>
+                  ) : (
+                    <ins class="diff-add">{tag}</ins>
+                  )}
+                </span>
+              ))}
+            </>
+          )}
+        </Field>
+      )}
+      {card.kind !== other.kind && (
+        <Field changed class="small muted">
+          {side === 'old' ? <del class="diff-del">{card.kind}</del> : <ins class="diff-add">{card.kind}</ins>}
+        </Field>
+      )}
       <div class="row small muted">
-        <span class="badge">{deck}</span>
+        <span class={`badge${deck !== otherDeck ? ' diff-badge' : ''}`}>{deck}</span>
         <span>Changed {new Date(card.updatedAt).toLocaleString()}</span>
         {newer && <span class="badge ok">Newer</span>}
       </div>
@@ -436,7 +548,10 @@ function DuplicateChooser({
                   <CardSummary
                     key={card.id}
                     card={card}
+                    other={incoming}
+                    side="old"
                     deck={localDeckName(card.deckId)}
+                    otherDeck={incomingDeckName(incoming)}
                     newer={card.updatedAt > incoming.updatedAt}
                   />
                 ))}
@@ -454,7 +569,10 @@ function DuplicateChooser({
                 <div class="dup-label">In the backup</div>
                 <CardSummary
                   card={incoming}
+                  other={existing[0] ?? incoming}
+                  side="new"
                   deck={incomingDeckName(incoming)}
+                  otherDeck={existing[0] ? localDeckName(existing[0].deckId) : incomingDeckName(incoming)}
                   newer={incoming.updatedAt > mineLatest}
                 />
                 <button

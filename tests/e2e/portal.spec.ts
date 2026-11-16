@@ -374,6 +374,11 @@ test('re-importing an edited backup from the same device asks about each edited 
   await expect(pairs.nth(0)).toContainText('Tags: test');
   await expect(pairs.nth(1)).toContainText('Differs in meaning');
   await expect(pairs.nth(1).locator('.dup-card').nth(1)).toContainText('Newer');
+  // The exact differences are highlighted: added text and tags on the backup's side.
+  await expect(pairs.nth(0).locator('ins')).toHaveText('test');
+  await expect(pairs.nth(0).locator('.dup-card').first()).toContainText('(no tags)');
+  await expect(pairs.nth(1).locator('ins')).toHaveText('. test');
+  await expect(pairs.nth(1).locator('del')).toHaveCount(0);
 
   // Take the edited meaning, keep your version of the tags.
   await pairs

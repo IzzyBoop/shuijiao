@@ -23,7 +23,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 - **Handle duplicates when importing**: if a backup has cards with the same characters as cards
   you already have, including edited copies of your own cards from an earlier or later backup,
   choose to keep yours, keep the backup's, or choose card by card on a side-by-side list (20
-  pairs per page). Each pair says what differs (meaning, notes, tags, and so on), shows both
+  pairs per page). Each pair says what differs (meaning, notes, tags, and so on), highlights the
+  exact words, characters, and tags that were added or removed, shows both
   versions with their deck and when they last changed, and marks the newer one. Identical copies
   are skipped without asking. Importing now happens on its own page.
 
