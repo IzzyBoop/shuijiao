@@ -115,6 +115,25 @@ function changelogPlugin(): Plugin {
   };
 }
 
+/**
+ * The version shown in the app comes from package.json, which is read when the dev
+ * server starts. Restart the dev server when package.json changes (for example after
+ * tools/release.sh), so it never shows an old version.
+ */
+function restartOnPackageChange(): Plugin {
+  return {
+    name: 'portal:restart-on-package-change',
+    apply: 'serve',
+    configureServer(server) {
+      const file = resolve('package.json');
+      server.watcher.add(file);
+      server.watcher.on('change', (changed) => {
+        if (resolve(changed) === file) void server.restart();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
@@ -123,7 +142,7 @@ export default defineConfig({
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },
-  plugins: [cspPlugin(), serviceWorkerPlugin(), changelogPlugin()],
+  plugins: [cspPlugin(), serviceWorkerPlugin(), changelogPlugin(), restartOnPackageChange()],
   build: {
     target: 'es2022',
     sourcemap: false,
