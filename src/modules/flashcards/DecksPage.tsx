@@ -1,9 +1,9 @@
 import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
 import { href } from '../../core/router';
-import { DEFAULT_DECK_ID } from '../../core/db/defaults';
 import { LIMITS, newId, type Deck } from '../../core/db/model';
 import { cleanText } from '../../core/safe/text';
+import { Dialog } from '../../core/ui/Dialog';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 
@@ -39,18 +39,8 @@ export function DecksPage() {
     data.reload();
   };
 
-  const remove = async (deck: Deck, count: number) => {
-    const msg = count
-      ? `Delete “${deck.name}” and its ${count} cards? This cannot be undone (unless you have a backup).`
-      : `Delete “${deck.name}”?`;
-    if (!window.confirm(msg)) return;
-    try {
-      await store.deleteDeck(deck.id);
-      data.reload();
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  };
+  const [deleting, setDeleting] = useState<Deck | null>(null);
+  const decks = data.data?.decks ?? [];
 
   return (
     <>
@@ -82,7 +72,7 @@ export function DecksPage() {
       </form>
       <section class="panel">
         <ul class="list">
-          {(data.data?.decks ?? []).map((d) => {
+          {decks.map((d) => {
             const count = data.data?.counts.get(d.id) ?? 0;
             return (
               <li key={d.id}>
@@ -90,7 +80,9 @@ export function DecksPage() {
                   <a class="truncate" href={href(`/cards/deck/${d.id}`)}>
                     {d.name}
                   </a>
-                  <div class="small muted">{count} cards</div>
+                  <div class="small muted">
+                    {count} card{count === 1 ? '' : 's'}
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -100,21 +92,146 @@ export function DecksPage() {
                 >
                   <Icon name="edit" />
                 </button>
-                {d.id !== DEFAULT_DECK_ID && (
-                  <button
-                    type="button"
-                    class="icon-only ghost danger"
-                    aria-label={`Delete ${d.name}`}
-                    onClick={() => void remove(d, count)}
-                  >
-                    <Icon name="trash" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  class="icon-only ghost danger"
+                  aria-label={`Delete ${d.name}`}
+                  disabled={decks.length <= 1}
+                  title={decks.length <= 1 ? 'You need at least one deck' : undefined}
+                  onClick={() => {
+                    setError(null);
+                    setDeleting(d);
+                  }}
+                >
+                  <Icon name="trash" />
+                </button>
               </li>
             );
           })}
         </ul>
       </section>
+      {decks.length <= 1 && (
+        <p class="small muted">You need at least one deck, so the last one can't be deleted.</p>
+      )}
+
+      {deleting && (
+        <DeleteDeckDialog
+          deck={deleting}
+          count={data.data?.counts.get(deleting.id) ?? 0}
+          others={decks.filter((d) => d.id !== deleting.id)}
+          onClose={() => {
+            setDeleting(null);
+          }}
+          onDone={(err) => {
+            setDeleting(null);
+            if (err) setError(err);
+            data.reload();
+          }}
+        />
+      )}
     </>
+  );
+}
+
+/** Asks what to do with a deck's cards before deleting it. */
+function DeleteDeckDialog({
+  deck,
+  count,
+  others,
+  onClose,
+  onDone,
+}: {
+  deck: Deck;
+  count: number;
+  others: readonly Deck[];
+  onClose: () => void;
+  onDone: (error?: string) => void;
+}) {
+  const [mode, setMode] = useState<'move' | 'delete'>('move');
+  const [target, setTarget] = useState(others[0]?.id ?? '');
+  const [busy, setBusy] = useState(false);
+  const cards = `${count} card${count === 1 ? '' : 's'}`;
+
+  const confirm = async () => {
+    setBusy(true);
+    try {
+      await store.deleteDeck(deck.id, count > 0 && mode === 'move' ? target : undefined);
+      onDone();
+    } catch (err) {
+      onDone(errorMessage(err));
+    }
+  };
+
+  return (
+    <Dialog
+      open
+      title={`Delete “${deck.name}”?`}
+      onClose={onClose}
+      actions={
+        <>
+          <button type="button" class="primary" autofocus onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" class="danger" disabled={busy} onClick={() => void confirm()}>
+            <Icon name="trash" />{' '}
+            {count > 0 && mode === 'delete' ? `Delete deck and ${cards}` : 'Delete deck'}
+          </button>
+        </>
+      }
+    >
+      {count === 0 ? (
+        <p>This deck is empty.</p>
+      ) : (
+        <fieldset class="choice-group">
+          <legend>
+            It has {cards}. What should happen to {count === 1 ? 'it' : 'them'}?
+          </legend>
+          <label class="check">
+            <input
+              type="radio"
+              name="deck-cards"
+              checked={mode === 'move'}
+              onChange={() => {
+                setMode('move');
+              }}
+            />
+            Move {count === 1 ? 'it' : 'them'} to
+            <select
+              aria-label="Deck to move the cards to"
+              value={target}
+              onFocus={() => {
+                setMode('move');
+              }}
+              onChange={(e) => {
+                setTarget(e.currentTarget.value);
+                setMode('move');
+              }}
+            >
+              {others.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label class="check">
+            <input
+              type="radio"
+              name="deck-cards"
+              checked={mode === 'delete'}
+              onChange={() => {
+                setMode('delete');
+              }}
+            />
+            Delete {count === 1 ? 'it' : 'them'} too, with {count === 1 ? 'its' : 'their'} study history
+          </label>
+        </fieldset>
+      )}
+      <p class="small muted">
+        {count > 0 && mode === 'delete'
+          ? "This can't be undone unless you have a backup."
+          : 'Moved cards keep their study progress.'}
+      </p>
+    </Dialog>
   );
 }

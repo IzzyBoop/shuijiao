@@ -164,6 +164,15 @@ export function CardEditor({ params }: RouteProps) {
     });
   }, [editingId]);
 
+  // New cards start in "My cards" (or the deck you came from). If that deck no longer
+  // exists, switch to one that does, so a card can never be saved into a deleted deck.
+  useEffect(() => {
+    const list = decks.data;
+    const first = list?.[0];
+    if (!list || !first || list.some((d) => d.id === draft.deckId)) return;
+    setDraft((d) => ({ ...d, deckId: first.id }));
+  }, [decks.data, draft.deckId]);
+
   // Warn about duplicates as soon as the characters are known (ignoring the card being edited).
   useEffect(() => {
     if (!draft.simplified.trim() && !draft.traditional.trim()) {

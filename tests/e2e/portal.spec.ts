@@ -272,6 +272,34 @@ test('browse cards by deck, quick-edit, delete with undo, and move in bulk', asy
   await expect(page.locator('.card-list > li')).toHaveCount(3);
 });
 
+test('"My cards" can be deleted, moving its cards to another deck', async ({ page }) => {
+  await addCard(page, '你好');
+  await page.goto('./#/decks');
+  // With only one deck, it can't be deleted.
+  await expect(page.getByRole('button', { name: 'Delete My cards' })).toBeDisabled();
+
+  await page.getByLabel('New deck name').fill('Lesson 1');
+  await page.getByRole('button', { name: 'Add deck' }).click();
+  await page.getByRole('button', { name: 'Delete My cards' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Delete “My cards”?' });
+  await expect(dialog).toContainText('It has 1 card');
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
+  await expect(dialog.getByLabel('Deck to move the cards to')).toHaveValue(/.+/);
+  await dialog.getByRole('button', { name: 'Delete deck' }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(page.getByRole('link', { name: 'My cards' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Lesson 1' }).click();
+  await expect(page.getByText('你好')).toBeVisible();
+
+  // New cards now default to a deck that exists.
+  await addCard(page, '谢谢');
+  await page.goto('./#/cards');
+  await expect(page.getByText('謝謝')).toBeVisible();
+  await expect(page.locator('.card-list .badge', { hasText: 'Lesson 1' })).toHaveCount(2);
+});
+
 test('students can add their own links, safely', async ({ page }) => {
   await page.goto('./#/resources');
   const address = page.getByLabel('Web address');

@@ -14,6 +14,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   (in either script), a popup shows the existing card and asks whether to add it anyway, open
   the existing card, or not add it. The warning also appears at the top of the form, and the
   same check applies when you edit a card to match another one.
+- **Delete any deck, including My cards**: when a deck still has cards, you choose whether to
+  move them to another deck (keeping their study progress) or delete them too. The last
+  remaining deck can't be deleted, so every card always has a home.
 
 ### Changed
 

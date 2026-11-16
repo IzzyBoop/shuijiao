@@ -247,3 +247,53 @@ describe('LocalStudyStore bulk card operations', () => {
     await expect(store.moveCards(['b'], 'no-such-deck')).rejects.toThrow(/no longer exists/);
   });
 });
+
+describe('LocalStudyStore deck deletion', () => {
+  const deck = (id: string, name: string, createdAt: number) => ({
+    id,
+    name,
+    createdAt,
+    updatedAt: createdAt,
+    deleted: 0 as const,
+  });
+
+  it('can delete "My cards", moving its cards to another deck', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await store.saveDeck(deck('l1', 'Lesson 1', 5));
+    await store.saveCard(card({ id: 'a' }));
+    await store.deleteDeck(DEFAULT_DECK_ID, 'l1');
+    expect((await store.listDecks()).map((d) => d.id)).toEqual(['l1']);
+    expect((await store.getCard('a'))?.deckId).toBe('l1');
+  });
+
+  it('deletes the cards too when not moving them', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await store.saveDeck(deck('l1', 'Lesson 1', 5));
+    await store.saveCard(card({ id: 'a' }));
+    await store.deleteDeck(DEFAULT_DECK_ID);
+    expect(await store.countCards()).toBe(0);
+  });
+
+  it('refuses to delete the last deck, or to move cards into the deck being deleted', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await expect(store.deleteDeck(DEFAULT_DECK_ID)).rejects.toThrow(/at least one deck/);
+    await store.saveDeck(deck('l1', 'Lesson 1', 5));
+    await expect(store.deleteDeck('l1', 'l1')).rejects.toThrow(/another deck/);
+    await expect(store.deleteDeck('l1', 'no-such-deck')).rejects.toThrow(/another deck/);
+  });
+
+  it('imports cards from a deleted or missing deck into a deck that still exists', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await store.saveDeck(deck('l1', 'Lesson 1', 5));
+    await store.deleteDeck(DEFAULT_DECK_ID, 'l1');
+    // An older backup still has its cards in "My cards".
+    await store.applyImport(
+      backup({
+        decks: [deck(DEFAULT_DECK_ID, 'My cards', 1)],
+        cards: [card({ id: 'x', deckId: DEFAULT_DECK_ID }), card({ id: 'y', deckId: 'gone' })],
+      }),
+    );
+    expect((await store.listDecks()).map((d) => d.id)).toEqual(['l1']);
+    expect((await store.listCards('l1')).map((c) => c.id).sort()).toEqual(['x', 'y']);
+  });
+});

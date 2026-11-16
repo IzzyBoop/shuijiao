@@ -999,3 +999,21 @@ a > .icon {
 .duplicate-list li + li {
   margin-top: 8px;
 }
+
+.choice-group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.choice-group legend {
+  padding: 0;
+  margin-bottom: 4px;
+}
+
+.choice-group select {
+  width: auto;
+  max-width: 100%;
+}

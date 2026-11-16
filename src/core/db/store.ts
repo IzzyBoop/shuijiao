@@ -1,6 +1,6 @@
 import { PortalDB } from './database';
 import { BACKUP_FORMAT, BACKUP_VERSION, type Backup } from './backup-schema';
-import { builtinTemplates, DEFAULT_DECK_ID, defaultDeck } from './defaults';
+import { builtinTemplates, defaultDeck } from './defaults';
 import {
   LIMITS,
   stateKey,
@@ -36,7 +36,11 @@ export interface ImportPreview {
 export interface StudyStore {
   listDecks(): Promise<Deck[]>;
   saveDeck(deck: Deck): Promise<void>;
-  deleteDeck(id: string): Promise<void>;
+  /**
+   * Deletes a deck. Its cards move to `moveCardsTo` if given, otherwise they are deleted
+   * too. The last remaining deck can't be deleted, so every card always has a home.
+   */
+  deleteDeck(id: string, moveCardsTo?: string): Promise<void>;
 
   listCards(deckId?: string): Promise<Card[]>;
   getCard(id: string): Promise<Card | undefined>;
@@ -85,12 +89,24 @@ export class LocalStudyStore implements StudyStore {
   async saveDeck(deck: Deck) {
     await this.db.decks.put({ ...deck, updatedAt: Date.now() });
   }
-  async deleteDeck(id: string) {
-    if (id === DEFAULT_DECK_ID) throw new Error('The default deck cannot be deleted.');
+  async deleteDeck(id: string, moveCardsTo?: string) {
     const now = Date.now();
     await this.db.transaction('rw', this.db.decks, this.db.cards, async () => {
+      const remaining = live(await this.db.decks.toArray());
+      if (!remaining.some((d) => d.id === id)) return;
+      if (remaining.length <= 1) {
+        throw new Error('You need at least one deck. Create another deck before deleting this one.');
+      }
+      const cards = this.db.cards.where('deckId').equals(id);
+      if (moveCardsTo !== undefined) {
+        if (moveCardsTo === id || !remaining.some((d) => d.id === moveCardsTo)) {
+          throw new Error('Choose another deck to move the cards to.');
+        }
+        await cards.modify({ deckId: moveCardsTo, updatedAt: now });
+      } else {
+        await cards.modify({ deleted: 1, updatedAt: now });
+      }
       await this.db.decks.update(id, { deleted: 1, updatedAt: now });
-      await this.db.cards.where('deckId').equals(id).modify({ deleted: 1, updatedAt: now });
     });
   }
 
@@ -234,11 +250,23 @@ export class LocalStudyStore implements StudyStore {
       .map((t) => ({ ...t, builtin: false }));
     const templates = await this.mergeRows(this.db.templates, templateRows, (r) => r.id);
 
-    const deckIds = new Set([
-      ...(await this.db.decks.toCollection().primaryKeys()),
-      ...backup.decks.map((d) => d.id),
-    ]);
-    const cardRows = backup.cards.map((c) => (deckIds.has(c.deckId) ? c : { ...c, deckId: DEFAULT_DECK_ID }));
+    // Cards can only go into decks that will still exist (not deleted) after the import.
+    // Cards whose deck is missing or deleted go to the oldest remaining deck; if there is
+    // none at all, a fresh "My cards" deck is created for them.
+    const finalDecks = new Map((await this.db.decks.toArray()).map((d) => [d.id, d]));
+    for (const d of decks.toWrite) finalDecks.set(d.id, d);
+    const liveDecks = live([...finalDecks.values()]).sort((a, b) => a.createdAt - b.createdAt);
+    const liveDeckIds = new Set(liveDecks.map((d) => d.id));
+    let fallbackDeckId = liveDecks[0]?.id;
+    if (!fallbackDeckId && backup.cards.length > 0) {
+      const fresh = defaultDeck(Date.now());
+      decks.toWrite.push(fresh);
+      decks.counts.added++;
+      fallbackDeckId = fresh.id;
+    }
+    const cardRows = backup.cards.map((c) =>
+      liveDeckIds.has(c.deckId) || !fallbackDeckId ? c : { ...c, deckId: fallbackDeckId },
+    );
     const cards = await this.mergeRows(this.db.cards, cardRows, (r) => r.id);
 
     const cardIds = new Set([
