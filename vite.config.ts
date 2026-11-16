@@ -3,7 +3,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
-import { join, relative, sep } from 'node:path';
+import { join, relative, resolve, sep } from 'node:path';
 import { parseChangelog } from './tools/changelog.ts';
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
@@ -103,8 +103,10 @@ function changelogPlugin(): Plugin {
     },
     load(source) {
       if (source !== resolved) return null;
-      this.addWatchFile('CHANGELOG.md');
-      const releases = parseChangelog(readFileSync('CHANGELOG.md', 'utf8')).filter(
+      // Absolute path: in dev, a relative one is mistaken for an import of the virtual module.
+      const file = resolve('CHANGELOG.md');
+      this.addWatchFile(file);
+      const releases = parseChangelog(readFileSync(file, 'utf8')).filter(
         (r) => r.version !== 'Unreleased',
       );
       if (isBuild && !releases.some((r) => r.version === pkg.version)) {
