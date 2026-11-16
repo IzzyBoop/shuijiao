@@ -1,8 +1,9 @@
 import { PortalDB } from './database';
 import { BACKUP_FORMAT, BACKUP_VERSION, type Backup } from './backup-schema';
-import { builtinTemplates, defaultDeck } from './defaults';
+import { builtinTemplates, DEFAULT_DECK_ID, defaultDeck } from './defaults';
 import {
   LIMITS,
+  newId,
   stateKey,
   type Card,
   type Deck,
@@ -18,7 +19,23 @@ export interface MergeCounts {
   skipped: number;
 }
 
+/** Where imported cards go. */
+export type ImportDeckMode =
+  /** Back into the decks they came from; missing or deleted decks are (re)created. */
+  | 'keep'
+  /** All into "My cards", which is created or restored if needed. */
+  | 'my-cards';
+
+export interface ImportOptions {
+  deckMode: ImportDeckMode;
+}
+
+const DEFAULT_IMPORT: ImportOptions = { deckMode: 'keep' };
+const MY_CARDS = 'My cards';
+
 export interface ImportPreview {
+  /** Names of decks the import creates or restores. */
+  decksCreated: string[];
   decks: MergeCounts;
   cards: MergeCounts;
   templates: MergeCounts;
@@ -69,8 +86,8 @@ export interface StudyStore {
   deleteLink(id: string): Promise<void>;
 
   exportBackup(): Promise<Backup>;
-  previewImport(backup: Backup): Promise<ImportPreview>;
-  applyImport(backup: Backup): Promise<ImportPreview>;
+  previewImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
+  applyImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
   eraseAll(): Promise<void>;
 
   getMeta(key: string): Promise<string | number | undefined>;
@@ -239,34 +256,97 @@ export class LocalStudyStore implements StudyStore {
   }
 
   /** Works out what an import would change, without writing anything. */
-  private async plan(backup: Backup) {
+  /**
+   * Decides which deck each imported card goes into and which decks must be written.
+   * 'keep': cards go back to their own decks; decks that don't exist here (or were
+   *   deleted) are created/restored from the file. Cards whose deck isn't in the file
+   *   go to "My cards".
+   * 'my-cards': every card goes to "My cards"; the file's decks are ignored.
+   * "My cards" means the live deck with that name; if there is none, it is restored
+   * (if it was deleted) or created.
+   */
+  private async planDecks(backup: Backup, mode: ImportDeckMode) {
+    const now = Date.now();
+    const local = new Map((await this.db.decks.toArray()).map((d) => [d.id, d]));
+    const writes = new Map<string, Deck>();
+    const created = new Set<string>();
+    const final = (id: string) => writes.get(id) ?? local.get(id);
+    const write = (deck: Deck) => {
+      writes.set(deck.id, deck);
+      if (deck.deleted === 0 && local.get(deck.id)?.deleted !== 0) created.add(deck.name);
+    };
+
+    let myCardsId: string | null = null;
+    const myCards = (): string => {
+      if (myCardsId) return myCardsId;
+      const all = new Map([...local, ...writes]);
+      const named = [...all.values()].find(
+        (d) => d.deleted === 0 && d.name.trim().toLowerCase() === 'my cards',
+      );
+      if (named) return (myCardsId = named.id);
+      const original = all.get(DEFAULT_DECK_ID);
+      const deck: Deck =
+        !original || original.deleted === 1
+          ? { ...defaultDeck(now), name: MY_CARDS, createdAt: original?.createdAt ?? now }
+          : // The original deck was renamed and is still in use: make a new "My cards".
+            { id: newId(), name: MY_CARDS, createdAt: now, updatedAt: now, deleted: 0 };
+      write(deck);
+      return (myCardsId = deck.id);
+    };
+
+    const liveCards = backup.cards.filter((c) => c.deleted === 0);
+    let deckIdFor: (deckId: string) => string;
+
+    if (mode === 'my-cards') {
+      if (liveCards.length > 0) myCards();
+      deckIdFor = () => myCards();
+    } else {
+      const merged = await this.mergeRows(this.db.decks, backup.decks, (r) => r.id);
+      for (const d of merged.toWrite) write(d);
+      const fromFile = new Map(backup.decks.map((d) => [d.id, d]));
+      deckIdFor = (deckId) => {
+        if (final(deckId)?.deleted === 0) return deckId;
+        const described = fromFile.get(deckId);
+        if (!described) return myCards();
+        // The deck is in the file but missing or deleted here: bring it (back) in.
+        write({ ...(final(deckId) ?? described), name: described.name, deleted: 0, updatedAt: now });
+        return deckId;
+      };
+    }
+
+    const cardRows = backup.cards.map((c) => {
+      if (c.deleted === 1) return c;
+      const target = deckIdFor(c.deckId);
+      return target === c.deckId ? c : { ...c, deckId: target };
+    });
+
+    const deckRows = [...writes.values()];
+    const counts: MergeCounts = {
+      added: deckRows.filter((d) => !local.has(d.id)).length,
+      updated: deckRows.filter((d) => local.has(d.id)).length,
+      skipped: backup.decks.filter((d) => !writes.has(d.id)).length,
+    };
+    const liveAfter = new Set(
+      [...local.values(), ...deckRows].filter((d) => final(d.id)?.deleted === 0).map((d) => d.id),
+    );
+    if (liveAfter.size > LIMITS.decks) {
+      throw new Error(`Import would exceed the limit of ${LIMITS.decks} decks.`);
+    }
+    return { cardRows, deckRows, counts, created: [...created] };
+  }
+
+  private async plan(backup: Backup, { deckMode }: ImportOptions) {
     const builtinIds = new Set(builtinTemplates(0).map((t) => t.id));
     const orphansBefore = backup.cards.length + backup.reviewStates.length + backup.reviewLogs.length;
 
-    const decks = await this.mergeRows(this.db.decks, backup.decks, (r) => r.id);
+    const decks = await this.planDecks(backup, deckMode);
     // Built-in templates are never overwritten from a file; custom ones are always marked non-builtin.
     const templateRows = backup.templates
       .filter((t) => !builtinIds.has(t.id))
       .map((t) => ({ ...t, builtin: false }));
     const templates = await this.mergeRows(this.db.templates, templateRows, (r) => r.id);
 
-    // Cards can only go into decks that will still exist (not deleted) after the import.
-    // Cards whose deck is missing or deleted go to the oldest remaining deck; if there is
-    // none at all, a fresh "My cards" deck is created for them.
-    const finalDecks = new Map((await this.db.decks.toArray()).map((d) => [d.id, d]));
-    for (const d of decks.toWrite) finalDecks.set(d.id, d);
-    const liveDecks = live([...finalDecks.values()]).sort((a, b) => a.createdAt - b.createdAt);
-    const liveDeckIds = new Set(liveDecks.map((d) => d.id));
-    let fallbackDeckId = liveDecks[0]?.id;
-    if (!fallbackDeckId && backup.cards.length > 0) {
-      const fresh = defaultDeck(Date.now());
-      decks.toWrite.push(fresh);
-      decks.counts.added++;
-      fallbackDeckId = fresh.id;
-    }
-    const cardRows = backup.cards.map((c) =>
-      liveDeckIds.has(c.deckId) || !fallbackDeckId ? c : { ...c, deckId: fallbackDeckId },
-    );
+    const cardRows = decks.cardRows;
     const cards = await this.mergeRows(this.db.cards, cardRows, (r) => r.id);
 
     const cardIds = new Set([
@@ -301,7 +381,7 @@ export class LocalStudyStore implements StudyStore {
     const orphans = orphansBefore - (cardRows.length + stateRows.length + logRows.length);
     return {
       writes: {
-        decks: decks.toWrite,
+        decks: decks.deckRows,
         templates: templates.toWrite,
         cards: cards.toWrite,
         reviewStates: reviewStates.toWrite,
@@ -309,6 +389,7 @@ export class LocalStudyStore implements StudyStore {
         links: links.toWrite,
       },
       preview: {
+        decksCreated: decks.created,
         decks: decks.counts,
         templates: templates.counts,
         cards: cards.counts,
@@ -344,17 +425,17 @@ export class LocalStudyStore implements StudyStore {
     return { counts, toWrite };
   }
 
-  async previewImport(backup: Backup) {
-    return (await this.plan(backup)).preview;
+  async previewImport(backup: Backup, options: ImportOptions = DEFAULT_IMPORT) {
+    return (await this.plan(backup, options)).preview;
   }
 
-  async applyImport(backup: Backup) {
+  async applyImport(backup: Backup, options: ImportOptions = DEFAULT_IMPORT) {
     const db = this.db;
     return db.transaction(
       'rw',
       [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs, db.links],
       async () => {
-        const { writes, preview } = await this.plan(backup);
+        const { writes, preview } = await this.plan(backup, options);
         await db.links.bulkPut(writes.links);
         await db.decks.bulkPut(writes.decks);
         await db.templates.bulkPut(writes.templates);

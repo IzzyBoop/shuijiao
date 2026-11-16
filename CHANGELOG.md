@@ -17,6 +17,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 - **Delete any deck, including My cards**: when a deck still has cards, you choose whether to
   move them to another deck (keeping their study progress) or delete them too. The last
   remaining deck can't be deleted, so every card always has a home.
+- **Choose where imported cards go**: when importing a backup, put the cards back into the decks
+  they came from (any that don't exist are created, and deleted ones are restored), or put them
+  all into "My cards" (created if you don't have it). The preview names the decks it will create.
 
 ### Changed
 

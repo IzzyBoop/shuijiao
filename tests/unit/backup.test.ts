@@ -282,18 +282,77 @@ describe('LocalStudyStore deck deletion', () => {
     await expect(store.deleteDeck('l1', 'no-such-deck')).rejects.toThrow(/another deck/);
   });
 
-  it('imports cards from a deleted or missing deck into a deck that still exists', async () => {
+  it('"keep" restores a deleted deck from the file and sends deckless cards to My cards', async () => {
     const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
     await store.saveDeck(deck('l1', 'Lesson 1', 5));
     await store.deleteDeck(DEFAULT_DECK_ID, 'l1');
-    // An older backup still has its cards in "My cards".
-    await store.applyImport(
-      backup({
-        decks: [deck(DEFAULT_DECK_ID, 'My cards', 1)],
-        cards: [card({ id: 'x', deckId: DEFAULT_DECK_ID }), card({ id: 'y', deckId: 'gone' })],
-      }),
-    );
-    expect((await store.listDecks()).map((d) => d.id)).toEqual(['l1']);
-    expect((await store.listCards('l1')).map((c) => c.id).sort()).toEqual(['x', 'y']);
+    // An older backup still has its cards in "My cards", plus one whose deck isn't in the file.
+    const file = backup({
+      decks: [deck(DEFAULT_DECK_ID, 'My cards', 1)],
+      cards: [card({ id: 'x', deckId: DEFAULT_DECK_ID }), card({ id: 'y', deckId: 'gone' })],
+    });
+    expect((await store.previewImport(file, { deckMode: 'keep' })).decksCreated).toEqual(['My cards']);
+    await store.applyImport(file, { deckMode: 'keep' });
+    expect((await store.listDecks()).map((d) => d.name)).toEqual(['Lesson 1', 'My cards']);
+    expect((await store.listCards(DEFAULT_DECK_ID)).map((c) => c.id).sort()).toEqual(['x', 'y']);
+  });
+});
+
+describe('LocalStudyStore import deck choice', () => {
+  const deck = (id: string, name: string) => ({
+    id,
+    name,
+    createdAt: 1,
+    updatedAt: 1,
+    deleted: 0 as const,
+  });
+  const file = () =>
+    backup({
+      decks: [deck('l1', 'Lesson 1'), deck('l2', 'Lesson 2')],
+      cards: [
+        card({ id: 'a', deckId: 'l1' }),
+        card({ id: 'b', deckId: 'l2' }),
+        card({ id: 'c', deckId: 'l2' }),
+      ],
+    });
+  const fresh = () => new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+
+  it('"keep" creates the decks the cards came from', async () => {
+    const store = fresh();
+    const preview = await store.previewImport(file(), { deckMode: 'keep' });
+    expect(preview.decksCreated).toEqual(['Lesson 1', 'Lesson 2']);
+    await store.applyImport(file(), { deckMode: 'keep' });
+    expect((await store.listCards('l2')).map((c) => c.id).sort()).toEqual(['b', 'c']);
+    expect((await store.listDecks()).map((d) => d.name)).toEqual(['Lesson 1', 'Lesson 2', 'My cards']);
+  });
+
+  it('"my-cards" puts everything in My cards and creates no other decks', async () => {
+    const store = fresh();
+    const preview = await store.previewImport(file(), { deckMode: 'my-cards' });
+    expect(preview.decksCreated).toEqual([]);
+    await store.applyImport(file(), { deckMode: 'my-cards' });
+    expect((await store.listDecks()).map((d) => d.name)).toEqual(['My cards']);
+    expect((await store.listCards(DEFAULT_DECK_ID)).map((c) => c.id).sort()).toEqual(['a', 'b', 'c']);
+  });
+
+  it('"my-cards" brings My cards back if it was deleted', async () => {
+    const store = fresh();
+    await store.saveDeck(deck('mine', 'Lesson 9'));
+    await store.deleteDeck(DEFAULT_DECK_ID);
+    expect((await store.previewImport(file(), { deckMode: 'my-cards' })).decksCreated).toEqual(['My cards']);
+    await store.applyImport(file(), { deckMode: 'my-cards' });
+    expect((await store.listDecks()).map((d) => d.name)).toEqual(['Lesson 9', 'My cards']);
+    expect(await store.countCards()).toBe(3);
+  });
+
+  it('"my-cards" makes a new My cards if the original was renamed', async () => {
+    const store = fresh();
+    await store.saveDeck({ ...deck(DEFAULT_DECK_ID, 'Homework'), createdAt: 0 });
+    await store.applyImport(file(), { deckMode: 'my-cards' });
+    const decks = await store.listDecks();
+    expect(decks.map((d) => d.name)).toEqual(['Homework', 'My cards']);
+    const myCards = decks.find((d) => d.name === 'My cards');
+    expect((await store.listCards(myCards?.id)).length).toBe(3);
+    expect((await store.listCards(DEFAULT_DECK_ID)).length).toBe(0);
   });
 });

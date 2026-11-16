@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
 import { parseBackup, type Backup } from '../../core/db/backup-schema';
 import { LIMITS } from '../../core/db/model';
-import { store, type ImportPreview } from '../../core/db/store';
+import { store, type ImportDeckMode, type ImportPreview } from '../../core/db/store';
+import { andList } from '../../core/format';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 
@@ -21,7 +22,7 @@ function downloadJson(data: unknown, fileName: string): void {
 }
 
 function PreviewTable({ preview }: { preview: ImportPreview }) {
-  const rows: [string, keyof Omit<ImportPreview, 'orphans'>][] = [
+  const rows: [string, keyof Omit<ImportPreview, 'orphans' | 'decksCreated'>][] = [
     ['Decks', 'decks'],
     ['Cards', 'cards'],
     ['Card types', 'templates'],
@@ -56,9 +57,12 @@ function PreviewTable({ preview }: { preview: ImportPreview }) {
 export function BackupPanel() {
   const lastBackup = useAsync(() => store.getMeta('lastBackupAt'), []);
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
-  const [pending, setPending] = useState<{ backup: Backup; preview: ImportPreview; name: string } | null>(
-    null,
-  );
+  const [pending, setPending] = useState<{
+    backup: Backup;
+    preview: ImportPreview;
+    name: string;
+    deckMode: ImportDeckMode;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const exportNow = async () => {
@@ -100,8 +104,8 @@ export function BackupPanel() {
         setStatus({ kind: 'error', text: `This file can't be imported. ${result.errors.join(' ')}` });
         return;
       }
-      const preview = await store.previewImport(result.backup);
-      setPending({ backup: result.backup, preview, name: file.name.slice(0, 100) });
+      const preview = await store.previewImport(result.backup, { deckMode: 'keep' });
+      setPending({ backup: result.backup, preview, name: file.name.slice(0, 100), deckMode: 'keep' });
     } catch (err) {
       setStatus({ kind: 'error', text: errorMessage(err) });
     } finally {
@@ -109,11 +113,21 @@ export function BackupPanel() {
     }
   };
 
+  const chooseDeckMode = async (deckMode: ImportDeckMode) => {
+    if (!pending) return;
+    try {
+      const preview = await store.previewImport(pending.backup, { deckMode });
+      setPending({ ...pending, deckMode, preview });
+    } catch (err) {
+      setStatus({ kind: 'error', text: errorMessage(err) });
+    }
+  };
+
   const applyImport = async () => {
     if (!pending) return;
     setBusy(true);
     try {
-      const result = await store.applyImport(pending.backup);
+      const result = await store.applyImport(pending.backup, { deckMode: pending.deckMode });
       setPending(null);
       setStatus({
         kind: 'ok',
@@ -159,6 +173,36 @@ export function BackupPanel() {
         <div class="notice">
           <div class="stack full">
             <strong>Import “{pending.name}”?</strong>
+            <fieldset class="choice-group">
+              <legend class="field-label">Which decks should the cards go into?</legend>
+              <label class="check">
+                <input
+                  type="radio"
+                  name="import-decks"
+                  checked={pending.deckMode === 'keep'}
+                  onChange={() => void chooseDeckMode('keep')}
+                />
+                <span>
+                  The decks they were in <span class="muted small">(missing decks are created)</span>
+                </span>
+              </label>
+              <label class="check">
+                <input
+                  type="radio"
+                  name="import-decks"
+                  checked={pending.deckMode === 'my-cards'}
+                  onChange={() => void chooseDeckMode('my-cards')}
+                />
+                <span>
+                  All into “My cards” <span class="muted small">(created if you don’t have it)</span>
+                </span>
+              </label>
+            </fieldset>
+            <p class="small">
+              {pending.preview.decksCreated.length > 0
+                ? `This creates ${pending.preview.decksCreated.length === 1 ? 'a deck' : 'decks'}: ${andList(pending.preview.decksCreated.map((n) => `“${n}”`))}.`
+                : 'No new decks are created.'}
+            </p>
             <PreviewTable preview={pending.preview} />
             {pending.preview.orphans > 0 && (
               <p class="small muted">

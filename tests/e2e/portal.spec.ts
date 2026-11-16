@@ -178,6 +178,53 @@ test('backup: export, erase, import restores cards', async ({ page }, testInfo) 
   await expect(page.getByText('銀行')).toBeVisible();
 });
 
+test('import lets you keep the original decks or put everything in My cards', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const deck = (id: string, name: string) => ({ id, name, createdAt: now, updatedAt: now, deleted: 0 });
+  const card = (id: string, deckId: string, t: string) => ({
+    id,
+    deckId,
+    kind: 'word',
+    traditional: t,
+    simplified: t,
+    pinyin: 'x',
+    meaning: 'y',
+    notes: '',
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
+  });
+  const file = testInfo.outputPath('decks.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [deck('l1', 'Lesson 1'), deck('l2', 'Lesson 2')],
+      cards: [card('a', 'l1', '你'), card('b', 'l2', '好')],
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await expect(page.getByLabel(/The decks they were in/)).toBeChecked();
+  await expect(page.getByText('This creates decks: “Lesson 1” and “Lesson 2”.')).toBeVisible();
+
+  await page.getByLabel(/All into “My cards”/).check();
+  await expect(page.getByText('No new decks are created.')).toBeVisible();
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported: 2 new cards/)).toBeVisible();
+
+  await page.goto('./#/cards');
+  await expect(page.getByRole('link', { name: /Lesson/ })).toHaveCount(0);
+  await expect(page.locator('.card-list .badge', { hasText: 'My cards' })).toHaveCount(2);
+});
+
 test('a hostile backup file is rejected', async ({ page }, testInfo) => {
   const file = testInfo.outputPath('evil.json');
   await writeFile(
