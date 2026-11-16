@@ -29,6 +29,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('message', (event) => {
+  // Only pages on this site can reach the worker, but check the sender anyway.
+  if (event.origin !== self.location.origin) return;
   if (event.data === 'skip-waiting') self.skipWaiting();
 });
 

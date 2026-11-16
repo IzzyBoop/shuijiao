@@ -13,7 +13,6 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { gunzipSync } from 'node:zlib';
 
 const SOURCE_URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz';
-const CACHE_DIR = 'tools/.cache';
 const OUT_DIR = 'public/dict';
 const META_FILE = 'src/core/lang/dict-meta.json';
 const MAX_BYTES = 64 * 1024 * 1024;
@@ -26,8 +25,6 @@ async function loadSource(): Promise<Buffer> {
   if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
   const buf = Buffer.from(await res.arrayBuffer());
   if (buf.length > MAX_BYTES) throw new Error('Download unexpectedly large');
-  await mkdir(CACHE_DIR, { recursive: true });
-  await writeFile(`${CACHE_DIR}/cedict.txt.gz`, buf);
   return buf;
 }
 

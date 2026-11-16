@@ -34,10 +34,11 @@ const html = await readFile(join(DIST, 'index.html'), 'utf8');
 if (!html.includes('http-equiv="Content-Security-Policy"')) problems.push('index.html: CSP meta tag missing');
 if (!html.includes("require-trusted-types-for 'script'"))
   problems.push('index.html: Trusted Types not enforced');
-for (const m of html.matchAll(/<script\b([^>]*)>/g)) {
-  if (!/\bsrc=/.test(m[1] ?? '')) problems.push('index.html: inline <script> (blocked by CSP)');
+// Case-insensitive: HTML tag and attribute names are, so <SCRIPT> must be caught too.
+for (const m of html.matchAll(/<script\b([^>]*)>/gi)) {
+  if (!/\bsrc\s*=/i.test(m[1] ?? '')) problems.push('index.html: inline <script> (blocked by CSP)');
 }
-if (/<style\b/.test(html) || /\sstyle=/.test(html))
+if (/<style\b/i.test(html) || /\sstyle\s*=/i.test(html))
   problems.push('index.html: inline style (blocked by CSP)');
 
 if (problems.length) {
