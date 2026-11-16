@@ -91,12 +91,14 @@ function push(map: Map<string, DictEntry[]>, key: string, entry: DictEntry): voi
 
 const REF_WITH_BOTH = /([^\s|[\]/]+)\|([^\s|[\]/]+)\[([^\]]+)\]/g;
 const REF_SINGLE = /([^\s|[\]/]+)\[([^\]]+)\]/g;
+const BARE_PINYIN = /\[((?:[A-Za-z:]+[1-5] ?)+)\]/g;
 
 /** Turns CC-CEDICT cross-references like "個|个[ge4]" into "個/个 (gè)". */
 export function formatGloss(gloss: string): string {
   return gloss
     .replace(REF_WITH_BOTH, (_m, t: string, s: string, p: string) => `${t}/${s} (${numberedToMarks(p)})`)
-    .replace(REF_SINGLE, (_m, w: string, p: string) => `${w} (${numberedToMarks(p)})`);
+    .replace(REF_SINGLE, (_m, w: string, p: string) => `${w} (${numberedToMarks(p)})`)
+    .replace(BARE_PINYIN, (_m, p: string) => numberedToMarks(p.trim()));
 }
 
 /** Separates measure-word glosses ("CL:個|个[ge4]") from the meaning glosses. */

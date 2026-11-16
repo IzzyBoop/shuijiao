@@ -555,7 +555,8 @@ label.field {
 
 .kbd {
   font-size: 0.7rem;
-  color: var(--muted);
+  color: inherit;
+  opacity: 0.7;
 }
 
 /* ---------- Lists ---------- */
@@ -616,6 +617,10 @@ label.field {
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
+}
+
+.gloss-table td:nth-child(-n + 2) {
+  white-space: nowrap;
 }
 
 .big-input {

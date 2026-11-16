@@ -31,6 +31,7 @@ describe('pinyin formatting', () => {
 
   it('formats dictionary cross-references', () => {
     expect(formatGloss('variant of 個|个[ge4]')).toBe('variant of 個/个 (gè)');
+    expect(formatGloss('Taiwan pr. [fa3]')).toBe('Taiwan pr. fǎ');
   });
 });
 

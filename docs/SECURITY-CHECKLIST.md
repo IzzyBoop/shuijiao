@@ -27,7 +27,7 @@ once when the repository is created, and re-check it before any pentest.
 
 ## GitHub Pages and the custom domain
 
-- [ ] **Account Settings → Pages → Add a verified domain** *before* pointing DNS at GitHub.
+- [ ] **Account Settings → Pages → Add a verified domain** _before_ pointing DNS at GitHub.
       This stops anyone else from claiming the domain on their own Pages site (subdomain takeover).
 - [ ] **Repository Settings → Pages:** Source = **GitHub Actions**. Enter the custom domain, wait for
       the certificate, then tick **Enforce HTTPS**.
