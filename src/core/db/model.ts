@@ -92,6 +92,18 @@ export interface ReviewLog {
   review: number;
 }
 
+/** A link a student saved for themselves (Resources → My links). */
+export interface StudentLink {
+  id: string;
+  title: string;
+  /** Always a validated https URL. */
+  url: string;
+  note: string;
+  createdAt: number;
+  updatedAt: number;
+  deleted: Deleted;
+}
+
 export const stateKey = (cardId: string, templateId: string): string => `${cardId}|${templateId}`;
 
 /** Limits applied everywhere data enters the app (forms and backup import). */
@@ -108,6 +120,9 @@ export const LIMITS = {
   cards: 50_000,
   templates: 50,
   reviewStates: 200_000,
+  linkTitle: 120,
+  linkNote: 300,
+  links: 500,
   reviewLogs: 300_000,
   importBytes: 10 * 1024 * 1024,
 } as const;

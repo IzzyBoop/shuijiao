@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeHttpsUrl } from '../../src/core/safe/url';
+import { normaliseUserUrl, safeHttpsUrl } from '../../src/core/safe/url';
 import { cleanTags, cleanText, hasUnsafeChars } from '../../src/core/safe/text';
 import { matchRoute } from '../../src/core/router';
 import type { RouteDef } from '../../src/core/modules';
@@ -78,5 +78,35 @@ describe('matchRoute', () => {
     '/cards/',
   ])('rejects %s', (path) => {
     expect(matchRoute(path, routes)?.route.title === 'Card').toBeFalsy();
+  });
+});
+
+describe('normaliseUserUrl', () => {
+  it('adds https:// to bare domains', () => {
+    expect(normaliseUserUrl('www.youtube.com/watch?v=1')).toEqual({
+      ok: true,
+      url: 'https://www.youtube.com/watch?v=1',
+    });
+    expect(normaliseUserUrl('  https://example.com  ')).toEqual({ ok: true, url: 'https://example.com/' });
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'JAVASCRIPT:alert(1)',
+    'data:text/html,hi',
+    'mailto:a@b.com',
+    'file:///etc/passwd',
+    'http://example.com',
+    'https://user:pw@example.com',
+    'localhost',
+    '',
+    '   ',
+  ])('refuses %s', (input) => {
+    expect(normaliseUserUrl(input).ok).toBe(false);
+  });
+
+  it('explains why http links are refused', () => {
+    const r = normaliseUserUrl('http://example.com');
+    expect(r.ok ? '' : r.error).toMatch(/https/);
   });
 });

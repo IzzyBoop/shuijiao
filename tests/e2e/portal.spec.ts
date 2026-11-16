@@ -116,6 +116,25 @@ test('resource links are https and open safely', async ({ page }) => {
   }
 });
 
+test('students can add their own links, safely', async ({ page }) => {
+  await page.goto('./#/resources');
+  const address = page.getByLabel('Web address');
+
+  await address.fill('javascript:alert(1)');
+  await page.getByRole('button', { name: 'Add link' }).click();
+  await expect(page.getByRole('alert')).toContainText('https');
+
+  await address.fill('www.example.com/grammar');
+  await page.getByLabel('Title').fill('<b>Grammar</b> videos');
+  await page.getByRole('button', { name: 'Add link' }).click();
+  const added = page.getByRole('link', { name: /<b>Grammar<\/b> videos/ });
+  await expect(added).toHaveAttribute('href', 'https://www.example.com/grammar');
+  await expect(added).toHaveAttribute('rel', 'noopener noreferrer');
+
+  await page.reload();
+  await expect(page.getByRole('link', { name: /Grammar/ })).toBeVisible();
+});
+
 test('unknown routes and hostile hashes show "not found"', async ({ page }) => {
   await page.goto('./#/cards/<img src=x onerror=alert(1)>');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

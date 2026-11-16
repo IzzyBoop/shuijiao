@@ -2,6 +2,7 @@ import * as v from 'valibot';
 import type { PortalModule } from '../../core/modules';
 import { ExternalLink } from '../../core/ui/ExternalLink';
 import raw from '../../content/resources.json';
+import { MyLinks } from './MyLinks';
 import { ResourcesFileSchema } from './schema';
 
 // Checked at build time by tools/check-resources.ts; checked again here so a bad
@@ -16,6 +17,7 @@ function ResourcesPage() {
         <h1>Resources</h1>
       </div>
       <p class="muted">Course audio and useful sites. Links open in a new tab.</p>
+      <h2 class="section-heading">Course resources</h2>
       {categories.map((cat) => (
         <section class="panel" key={cat.name}>
           <h2>{cat.name}</h2>
@@ -36,6 +38,7 @@ function ResourcesPage() {
           )}
         </section>
       ))}
+      <MyLinks />
     </>
   );
 }

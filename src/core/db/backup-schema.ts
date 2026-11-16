@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 import { CARD_FIELDS, ID_PATTERN, LIMITS } from './model';
 import { hasUnsafeChars } from '../safe/text';
+import { safeHttpsUrl } from '../safe/url';
 
 /**
  * Schema for backup files. Strict objects reject unknown keys (including
@@ -94,6 +95,20 @@ export const ReviewLogSchema = v.strictObject({
   review: time,
 });
 
+export const LinkSchema = v.strictObject({
+  id,
+  title: v.pipe(text(LIMITS.linkTitle), v.minLength(1)),
+  url: v.pipe(
+    v.string(),
+    v.maxLength(2048),
+    v.check((u) => safeHttpsUrl(u) === u, 'Links must be plain https:// URLs.'),
+  ),
+  note: text(LIMITS.linkNote),
+  createdAt: time,
+  updatedAt: time,
+  deleted,
+});
+
 export const BackupSchema = v.strictObject({
   format: v.literal(BACKUP_FORMAT),
   version: v.literal(BACKUP_VERSION),
@@ -103,6 +118,8 @@ export const BackupSchema = v.strictObject({
   templates: v.pipe(v.array(TemplateSchema), v.maxLength(LIMITS.templates)),
   reviewStates: v.pipe(v.array(ReviewStateSchema), v.maxLength(LIMITS.reviewStates)),
   reviewLogs: v.pipe(v.array(ReviewLogSchema), v.maxLength(LIMITS.reviewLogs)),
+  // Added after the first backups were made, so it may be missing.
+  links: v.optional(v.pipe(v.array(LinkSchema), v.maxLength(LIMITS.links)), []),
 });
 
 export type Backup = v.InferOutput<typeof BackupSchema>;

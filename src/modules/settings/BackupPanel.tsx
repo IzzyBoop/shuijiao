@@ -27,6 +27,7 @@ function PreviewTable({ preview }: { preview: ImportPreview }) {
     ['Card types', 'templates'],
     ['Study progress', 'reviewStates'],
     ['Review history', 'reviewLogs'],
+    ['My links', 'links'],
   ];
   return (
     <table class="gloss-table">

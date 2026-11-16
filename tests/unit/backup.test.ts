@@ -31,6 +31,18 @@ const backup = (over: Partial<Backup> = {}): Backup => ({
   templates: [],
   reviewStates: [],
   reviewLogs: [],
+  links: [],
+  ...over,
+});
+
+const link = (over: Partial<Backup['links'][number]> = {}): Backup['links'][number] => ({
+  id: 'link-1',
+  title: 'Grammar videos',
+  url: 'https://example.com/grammar',
+  note: '',
+  createdAt: 1_700_000_000_000,
+  updatedAt: 1_700_000_000_000,
+  deleted: 0,
   ...over,
 });
 
@@ -85,6 +97,35 @@ describe('parseBackup', () => {
 
   it('rejects files over the size limit', () => {
     expect(parseBackup(' '.repeat(10 * 1024 * 1024 + 1)).ok).toBe(false);
+  });
+});
+
+describe('parseBackup links', () => {
+  it('accepts backups made before links existed', () => {
+    const old: Record<string, unknown> = { ...backup() };
+    delete old.links;
+    const result = parseBackup(JSON.stringify(old));
+    expect(result.ok ? result.backup.links : null).toEqual([]);
+  });
+
+  it('accepts a valid link', () => {
+    const result = parseBackup(JSON.stringify(backup({ links: [link()] })));
+    expect(result.ok ? result.backup.links.length : 0).toBe(1);
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'http://example.com/',
+    'data:text/html,x',
+    'https://u:p@example.com/',
+    'example.com',
+  ])('rejects a link to %s', (url) => {
+    expect(parseBackup(JSON.stringify(backup({ links: [link({ url })] }))).ok).toBe(false);
+  });
+
+  it('rejects unknown fields in a link', () => {
+    const evil = { ...link(), onclick: 'alert(1)' } as Backup['links'][number];
+    expect(parseBackup(JSON.stringify(backup({ links: [evil] }))).ok).toBe(false);
   });
 });
 
@@ -164,6 +205,7 @@ describe('LocalStudyStore import', () => {
   it('export → erase → import restores the same cards', async () => {
     await store.saveCard(card());
     await store.saveCard(card({ id: 'card-3', traditional: '頭髮', simplified: '头发' }));
+    await store.saveLink(link());
     const exported = await store.exportBackup();
     const parsed = parseBackup(JSON.stringify(exported));
     expect(parsed.ok).toBe(true);
@@ -171,5 +213,17 @@ describe('LocalStudyStore import', () => {
     expect(await store.countCards()).toBe(0);
     if (parsed.ok) await store.applyImport(parsed.backup);
     expect((await store.listCards()).map((c) => c.id).sort()).toEqual(['card-1', 'card-3']);
+    expect((await store.listLinks()).map((l) => l.title)).toEqual(['Grammar videos']);
+  });
+});
+
+describe('LocalStudyStore links', () => {
+  it('saves, lists newest first and soft-deletes links', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await store.saveLink(link({ id: 'a', title: 'First', createdAt: 1 }));
+    await store.saveLink(link({ id: 'b', title: 'Second', createdAt: 2 }));
+    expect((await store.listLinks()).map((l) => l.title)).toEqual(['Second', 'First']);
+    await store.deleteLink('a');
+    expect((await store.listLinks()).map((l) => l.id)).toEqual(['b']);
   });
 });

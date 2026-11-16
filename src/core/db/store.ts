@@ -8,6 +8,7 @@ import {
   type Deck,
   type ReviewLog,
   type ReviewState,
+  type StudentLink,
   type Template,
 } from './model';
 
@@ -23,6 +24,7 @@ export interface ImportPreview {
   templates: MergeCounts;
   reviewStates: MergeCounts;
   reviewLogs: MergeCounts;
+  links: MergeCounts;
   /** Records dropped because they point at something that doesn't exist. */
   orphans: number;
 }
@@ -50,6 +52,10 @@ export interface StudyStore {
   listReviewStates(templateIds: readonly string[]): Promise<ReviewState[]>;
   recordReview(state: ReviewState, log: ReviewLog): Promise<void>;
   countReviewsSince(time: number, newOnly: boolean): Promise<number>;
+
+  listLinks(): Promise<StudentLink[]>;
+  saveLink(link: StudentLink): Promise<void>;
+  deleteLink(id: string): Promise<void>;
 
   exportBackup(): Promise<Backup>;
   previewImport(backup: Backup): Promise<ImportPreview>;
@@ -145,13 +151,27 @@ export class LocalStudyStore implements StudyStore {
     return newOnly ? q.filter((l) => l.state === 0).count() : q.count();
   }
 
+  async listLinks() {
+    return live(await this.db.links.toArray()).sort((a, b) => b.createdAt - a.createdAt);
+  }
+  async saveLink(link: StudentLink) {
+    if (!(await this.db.links.get(link.id)) && (await this.db.links.count()) >= LIMITS.links) {
+      throw new Error(`You have reached the limit of ${LIMITS.links} links.`);
+    }
+    await this.db.links.put({ ...link, updatedAt: Date.now() });
+  }
+  async deleteLink(id: string) {
+    await this.db.links.update(id, { deleted: 1, updatedAt: Date.now() });
+  }
+
   async exportBackup(): Promise<Backup> {
-    const [decks, cards, templates, reviewStates, reviewLogs] = await Promise.all([
+    const [decks, cards, templates, reviewStates, reviewLogs, links] = await Promise.all([
       this.db.decks.toArray(),
       this.db.cards.toArray(),
       this.db.templates.toArray(),
       this.db.reviewStates.toArray(),
       this.db.reviewLogs.toArray(),
+      this.db.links.toArray(),
     ]);
     return {
       format: BACKUP_FORMAT,
@@ -162,6 +182,7 @@ export class LocalStudyStore implements StudyStore {
       templates,
       reviewStates,
       reviewLogs,
+      links,
     };
   }
 
@@ -205,6 +226,11 @@ export class LocalStudyStore implements StudyStore {
     const existingLogIds = new Set(await this.db.reviewLogs.toCollection().primaryKeys());
     const newLogs = logRows.filter((l) => !existingLogIds.has(l.id));
 
+    const links = await this.mergeRows(this.db.links, backup.links, (r) => r.id);
+    if ((await this.db.links.count()) + links.counts.added > LIMITS.links) {
+      throw new Error(`Import would exceed the limit of ${LIMITS.links} links.`);
+    }
+
     const total = (await this.db.cards.count()) + cards.counts.added;
     if (total > LIMITS.cards) throw new Error(`Import would exceed the limit of ${LIMITS.cards} cards.`);
 
@@ -216,6 +242,7 @@ export class LocalStudyStore implements StudyStore {
         cards: cards.toWrite,
         reviewStates: reviewStates.toWrite,
         reviewLogs: newLogs,
+        links: links.toWrite,
       },
       preview: {
         decks: decks.counts,
@@ -223,6 +250,7 @@ export class LocalStudyStore implements StudyStore {
         cards: cards.counts,
         reviewStates: reviewStates.counts,
         reviewLogs: { added: newLogs.length, updated: 0, skipped: logRows.length - newLogs.length },
+        links: links.counts,
         orphans,
       } satisfies ImportPreview,
     };
@@ -260,9 +288,10 @@ export class LocalStudyStore implements StudyStore {
     const db = this.db;
     return db.transaction(
       'rw',
-      [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs],
+      [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs, db.links],
       async () => {
         const { writes, preview } = await this.plan(backup);
+        await db.links.bulkPut(writes.links);
         await db.decks.bulkPut(writes.decks);
         await db.templates.bulkPut(writes.templates);
         await db.cards.bulkPut(writes.cards);
@@ -278,7 +307,7 @@ export class LocalStudyStore implements StudyStore {
     const now = Date.now();
     await db.transaction(
       'rw',
-      [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs, db.meta],
+      [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs, db.meta, db.links],
       async () => {
         await Promise.all([
           db.decks.clear(),
@@ -287,6 +316,7 @@ export class LocalStudyStore implements StudyStore {
           db.reviewStates.clear(),
           db.reviewLogs.clear(),
           db.meta.clear(),
+          db.links.clear(),
         ]);
         await db.decks.add(defaultDeck(now));
         await db.templates.bulkAdd(builtinTemplates(now));

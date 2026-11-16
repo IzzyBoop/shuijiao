@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { Card, Deck, ReviewLog, ReviewState, Template } from './model';
+import type { Card, Deck, ReviewLog, ReviewState, StudentLink, Template } from './model';
 import { builtinTemplates, defaultDeck } from './defaults';
 
 export interface MetaRow {
@@ -14,6 +14,7 @@ export class PortalDB extends Dexie {
   reviewStates!: EntityTable<ReviewState, 'key'>;
   reviewLogs!: EntityTable<ReviewLog, 'id'>;
   meta!: EntityTable<MetaRow, 'key'>;
+  links!: EntityTable<StudentLink, 'id'>;
 
   constructor(name = 'shuijiao') {
     super(name);
@@ -25,6 +26,10 @@ export class PortalDB extends Dexie {
       reviewStates: 'key, cardId, templateId, due',
       reviewLogs: 'id, cardId, review',
       meta: 'key',
+    });
+    // v2: students' own links on the Resources page. Existing tables are kept as they are.
+    this.version(2).stores({
+      links: 'id, updatedAt',
     });
     this.on('populate', (tx) => {
       const now = Date.now();
