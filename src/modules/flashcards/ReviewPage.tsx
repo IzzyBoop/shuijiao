@@ -3,6 +3,7 @@ import type { Grade } from 'ts-fsrs';
 import type { RouteProps } from '../../core/modules';
 import { store } from '../../core/db/store';
 import { href } from '../../core/router';
+import { Icon } from '../../core/ui/Icon';
 import { applyReview, emptyState, formatInterval, GRADES, previewDue } from '../../core/srs/scheduler';
 import type { QueueItem } from '../../core/srs/queue';
 import { speak, stopSpeaking } from '../../core/lang/tts';
@@ -10,6 +11,7 @@ import { getStudyPrefs } from '../../core/study-prefs';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardSide } from './CardFace';
+import { EditCardDialog } from './EditCardDialog';
 import { loadSession } from './session-data';
 
 /** Cards due again within this window come back in the same session. */
@@ -36,6 +38,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
   const [shown, setShown] = useState(false);
   const [done, setDone] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     if (session.data) setQueue(session.data.queue);
@@ -81,9 +84,14 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
   };
 
   useKeydown((e) => {
+    // While the edit popup is open, keys belong to it (no accidental ratings).
+    if (editing) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (!item) return;
-    if (!shown && (e.key === ' ' || e.key === 'Enter')) {
+    if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      setEditing(true);
+    } else if (!shown && (e.key === ' ' || e.key === 'Enter')) {
       e.preventDefault();
       setShown(true);
     } else if (shown && ['1', '2', '3', '4'].includes(e.key)) {
@@ -143,9 +151,20 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
           {ahead && 'Studying ahead · '}
           {queue.length} left · {item.template.name}
         </span>
-        <a href={href('/')} class="small">
-          End session
-        </a>
+        <span class="row">
+          <button
+            type="button"
+            class="ghost"
+            onClick={() => {
+              setEditing(true);
+            }}
+          >
+            <Icon name="edit" /> Edit card <span class="kbd">E</span>
+          </button>
+          <a href={href('/')} class="small">
+            End session
+          </a>
+        </span>
       </div>
       {saveError && <div class="notice error">Could not save your answer: {saveError}</div>}
       <div class="flashcard" aria-live="polite">
@@ -182,6 +201,16 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
           ))}
         </div>
       )}
+      <EditCardDialog
+        card={editing ? item.card : null}
+        onClose={() => {
+          setEditing(false);
+        }}
+        onSaved={(updated) => {
+          // Update every queued copy of this card (one per card type) in place.
+          setQueue((q) => (q ?? []).map((it) => (it.card.id === updated.id ? { ...it, card: updated } : it)));
+        }}
+      />
     </>
   );
 }

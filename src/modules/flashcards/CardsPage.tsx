@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { RouteProps } from '../../core/modules';
 import { store } from '../../core/db/store';
-import { LIMITS, type Card, type Deck } from '../../core/db/model';
+import type { Card, Deck } from '../../core/db/model';
 import { href } from '../../core/router';
-import { cleanTags, cleanText } from '../../core/safe/text';
 import { Pinyin, Simp, Trad } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { useStudyPrefs } from '../../core/study-prefs';
 import { rememberCardList } from './return-path';
+import { CardEditForm } from './CardEditForm';
 
 /** Lower-cases and strips tone marks so "yinhang" finds "yínháng". */
 function fold(s: string): string {
@@ -403,15 +403,6 @@ function BulkBar({
   );
 }
 
-const EDIT_FIELDS = [
-  { key: 'traditional', label: 'Traditional', max: LIMITS.hanzi, lang: 'zh-Hant' },
-  { key: 'simplified', label: 'Simplified', max: LIMITS.hanzi, lang: 'zh-Hans' },
-  { key: 'pinyin', label: 'Pinyin', max: LIMITS.pinyin, lang: undefined },
-  { key: 'meaning', label: 'Meaning', max: LIMITS.meaning, lang: undefined },
-] as const;
-
-type EditKey = (typeof EDIT_FIELDS)[number]['key'];
-
 /** Edits a card in place in the list. Enter saves, Escape cancels. */
 function QuickEdit({
   card,
@@ -424,134 +415,19 @@ function QuickEdit({
   onCancel: () => void;
   onSaved: () => void;
 }) {
-  const [values, setValues] = useState<Record<EditKey, string>>({
-    traditional: card.traditional,
-    simplified: card.simplified,
-    pinyin: card.pinyin,
-    meaning: card.meaning,
-  });
-  const [notes, setNotes] = useState(card.notes);
-  const [tags, setTags] = useState(card.tags.join(', '));
-  const [deckId, setDeckId] = useState(card.deckId);
-  const [error, setError] = useState<string | null>(null);
-  const first = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    first.current?.focus();
-  }, []);
-
-  const save = async () => {
-    const cleaned = {
-      traditional: cleanText(values.traditional, LIMITS.hanzi),
-      simplified: cleanText(values.simplified, LIMITS.hanzi),
-      pinyin: cleanText(values.pinyin, LIMITS.pinyin),
-      meaning: cleanText(values.meaning, LIMITS.meaning, true),
-    };
-    const missing = EDIT_FIELDS.find((f) => !cleaned[f.key]);
-    if (missing) {
-      setError(`${missing.label} can't be empty.`);
-      return;
-    }
-    try {
-      await store.saveCard({
-        ...card,
-        ...cleaned,
-        notes: cleanText(notes, LIMITS.notes, true),
-        tags: cleanTags(tags),
-        deckId,
-      });
-      onSaved();
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  };
-
   return (
     <li class="quick-edit">
-      <form
-        class="full"
-        aria-label={`Edit ${card.traditional}`}
-        onSubmit={(e) => {
-          e.preventDefault();
-          void save();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onCancel();
-        }}
-      >
-        {error && (
-          <div class="notice error" role="alert">
-            {error}
-          </div>
-        )}
-        <div class="grid">
-          {EDIT_FIELDS.map((f, i) => (
-            <label class="field" key={f.key}>
-              <span class="field-label">{f.label}</span>
-              <input
-                type="text"
-                ref={i === 0 ? first : null}
-                lang={f.lang}
-                maxLength={f.max}
-                value={values[f.key]}
-                onInput={(e) => {
-                  const v = e.currentTarget.value;
-                  setValues((prev) => ({ ...prev, [f.key]: v }));
-                }}
-              />
-            </label>
-          ))}
-          <label class="field">
-            <span class="field-label">Notes</span>
-            <input
-              type="text"
-              maxLength={LIMITS.notes}
-              value={notes}
-              onInput={(e) => {
-                setNotes(e.currentTarget.value);
-              }}
-            />
-          </label>
-          <label class="field">
-            <span class="field-label">Tags</span>
-            <input
-              type="text"
-              value={tags}
-              onInput={(e) => {
-                setTags(e.currentTarget.value);
-              }}
-            />
-          </label>
-          <label class="field">
-            <span class="field-label">Deck</span>
-            <select
-              value={deckId}
-              onChange={(e) => {
-                setDeckId(e.currentTarget.value);
-              }}
-            >
-              {decks.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div class="row spread mt">
+      <CardEditForm
+        card={card}
+        decks={decks}
+        onCancel={onCancel}
+        onSaved={onSaved}
+        footer={
           <a href={href(`/cards/${card.id}`)} class="small">
             Open full editor (auto-fill, audio)
           </a>
-          <div class="row">
-            <button type="button" onClick={onCancel}>
-              Cancel <span class="kbd">Esc</span>
-            </button>
-            <button type="submit" class="primary">
-              <Icon name="check" /> Save <span class="kbd">Enter</span>
-            </button>
-          </div>
-        </div>
-      </form>
+        }
+      />
     </li>
   );
 }

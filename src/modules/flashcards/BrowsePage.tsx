@@ -7,6 +7,7 @@ import { useAsync } from '../../core/ui/useAsync';
 import type { Card } from '../../core/db/model';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardSide } from './CardFace';
+import { EditCardDialog } from './EditCardDialog';
 
 function shuffled<T>(list: readonly T[]): T[] {
   // Sort by random keys: simple, unbiased enough for flashcards, no index juggling.
@@ -31,6 +32,7 @@ export function BrowsePage({ params }: RouteProps) {
   const [order, setOrder] = useState<Card[]>([]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [templateId, setTemplateId] = useState('tpl-reading');
 
   useEffect(() => {
@@ -47,7 +49,20 @@ export function BrowsePage({ params }: RouteProps) {
   };
 
   useKeydown((e) => {
-    if (e.target instanceof HTMLSelectElement) return;
+    // While the edit popup is open, keys belong to it.
+    if (editing) return;
+    if (
+      e.target instanceof HTMLSelectElement ||
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement
+    ) {
+      return;
+    }
+    if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey && card) {
+      e.preventDefault();
+      setEditing(true);
+      return;
+    }
     if (e.key === 'ArrowRight') go(1);
     else if (e.key === 'ArrowLeft') go(-1);
     else if (e.key === ' ' || e.key === 'Enter') {
@@ -88,6 +103,16 @@ export function BrowsePage({ params }: RouteProps) {
           >
             <Icon name="shuffle" /> Shuffle
           </button>
+          {card && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(true);
+              }}
+            >
+              <Icon name="edit" /> Edit card <span class="kbd">E</span>
+            </button>
+          )}
         </div>
       </div>
       {!card ? (
@@ -137,10 +162,19 @@ export function BrowsePage({ params }: RouteProps) {
             </button>
           </div>
           <p class="muted small center mt">
-            Card {index + 1} of {order.length} · ← → to move
+            Card {index + 1} of {order.length} · ← → to move · E to edit
           </p>
         </>
       )}
+      <EditCardDialog
+        card={editing && card ? card : null}
+        onClose={() => {
+          setEditing(false);
+        }}
+        onSaved={(updated) => {
+          setOrder((o) => o.map((c) => (c.id === updated.id ? updated : c)));
+        }}
+      />
     </>
   );
 }

@@ -1116,3 +1116,7 @@ a > .icon {
   border-color: var(--warn);
   color: var(--text);
 }
+
+.dialog.wide {
+  width: min(760px, calc(100vw - 32px));
+}

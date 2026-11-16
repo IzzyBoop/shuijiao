@@ -8,6 +8,13 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Edit a card while studying or flipping through**: an Edit card button (or press E) opens
+  the card's details in a popup over the session. Save, and the card updates where you are
+  without losing your place. Study shortcuts are paused while the popup is open, so typing
+  can't rate or flip the card.
+
 ## [0.1.0-beta.2] - 2026-11-16
 
 ### Added

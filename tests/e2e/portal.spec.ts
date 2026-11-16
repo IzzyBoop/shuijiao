@@ -136,6 +136,42 @@ test('flip through keeps the front visible and shows the back below it', async (
   await expect(card).not.toContainText('yínháng');
 });
 
+test('cards can be edited mid-session in study and flip through', async ({ page }) => {
+  await addCard(page, '银行');
+
+  // Study: open the editor with E, while the answer is still hidden.
+  await page.goto('./#/review');
+  const card = page.locator('.flashcard');
+  await expect(card).toContainText('銀行');
+  await page.keyboard.press('e');
+  const dialog = page.getByRole('dialog', { name: 'Edit card' });
+  await expect(dialog).toBeVisible();
+  // Typing a space in the form must not reveal or rate the card underneath.
+  await dialog.getByLabel('Meaning').fill('bank (the place for money)');
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  await expect(card).not.toContainText('yínháng');
+  await page.keyboard.press('Space');
+  await expect(card).toContainText('bank (the place for money)');
+  await expect(page.getByText('1 left')).toBeVisible();
+
+  // Flip through: the Edit button works the same way.
+  await page.goto('./#/browse');
+  await page.getByRole('button', { name: /Edit card/ }).click();
+  await dialog.getByLabel('Notes').fill('Measure word: 家');
+  await dialog.getByRole('button', { name: /Save/ }).click();
+  await expect(dialog).toBeHidden();
+  await page.keyboard.press('Space');
+  await expect(card).toContainText('Measure word: 家');
+
+  // Escape cancels without saving.
+  await page.keyboard.press('e');
+  await dialog.getByLabel('Meaning').fill('changed my mind');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await expect(card).not.toContainText('changed my mind');
+});
+
 test('markup in card text is shown as text, never executed', async ({ page }) => {
   const payload = '<img src=x onerror=alert(1)><script>alert(2)</script>';
   await addCard(page, '书', payload);
