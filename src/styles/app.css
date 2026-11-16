@@ -223,7 +223,7 @@ main {
 .grid {
   display: grid;
   gap: var(--gap);
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
 }
 
 .row {
@@ -326,7 +326,8 @@ button,
   color: var(--text);
   cursor: pointer;
   text-decoration: none;
-  white-space: nowrap;
+  max-width: 100%;
+  text-align: center;
 }
 
 button:hover,
@@ -408,6 +409,7 @@ label.field {
 .check input {
   width: 18px;
   height: 18px;
+  flex: none;
 }
 
 .segmented {
@@ -688,4 +690,92 @@ label.field {
 
 .mt {
   margin-top: 12px;
+}
+
+/* ---------- Settings ---------- */
+
+/* Panels flow into as many ~440px columns as fit, without gaps under short panels. */
+.settings-grid {
+  columns: 440px 2;
+  column-gap: var(--gap);
+}
+
+.settings-grid > .panel {
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+}
+
+.setting-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.panel > h2 + .setting-row {
+  border-top: 0;
+  padding-top: 4px;
+}
+
+.setting-text {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.setting-label {
+  font-weight: 600;
+}
+
+.setting-control {
+  flex: 0 1 220px;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.setting-control.wide {
+  flex-basis: 260px;
+}
+
+.setting-control.compact {
+  flex: none;
+}
+
+/* On narrow screens, full-size controls drop below their label and use the full width. */
+@media (max-width: 520px) {
+  .setting-control:not(.compact) {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
+.setting-control select,
+.setting-control input[type='range'] {
+  width: 100%;
+}
+
+input.narrow {
+  width: 6em;
+}
+
+/* Toggle switch built on a real checkbox (keyboard and screen-reader friendly). */
+input.switch {
+  appearance: none;
+  flex: none;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: radial-gradient(circle at 13px 50%, var(--muted) 8px, transparent 9px), var(--surface-2);
+  cursor: pointer;
+}
+
+input.switch:checked {
+  border-color: var(--accent);
+  background: radial-gradient(circle at 32px 50%, var(--on-accent) 8px, transparent 9px), var(--accent);
 }

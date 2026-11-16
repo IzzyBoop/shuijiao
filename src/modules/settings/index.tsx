@@ -2,10 +2,11 @@ import { useState } from 'preact/hooks';
 import type { PortalModule } from '../../core/modules';
 import { href } from '../../core/router';
 import { store } from '../../core/db/store';
-import { listChineseVoices, pickVoice, speak, ttsSupported } from '../../core/lang/tts';
+import { isNoveltyVoice, listChineseVoices, pickVoice, speak, ttsSupported } from '../../core/lang/tts';
 import { updateStudyPrefs, useStudyPrefs, type HanziFont } from '../../core/study-prefs';
 import { THEME_FAMILIES, THEME_MODES, type ThemeMode } from '../../core/theme/themes';
 import { setThemeState, useThemeState } from '../../app/ThemeToggle';
+import { SettingRow } from '../../core/ui/SettingRow';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { BackupPanel } from './BackupPanel';
 import { requestPersistentStorage } from '../../core/db/persist';
@@ -22,11 +23,10 @@ function AppearancePanel() {
   const prefs = useStudyPrefs();
   const family = THEME_FAMILIES.find((f) => f.id === theme.familyId);
   return (
-    <section class="panel stack">
+    <section class="panel">
       <h2>Appearance</h2>
-      <div>
-        <div class="field-label">Mode</div>
-        <div class="segmented" role="group" aria-label="Colour mode">
+      <SettingRow id="set-mode" label="Mode">
+        <div class="segmented" role="group" aria-label="Colour mode" id="set-mode">
           {THEME_MODES.map((m) => (
             <button
               key={m}
@@ -40,10 +40,10 @@ function AppearancePanel() {
             </button>
           ))}
         </div>
-      </div>
-      <label class="field">
-        <span class="field-label">Theme</span>
+      </SettingRow>
+      <SettingRow id="set-theme" label="Theme">
         <select
+          id="set-theme"
           aria-label="Theme"
           value={theme.familyId}
           onChange={(e) => {
@@ -57,11 +57,11 @@ function AppearancePanel() {
             </option>
           ))}
         </select>
-      </label>
+      </SettingRow>
       {family && family.dark.length > 1 && (
-        <label class="field">
-          <span class="field-label">Dark variant</span>
+        <SettingRow id="set-dark" label="Dark variant">
           <select
+            id="set-dark"
             aria-label="Dark variant"
             value={theme.darkId}
             onChange={(e) => {
@@ -74,11 +74,11 @@ function AppearancePanel() {
               </option>
             ))}
           </select>
-        </label>
+        </SettingRow>
       )}
-      <label class="field">
-        <span class="field-label">Character style</span>
+      <SettingRow id="set-font" label="Character style" hint="Uses fonts installed on your device.">
         <select
+          id="set-font"
           aria-label="Character style"
           value={prefs.hanziFont}
           onChange={(e) => {
@@ -92,28 +92,34 @@ function AppearancePanel() {
             </option>
           ))}
         </select>
-        <span class="small muted">Uses fonts installed on your device.</span>
-      </label>
-      <label class="check">
+      </SettingRow>
+      <SettingRow id="set-tones" label="Colour pinyin by tone" compact>
         <input
+          id="set-tones"
           type="checkbox"
+          class="switch"
           checked={prefs.toneColors}
           onChange={(e) => {
             updateStudyPrefs({ toneColors: e.currentTarget.checked });
           }}
         />
-        Colour pinyin by tone
-      </label>
-      <label class="check">
+      </SettingRow>
+      <SettingRow
+        id="set-simp"
+        label="Show simplified in lists"
+        hint="Next to the traditional characters."
+        compact
+      >
         <input
+          id="set-simp"
           type="checkbox"
+          class="switch"
           checked={prefs.showSimplified}
           onChange={(e) => {
             updateStudyPrefs({ showSimplified: e.currentTarget.checked });
           }}
         />
-        Show simplified characters next to traditional in lists
-      </label>
+      </SettingRow>
     </section>
   );
 }
@@ -121,12 +127,13 @@ function AppearancePanel() {
 function StudyPanel() {
   const prefs = useStudyPrefs();
   return (
-    <section class="panel stack">
+    <section class="panel">
       <h2>Study</h2>
-      <label class="field">
-        <span class="field-label">New cards per day</span>
+      <SettingRow id="set-new" label="New cards per day" compact>
         <input
+          id="set-new"
           type="number"
+          class="narrow"
           min={0}
           max={500}
           value={prefs.newPerDay}
@@ -135,18 +142,19 @@ function StudyPanel() {
             if (Number.isFinite(n) && n >= 0 && n <= 500) updateStudyPrefs({ newPerDay: n });
           }}
         />
-      </label>
-      <label class="check">
+      </SettingRow>
+      <SettingRow id="set-autoplay" label="Auto-play audio" hint="When the answer is shown." compact>
         <input
+          id="set-autoplay"
           type="checkbox"
+          class="switch"
           checked={prefs.autoPlay}
           onChange={(e) => {
             updateStudyPrefs({ autoPlay: e.currentTarget.checked });
           }}
         />
-        Play audio automatically when the answer is shown
-      </label>
-      <p>
+      </SettingRow>
+      <p class="mt">
         <a href={href('/templates')}>Choose which card types you study →</a>
       </p>
     </section>
@@ -156,6 +164,7 @@ function StudyPanel() {
 function VoicePanel() {
   const prefs = useStudyPrefs();
   const voices = useAsync(listChineseVoices, []);
+  const [testing, setTesting] = useState(false);
   if (!ttsSupported()) {
     return (
       <section class="panel">
@@ -166,9 +175,24 @@ function VoicePanel() {
   }
   const list = voices.data ?? [];
   const selected = pickVoice(list, prefs.voiceUri);
-  const hasMainland = list.some((v) => /^(zh[-_]cn|cmn)/i.test(v.lang));
+  const hasMainland = list.some((v) => /^(zh[-_]cn|cmn)/i.test(v.lang) && !isNoveltyVoice(v));
+  const good = list.filter((v) => !isNoveltyVoice(v));
+  const novelty = list.filter(isNoveltyVoice);
+
+  const test = async () => {
+    setTesting(true);
+    await speak('你好，欢迎学习中文。', { voiceUri: prefs.voiceUri, rate: prefs.speechRate });
+    setTesting(false);
+  };
+
+  const option = (v: SpeechSynthesisVoice) => (
+    <option key={v.voiceURI} value={v.voiceURI}>
+      {v.name} ({v.lang})
+    </option>
+  );
+
   return (
-    <section class="panel stack">
+    <section class="panel">
       <h2>Pronunciation</h2>
       {!voices.loading && list.length === 0 && (
         <div class="notice warn">
@@ -185,31 +209,39 @@ function VoicePanel() {
       )}
       {list.length > 0 && !hasMainland && (
         <div class="notice warn">
-          Only non-Mainland Chinese voices were found; some words may be pronounced with Taiwan or Hong Kong
-          readings.
+          No standard Mainland voice was found; some words may be pronounced with Taiwan or Hong Kong
+          readings. On a Mac or iPhone, add “Tingting” under Accessibility → Spoken Content → Voices.
         </div>
       )}
       {list.length > 0 && (
-        <label class="field">
-          <span class="field-label">Voice</span>
+        <SettingRow
+          id="set-voice"
+          label="Voice"
+          wide
+          hint={
+            selected && isNoveltyVoice(selected)
+              ? 'Novelty voices can click or stop working in browsers.'
+              : 'Premium voices sound much better.'
+          }
+        >
           <select
+            id="set-voice"
             aria-label="Voice"
             value={selected?.voiceURI ?? ''}
             onChange={(e) => {
               updateStudyPrefs({ voiceUri: e.currentTarget.value.slice(0, 300) });
             }}
           >
-            {list.map((v) => (
-              <option key={v.voiceURI} value={v.voiceURI}>
-                {v.name} ({v.lang})
-              </option>
-            ))}
+            <optgroup label="Recommended">{good.map(option)}</optgroup>
+            {novelty.length > 0 && (
+              <optgroup label="Novelty voices (not recommended)">{novelty.map(option)}</optgroup>
+            )}
           </select>
-        </label>
+        </SettingRow>
       )}
-      <label class="field">
-        <span class="field-label">Speed: {prefs.speechRate.toFixed(2)}×</span>
+      <SettingRow id="set-rate" label={`Speed: ${prefs.speechRate.toFixed(2)}×`} wide>
         <input
+          id="set-rate"
           type="range"
           min={0.5}
           max={1.5}
@@ -219,15 +251,10 @@ function VoicePanel() {
             updateStudyPrefs({ speechRate: Number(e.currentTarget.value) });
           }}
         />
-      </label>
-      <div>
-        <button
-          type="button"
-          onClick={() =>
-            void speak('你好，欢迎学习中文。', { voiceUri: prefs.voiceUri, rate: prefs.speechRate })
-          }
-        >
-          Test voice
+      </SettingRow>
+      <div class="mt">
+        <button type="button" disabled={testing} onClick={() => void test()}>
+          {testing ? 'Playing…' : 'Test voice'}
         </button>
       </div>
     </section>
@@ -293,28 +320,31 @@ function StoragePanel() {
       )}
       <details>
         <summary>Erase all study data</summary>
-        <div class="stack">
+        <div class="stack mt">
           <p class="small">
             This deletes every card, deck and review on this device. Download a backup first. Type{' '}
             <strong>ERASE</strong> to confirm.
           </p>
-          <input
-            type="text"
-            value={confirmText}
-            onInput={(e) => {
-              setConfirmText(e.currentTarget.value);
-            }}
-            aria-label="Type ERASE to confirm"
-            autocomplete="off"
-          />
-          <button
-            type="button"
-            class="danger"
-            disabled={confirmText !== 'ERASE'}
-            onClick={() => void erase()}
-          >
-            Erase everything
-          </button>
+          <div class="row">
+            <input
+              type="text"
+              class="grow"
+              value={confirmText}
+              onInput={(e) => {
+                setConfirmText(e.currentTarget.value);
+              }}
+              aria-label="Type ERASE to confirm"
+              autocomplete="off"
+            />
+            <button
+              type="button"
+              class="danger"
+              disabled={confirmText !== 'ERASE'}
+              onClick={() => void erase()}
+            >
+              Erase everything
+            </button>
+          </div>
         </div>
       </details>
     </section>
@@ -327,16 +357,12 @@ function SettingsPage() {
       <div class="page-head">
         <h1>Settings</h1>
       </div>
-      <div class="grid">
-        <div>
-          <AppearancePanel />
-          <StudyPanel />
-        </div>
-        <div>
-          <VoicePanel />
-          <BackupPanel />
-          <StoragePanel />
-        </div>
+      <div class="settings-grid">
+        <AppearancePanel />
+        <VoicePanel />
+        <StudyPanel />
+        <BackupPanel />
+        <StoragePanel />
       </div>
     </>
   );
