@@ -40,7 +40,16 @@ function score(v: SpeechSynthesisVoice): number {
   );
 }
 
-/** Chinese voices, best first. */
+function sortChinese(voices: readonly SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
+  return voices.filter(isAnyChineseVoice).sort((a, b) => score(a) - score(b) || a.name.localeCompare(b.name));
+}
+
+/** Chinese voices, best first, without waiting (empty until the browser has loaded its voices). */
+function chineseVoicesNow(): SpeechSynthesisVoice[] {
+  return ttsSupported() ? sortChinese(window.speechSynthesis.getVoices()) : [];
+}
+
+/** Chinese voices, best first. Waits briefly for browsers that load voices asynchronously. */
 export async function listChineseVoices(): Promise<SpeechSynthesisVoice[]> {
   if (!ttsSupported()) return [];
   const synth = window.speechSynthesis;
@@ -60,7 +69,7 @@ export async function listChineseVoices(): Promise<SpeechSynthesisVoice[]> {
       );
     });
   }
-  return voices.filter(isAnyChineseVoice).sort((a, b) => score(a) - score(b) || a.name.localeCompare(b.name));
+  return sortChinese(voices);
 }
 
 export function pickVoice(
@@ -73,6 +82,8 @@ export function pickVoice(
 export interface SpeakOptions {
   voiceUri: string;
   rate: number;
+  /** Receives a line for each speech event; used by the Audio check in Settings. */
+  onEvent?: (message: string) => void;
 }
 
 // A strong reference to the utterance being spoken: Chrome can garbage-collect it
@@ -84,12 +95,76 @@ const pause = (ms: number) =>
     window.setTimeout(r, ms);
   });
 
+/** If speech hasn't started by then, the voice is treated as broken. */
+const START_TIMEOUT_MS = 4000;
+
+type Outcome = 'ended' | 'failed' | 'interrupted';
+
+function speakOnce(
+  text: string,
+  voice: SpeechSynthesisVoice | undefined,
+  rate: number,
+  log: (m: string) => void,
+): Promise<Outcome> {
+  const synth = window.speechSynthesis;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = voice?.lang ?? 'zh-CN';
+  if (voice) u.voice = voice;
+  u.rate = rate;
+  current = u;
+  const t0 = performance.now();
+  const at = () => `${Math.round(performance.now() - t0)} ms`;
+  log(`speak: ${voice ? `${voice.name} (${voice.lang})` : 'browser default zh-CN voice'}, rate ${rate}`);
+
+  return new Promise<Outcome>((resolve) => {
+    let started = false;
+    const finish = (outcome: Outcome) => {
+      window.clearTimeout(startTimer);
+      window.clearTimeout(endTimer);
+      u.onstart = u.onend = u.onerror = null;
+      if (current === u) current = null;
+      resolve(outcome);
+    };
+    const startTimer = window.setTimeout(() => {
+      if (started) return;
+      log(`no "start" event after ${at()}`);
+      synth.cancel();
+      finish('failed');
+    }, START_TIMEOUT_MS);
+    // Generous upper bound: ~0.5 s per character at the chosen speed, plus start-up time.
+    const endTimer = window.setTimeout(
+      () => {
+        log(`no "end" event after ${at()}; stopping`);
+        synth.cancel();
+        finish('ended');
+      },
+      START_TIMEOUT_MS + (text.length * 500) / rate,
+    );
+    u.onstart = () => {
+      started = true;
+      log(`start (${at()})`);
+    };
+    u.onend = () => {
+      log(`end (${at()})`);
+      finish('ended');
+    };
+    u.onerror = (e) => {
+      log(`error "${e.error}" (${at()})`);
+      finish(e.error === 'interrupted' || e.error === 'canceled' ? 'interrupted' : 'failed');
+    };
+    synth.speak(u);
+  });
+}
+
 /**
- * Speaks the text; resolves when finished (or after a safety timeout, so a voice
- * that never reports "end" can't leave buttons stuck). Speech already playing is stopped.
+ * Speaks the text; resolves when finished. Speech already playing is stopped.
+ * If the chosen voice fails or never starts (some voices only work in some
+ * browsers), it retries once with the browser's default Chinese voice.
+ * Safety timeouts mean a misbehaving voice can never leave buttons stuck.
  */
 export async function speak(text: string, opts: SpeakOptions): Promise<void> {
   if (!ttsSupported() || !text.trim()) return;
+  const log = opts.onEvent ?? (() => undefined);
   const synth = window.speechSynthesis;
   if (synth.speaking || synth.pending) {
     synth.cancel();
@@ -98,32 +173,19 @@ export async function speak(text: string, opts: SpeakOptions): Promise<void> {
   }
   if (synth.paused) synth.resume();
 
-  const voice = pickVoice(await listChineseVoices(), opts.voiceUri);
+  // Use already-loaded voices when possible so speech starts in the same tick as the
+  // click; Firefox can ignore speech that starts long after the user's tap.
+  let voices = chineseVoicesNow();
+  if (voices.length === 0) voices = await listChineseVoices();
+  const voice = pickVoice(voices, opts.voiceUri);
   const rate = Math.min(Math.max(opts.rate, 0.5), 1.5);
-  const u = new SpeechSynthesisUtterance(text.slice(0, 500));
-  u.lang = voice?.lang ?? 'zh-CN';
-  if (voice) u.voice = voice;
-  u.rate = rate;
-  current = u;
+  const clipped = text.slice(0, 500);
 
-  await new Promise<void>((resolve) => {
-    const finish = () => {
-      window.clearTimeout(timer);
-      if (current === u) current = null;
-      resolve();
-    };
-    // Generous upper bound: ~0.5 s per character at the chosen speed, plus start-up time.
-    const timer = window.setTimeout(
-      () => {
-        if (current === u) synth.cancel();
-        finish();
-      },
-      3000 + (u.text.length * 500) / rate,
-    );
-    u.onend = finish;
-    u.onerror = finish;
-    synth.speak(u);
-  });
+  const outcome = await speakOnce(clipped, voice, rate, log);
+  if (outcome === 'failed' && voice) {
+    log('retrying with the browser default voice');
+    await speakOnce(clipped, undefined, rate, log);
+  }
 }
 
 export function stopSpeaking(): void {

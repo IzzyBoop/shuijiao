@@ -8,6 +8,7 @@ import { THEME_FAMILIES, THEME_MODES, type ThemeMode } from '../../core/theme/th
 import { setThemeState, useThemeState } from '../../app/ThemeToggle';
 import { SettingRow } from '../../core/ui/SettingRow';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { AudioCheck } from './AudioCheck';
 import { BackupPanel } from './BackupPanel';
 import { requestPersistentStorage } from '../../core/db/persist';
 
@@ -257,6 +258,7 @@ function VoicePanel() {
           {testing ? 'Playing…' : 'Test voice'}
         </button>
       </div>
+      <AudioCheck />
     </section>
   );
 }

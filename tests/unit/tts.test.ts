@@ -51,3 +51,104 @@ describe('voice selection', () => {
     expect(pickVoice(list, 'Flo (Chinese (China mainland))')?.name).toBe('Flo (Chinese (China mainland))');
   });
 });
+
+describe('speak fallback', () => {
+  interface FakeUtterance {
+    text: string;
+    lang: string;
+    rate: number;
+    voice: SpeechSynthesisVoice | null;
+    onstart: (() => void) | null;
+    onend: (() => void) | null;
+    onerror: ((e: { error: string }) => void) | null;
+  }
+
+  /** A fake speech engine; `behave` decides what each utterance does. */
+  function stubEngine(voices: SpeechSynthesisVoice[], behave: (u: FakeUtterance) => void) {
+    const spoken: FakeUtterance[] = [];
+    vi.stubGlobal('window', {
+      setTimeout: globalThis.setTimeout.bind(globalThis),
+      clearTimeout: globalThis.clearTimeout.bind(globalThis),
+      speechSynthesis: {
+        getVoices: () => voices,
+        speaking: false,
+        pending: false,
+        paused: false,
+        cancel: vi.fn(),
+        resume: vi.fn(),
+        speak: (u: FakeUtterance) => {
+          spoken.push(u);
+          behave(u);
+        },
+      },
+      SpeechSynthesisUtterance: class {
+        text: string;
+        lang = '';
+        rate = 1;
+        voice: SpeechSynthesisVoice | null = null;
+        onstart = null;
+        onend = null;
+        onerror = null;
+        constructor(text: string) {
+          this.text = text;
+        }
+      },
+    });
+    vi.stubGlobal(
+      'SpeechSynthesisUtterance',
+      (window as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance,
+    );
+    return spoken;
+  }
+
+  it('retries with the browser default voice when the chosen voice errors', async () => {
+    const { speak } = await import('../../src/core/lang/tts');
+    const spoken = stubEngine(MAC_VOICES, (u) => {
+      queueMicrotask(() => {
+        if (u.voice) u.onerror?.({ error: 'synthesis-failed' });
+        else {
+          u.onstart?.();
+          u.onend?.();
+        }
+      });
+    });
+    const log: string[] = [];
+    await speak('你好', { voiceUri: '', rate: 1, onEvent: (m) => log.push(m) });
+    expect(spoken.map((u) => u.voice?.name ?? 'default')).toEqual(['Tingting', 'default']);
+    expect(spoken[1]?.lang).toBe('zh-CN');
+    expect(log.join('\n')).toMatch(/retrying with the browser default voice/);
+  });
+
+  it('retries when the chosen voice never starts', async () => {
+    vi.useFakeTimers();
+    try {
+      const { speak } = await import('../../src/core/lang/tts');
+      const spoken = stubEngine(MAC_VOICES, (u) => {
+        if (!u.voice)
+          queueMicrotask(() => {
+            u.onstart?.();
+            u.onend?.();
+          });
+      });
+      const done = speak('你好', { voiceUri: '', rate: 1 });
+      await vi.advanceTimersByTimeAsync(5000);
+      await done;
+      expect(spoken).toHaveLength(2);
+      expect(spoken[1]?.voice).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not retry when speech is fine', async () => {
+    const { speak } = await import('../../src/core/lang/tts');
+    const spoken = stubEngine(MAC_VOICES, (u) => {
+      queueMicrotask(() => {
+        u.onstart?.();
+        u.onend?.();
+      });
+    });
+    await speak('你好', { voiceUri: '', rate: 1 });
+    expect(spoken).toHaveLength(1);
+  });
+});

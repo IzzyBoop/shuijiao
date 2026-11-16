@@ -779,3 +779,16 @@ input.switch:checked {
   border-color: var(--accent);
   background: radial-gradient(circle at 32px 50%, var(--on-accent) 8px, transparent 9px), var(--accent);
 }
+
+.log {
+  margin: 0;
+  padding: 10px 12px;
+  list-style: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
