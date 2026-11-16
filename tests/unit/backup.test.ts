@@ -140,17 +140,26 @@ describe('LocalStudyStore import', () => {
     expect((await store.listTemplates()).length).toBe(4);
   });
 
-  it('merges by id, newer wins, and is idempotent', async () => {
+  it('an edited copy of the same card is asked about; an identical copy merges quietly', async () => {
     await store.saveCard(card({ meaning: 'local' }));
     const local = await store.getCard('card-1');
-    const older = backup({ cards: [card({ meaning: 'old', updatedAt: 1 })] });
-    expect((await store.applyImport(older)).cards).toEqual({ added: 0, updated: 0, skipped: 1 });
-    expect((await store.getCard('card-1'))?.meaning).toBe('local');
+    const later = (local?.updatedAt ?? 0) + 1;
 
-    const newer = backup({ cards: [card({ meaning: 'new', updatedAt: (local?.updatedAt ?? 0) + 1 })] });
-    expect((await store.applyImport(newer)).cards.updated).toBe(1);
+    // Identical content (only the date differs): nothing to decide, nothing changes.
+    const identical = backup({ cards: [card({ meaning: 'local', updatedAt: 1 })] });
+    expect(await store.findImportDuplicates(identical)).toEqual([]);
+    expect((await store.applyImport(identical)).cards.skipped).toBe(1);
+
+    // Edited copy, newer: by default your card is kept…
+    const edited = backup({ cards: [card({ meaning: 'new', updatedAt: later })] });
+    expect((await store.applyImport(edited)).duplicatesKeptOld).toBe(1);
+    expect((await store.getCard('card-1'))?.meaning).toBe('local');
+    // …and "keep new" takes it, keeping the same card.
+    const result = await store.applyImport(edited, { deckMode: 'keep', duplicates: { default: 'new' } });
+    expect(result.cards.updated).toBe(1);
     expect((await store.getCard('card-1'))?.meaning).toBe('new');
-    expect((await store.applyImport(newer)).cards.skipped).toBe(1);
+    // Importing the same file again: now identical, so nothing to decide.
+    expect(await store.findImportDuplicates(edited)).toEqual([]);
   });
 
   it('never overwrites built-in templates and moves cards from unknown decks to the default deck', async () => {
@@ -372,12 +381,17 @@ describe('LocalStudyStore import duplicates', () => {
     return { store, file };
   };
 
-  it('finds cards with the same characters in either script, but not the same card', async () => {
+  it('finds cards with the same characters in either script', async () => {
     const { store, file } = await setup();
     const dups = await store.findImportDuplicates(file);
-    expect(dups.map((d) => [d.incoming.id, d.existing.map((c) => c.id)])).toEqual([['theirs', ['mine']]]);
-    // A card with the same id is the same card (merged by date), not a duplicate.
-    expect(await store.findImportDuplicates(backup({ cards: [card({ id: 'mine' })] }))).toEqual([]);
+    expect(dups.map((d) => [d.incoming.id, d.existing.map((c) => c.id), d.sameCard])).toEqual([
+      ['theirs', ['mine'], false],
+    ]);
+    expect(dups[0]?.differences).toEqual(['meaning']);
+    // An identical copy of the same card is not a duplicate.
+    expect(
+      await store.findImportDuplicates(backup({ cards: [card({ id: 'mine', meaning: 'bank (mine)' })] })),
+    ).toEqual([]);
   });
 
   it('keep old: skips the imported duplicate', async () => {
@@ -430,5 +444,70 @@ describe('LocalStudyStore import duplicates', () => {
     const preview = await store.previewImport(file, { deckMode: 'keep' });
     expect(preview.reviewStates.added).toBe(0);
     expect(preview.orphans).toBe(0);
+  });
+});
+
+describe('LocalStudyStore import: edited copies of the same cards', () => {
+  // Two backups from the same device: the later one has small edits (notes, tags, meaning).
+  const teacher = card({ id: 'teacher', traditional: '老師', simplified: '老师', meaning: 'teacher' });
+  const bye = card({ id: 'bye', traditional: '再見', simplified: '再见', meaning: 'goodbye' });
+  const plural = card({ id: 'plural', traditional: '們', simplified: '们', meaning: 'plural marker' });
+  const same = card({ id: 'same', traditional: '好', simplified: '好', meaning: 'good' });
+  const before = [teacher, bye, plural, same];
+  const after = [
+    { ...teacher, tags: ['test'], updatedAt: teacher.updatedAt + 10 },
+    { ...bye, meaning: 'goodbye. test', updatedAt: bye.updatedAt + 10 },
+    { ...plural, notes: 'test', updatedAt: plural.updatedAt + 10 },
+    same,
+  ];
+  const progress = (cardId: string, reps: number) => ({
+    key: `${cardId}|tpl-reading`,
+    cardId,
+    templateId: 'tpl-reading',
+    due: 2,
+    stability: 1,
+    stabilityFast: 1,
+    difficulty: 5,
+    scheduledDays: 1,
+    learningStep: 0,
+    reps,
+    lapses: 0,
+    state: 2 as const,
+    scheduleStatus: 'review' as const,
+    lastReview: 1,
+    updatedAt: reps,
+  });
+
+  it('lists each edited card with what changed', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await store.applyImport(backup({ cards: before }));
+    const dups = await store.findImportDuplicates(backup({ cards: after }));
+    expect(dups.map((d) => [d.incoming.id, d.sameCard, d.differences])).toEqual([
+      ['teacher', true, ['tags']],
+      ['bye', true, ['meaning']],
+      ['plural', true, ['notes']],
+    ]);
+  });
+
+  it('keep new overwrites an edited card even when the backup copy is older', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await store.applyImport(backup({ cards: after }));
+    await store.applyImport(backup({ cards: before }), {
+      deckMode: 'keep',
+      duplicates: { default: 'old', choices: { bye: 'new' } },
+    });
+    expect((await store.getCard('bye'))?.meaning).toBe('goodbye');
+    expect((await store.getCard('teacher'))?.tags).toEqual(['test']);
+  });
+
+  it('keeping your copy of the same card still merges study progress from the file', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    await store.applyImport(backup({ cards: before }));
+    const preview = await store.previewImport(backup({ cards: after, reviewStates: [progress('bye', 3)] }), {
+      deckMode: 'keep',
+      duplicates: { default: 'old' },
+    });
+    expect(preview.duplicatesKeptOld).toBe(3);
+    expect(preview.reviewStates.added).toBe(1);
   });
 });

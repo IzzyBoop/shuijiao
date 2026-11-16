@@ -1030,7 +1030,7 @@ a > .icon {
 
 .dup-pair {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
@@ -1071,4 +1071,15 @@ a > .icon {
 
 .stack-tight > * + * {
   margin-top: 4px;
+}
+
+.dup-summary {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .dup-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

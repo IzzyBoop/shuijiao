@@ -43,6 +43,29 @@ export interface ImportOptions {
 export interface ImportDuplicate {
   incoming: Card;
   existing: Card[];
+  /** True when the backup has an edited copy of the very same card (same id). */
+  sameCard: boolean;
+  /** Which fields differ between the backup's card and yours. */
+  differences: CardDifference[];
+}
+
+export const CARD_DIFFERENCE_FIELDS = [
+  'traditional',
+  'simplified',
+  'pinyin',
+  'meaning',
+  'notes',
+  'tags',
+  'kind',
+  'deck',
+] as const;
+export type CardDifference = (typeof CARD_DIFFERENCE_FIELDS)[number];
+
+/** The fields in which two cards differ (ignoring ids and timestamps). */
+export function cardDifferences(a: Card, b: Card): CardDifference[] {
+  const value = (c: Card, f: CardDifference): string =>
+    f === 'tags' ? [...c.tags].sort().join('\u0000') : f === 'deck' ? c.deckId : c[f];
+  return CARD_DIFFERENCE_FIELDS.filter((f) => value(a, f) !== value(b, f));
 }
 
 const DEFAULT_IMPORT: ImportOptions = { deckMode: 'keep' };
@@ -357,9 +380,10 @@ export class LocalStudyStore implements StudyStore {
   }
 
   async findImportDuplicates(backup: Backup): Promise<ImportDuplicate[]> {
-    const localIds = new Set(await this.db.cards.toCollection().primaryKeys());
+    const all = await this.db.cards.toArray();
+    const byId = new Map(all.map((c) => [c.id, c]));
     const byText = new Map<string, Card[]>();
-    for (const card of live(await this.db.cards.toArray())) {
+    for (const card of live(all)) {
       for (const text of new Set([card.traditional, card.simplified])) {
         const list = byText.get(text);
         if (list) list.push(card);
@@ -368,13 +392,25 @@ export class LocalStudyStore implements StudyStore {
     }
     const out: ImportDuplicate[] = [];
     for (const incoming of backup.cards) {
-      // The same card (same id) from an earlier backup is merged as usual, not a duplicate.
-      if (incoming.deleted === 1 || localIds.has(incoming.id)) continue;
+      if (incoming.deleted === 1) continue;
+      const same = byId.get(incoming.id);
+      if (same) {
+        // The same card from another backup. If yours is deleted, the usual date rule
+        // applies; if it's identical there is nothing to decide; if it was edited, ask.
+        if (same.deleted === 1) continue;
+        const differences = cardDifferences(same, incoming);
+        if (differences.length > 0) out.push({ incoming, existing: [same], sameCard: true, differences });
+        continue;
+      }
       const matches = new Map<string, Card>();
       for (const text of [incoming.traditional, incoming.simplified]) {
         for (const card of byText.get(text) ?? []) matches.set(card.id, card);
       }
-      if (matches.size > 0) out.push({ incoming, existing: [...matches.values()] });
+      const existing = [...matches.values()];
+      const first = existing[0];
+      if (first) {
+        out.push({ incoming, existing, sameCard: false, differences: cardDifferences(first, incoming) });
+      }
     }
     return out;
   }
@@ -382,22 +418,42 @@ export class LocalStudyStore implements StudyStore {
   private async plan(backup: Backup, { deckMode, duplicates }: ImportOptions) {
     const builtinIds = new Set(builtinTemplates(0).map((t) => t.id));
 
-    // Duplicates: "old" skips the imported card (and its progress); "new" imports it and
-    // deletes the matching cards you had.
+    // Duplicates:
+    // - "old" skips the imported card. For a different card with the same characters its
+    //   study progress is skipped too; for an edited copy of the same card, progress from
+    //   the file still merges as usual (the card itself is unchanged).
+    // - "new" imports it. A different card replaces (deletes) the matching cards you had;
+    //   an edited copy overwrites yours even if it is older, keeping the same card id.
     const skip = new Set<string>();
+    const skipWithProgress = new Set<string>();
     const retire = new Set<string>();
+    const force = new Map<string, number>();
     let replaced = 0;
-    for (const { incoming, existing } of await this.findImportDuplicates(backup)) {
+    for (const { incoming, existing, sameCard } of await this.findImportDuplicates(backup)) {
       const choice = duplicates?.choices?.[incoming.id] ?? duplicates?.default ?? 'old';
       if (choice === 'old') {
         skip.add(incoming.id);
+        if (!sameCard) skipWithProgress.add(incoming.id);
       } else {
         replaced++;
-        for (const card of existing) retire.add(card.id);
+        if (sameCard) {
+          const mine = existing[0]?.updatedAt ?? 0;
+          force.set(incoming.id, Math.max(Date.now(), mine + 1));
+        } else {
+          for (const card of existing) retire.add(card.id);
+        }
       }
     }
-    const kept: Backup = { ...backup, cards: backup.cards.filter((c) => !skip.has(c.id)) };
-    const notSkipped = (r: { cardId: string }) => !skip.has(r.cardId);
+    const kept: Backup = {
+      ...backup,
+      cards: backup.cards
+        .filter((c) => !skip.has(c.id))
+        .map((c) => {
+          const at = force.get(c.id);
+          return at === undefined ? c : { ...c, updatedAt: at };
+        }),
+    };
+    const notSkipped = (r: { cardId: string }) => !skipWithProgress.has(r.cardId);
     const reviewStatesIn = backup.reviewStates.filter(notSkipped);
     const reviewLogsIn = backup.reviewLogs.filter(notSkipped);
     const orphansBefore = kept.cards.length + reviewStatesIn.length + reviewLogsIn.length;

@@ -3,6 +3,7 @@ import {
   store,
   type DuplicateChoice,
   type ImportDeckMode,
+  type CardDifference,
   type ImportDuplicate,
   type ImportOptions,
   type ImportPreview,
@@ -165,10 +166,7 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
       {dups.length > 0 && (
         <section class="panel stack">
           <h2>2. Cards you already have</h2>
-          <p>
-            {dups.length === 1 ? '1 card in this backup has' : `${dups.length} cards in this backup have`} the
-            same characters as {dups.length === 1 ? 'a card' : 'cards'} you already have. What should happen?
-          </p>
+          <p>{describeDuplicates(dups)} What should happen?</p>
           <fieldset class="choice-group">
             <legend class="sr-only">Duplicate cards</legend>
             <label class="check">
@@ -194,7 +192,7 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
                 }}
               />
               <span>
-                Keep new <span class="muted small">(replace your cards with the ones from the backup)</span>
+                Keep new <span class="muted small">(use the backup’s version of these cards)</span>
               </span>
             </label>
             <label class="check">
@@ -210,7 +208,10 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
             </label>
           </fieldset>
           {dupMode === 'new' && (
-            <p class="small muted">Replaced cards are deleted along with their study history.</p>
+            <p class="small muted">
+              Edited copies of your own cards are updated and keep their study progress. Where a different
+              card has the same characters, yours is replaced and its study history is deleted.
+            </p>
           )}
           {dupMode === 'choose' && (
             <DuplicateChooser
@@ -288,7 +289,34 @@ function ImportSummary({ preview }: { preview: ImportPreview }) {
   );
 }
 
-function CardSummary({ card, deck }: { card: Card; deck: string }) {
+const DIFFERENCE_LABELS: Record<CardDifference, string> = {
+  traditional: 'traditional characters',
+  simplified: 'simplified characters',
+  pinyin: 'pinyin',
+  meaning: 'meaning',
+  notes: 'notes',
+  tags: 'tags',
+  kind: 'word/sentence',
+  deck: 'deck',
+};
+
+/** E.g. "3 cards in this backup are edited versions of cards you have, and 1 is a different card…" */
+function describeDuplicates(dups: readonly ImportDuplicate[]): string {
+  const edited = dups.filter((d) => d.sameCard).length;
+  const other = dups.length - edited;
+  const editedPart = (lead: boolean) =>
+    `${lead ? plural(edited, 'card') + ' in this backup' : edited} ${
+      edited === 1 ? 'is an edited version of a card' : 'are edited versions of cards'
+    } you have`;
+  const otherPart = (lead: boolean) =>
+    `${lead ? plural(other, 'card') + ' in this backup' : other} ${
+      other === 1 ? 'is a different card' : 'are different cards'
+    } with the same characters as yours`;
+  if (edited > 0 && other > 0) return `${editedPart(true)}, and ${otherPart(false)}.`;
+  return edited > 0 ? `${editedPart(true)}.` : `${otherPart(true)}.`;
+}
+
+function CardSummary({ card, deck, newer }: { card: Card; deck: string; newer: boolean }) {
   return (
     <div class="stack-tight">
       <div class="row">
@@ -297,10 +325,12 @@ function CardSummary({ card, deck }: { card: Card; deck: string }) {
         <Pinyin text={card.pinyin} />
       </div>
       <div class="small">{card.meaning}</div>
-      {card.notes && <div class="small muted">{card.notes}</div>}
+      {card.notes && <div class="small muted">Notes: {card.notes}</div>}
+      {card.tags.length > 0 && <div class="small muted">Tags: {card.tags.join(', ')}</div>}
       <div class="row small muted">
         <span class="badge">{deck}</span>
-        <span>Changed {new Date(card.updatedAt).toLocaleDateString()}</span>
+        <span>Changed {new Date(card.updatedAt).toLocaleString()}</span>
+        {newer && <span class="badge ok">Newer</span>}
       </div>
     </div>
   );
@@ -386,14 +416,29 @@ function DuplicateChooser({
       </div>
       {pager}
       <ul class="dup-pairs">
-        {shown.map(({ incoming, existing }) => {
+        {shown.map(({ incoming, existing, sameCard, differences }) => {
           const choice = choiceOf(incoming.id);
+          const mineLatest = Math.max(...existing.map((c) => c.updatedAt));
           return (
             <li key={incoming.id} class="dup-pair" aria-label={`Duplicate: ${incoming.traditional}`}>
+              <p class="dup-summary small">
+                <strong>
+                  {sameCard ? 'Edited copy of the same card' : 'Different card, same characters'}
+                </strong>
+                {' · '}
+                {differences.length > 0
+                  ? `Differs in ${andList(differences.map((d) => DIFFERENCE_LABELS[d]))}`
+                  : 'Same content'}
+              </p>
               <div class={`dup-card${choice === 'old' ? ' chosen' : ''}`}>
                 <div class="dup-label">You have</div>
                 {existing.map((card) => (
-                  <CardSummary key={card.id} card={card} deck={localDeckName(card.deckId)} />
+                  <CardSummary
+                    key={card.id}
+                    card={card}
+                    deck={localDeckName(card.deckId)}
+                    newer={card.updatedAt > incoming.updatedAt}
+                  />
                 ))}
                 <button
                   type="button"
@@ -407,7 +452,11 @@ function DuplicateChooser({
               </div>
               <div class={`dup-card${choice === 'new' ? ' chosen' : ''}`}>
                 <div class="dup-label">In the backup</div>
-                <CardSummary card={incoming} deck={incomingDeckName(incoming)} />
+                <CardSummary
+                  card={incoming}
+                  deck={incomingDeckName(incoming)}
+                  newer={incoming.updatedAt > mineLatest}
+                />
                 <button
                   type="button"
                   aria-pressed={choice === 'new'}

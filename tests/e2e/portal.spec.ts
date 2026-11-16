@@ -270,7 +270,9 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
 
   await page.goto('./#/settings');
   await page.locator('input[type=file]').setInputFiles(await file('theirs.json', theirs));
-  await expect(page.getByText(/25 cards in this backup have the same characters/)).toBeVisible();
+  await expect(
+    page.getByText('25 cards in this backup are different cards with the same characters as yours.'),
+  ).toBeVisible();
   await expect(page.getByLabel(/Keep old/)).toBeChecked();
 
   await page.getByLabel('Choose for each card').check();
@@ -307,6 +309,85 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
   await expect(page.locator('.card-list > li')).toHaveCount(2);
   await page.getByLabel('Search cards').fill('');
   await expect(page.locator('.card-list > li')).toHaveCount(25);
+});
+
+test('re-importing an edited backup from the same device asks about each edited card', async ({
+  page,
+}, testInfo) => {
+  const now = 1_763_287_200_000;
+  const card = (id: string, t: string, meaning: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    deckId: 'default-deck',
+    kind: 'word',
+    traditional: t,
+    simplified: t,
+    pinyin: 'x',
+    meaning,
+    notes: '',
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
+    ...extra,
+  });
+  const before = [
+    card('teacher', '老師', 'teacher'),
+    card('bye', '再見', 'goodbye'),
+    card('good', '好', 'good'),
+  ];
+  const after = [
+    card('teacher', '老師', 'teacher', { tags: ['test'], updatedAt: now + 60_000 }),
+    card('bye', '再見', 'goodbye. test', { updatedAt: now + 60_000 }),
+    card('good', '好', 'good'),
+  ];
+  const write = async (name: string, cards: unknown[]) => {
+    const path = testInfo.outputPath(name);
+    await writeFile(
+      path,
+      JSON.stringify({
+        format: 'shuijiao-backup',
+        version: 1,
+        exportedAt: now,
+        decks: [],
+        cards,
+        templates: [],
+        reviewStates: [],
+        reviewLogs: [],
+        links: [],
+      }),
+    );
+    return path;
+  };
+
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(await write('before.json', before));
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(await write('after.json', after));
+  await expect(page.getByText('2 cards in this backup are edited versions of cards you have.')).toBeVisible();
+  await page.getByLabel('Choose for each card').check();
+  const pairs = page.locator('.dup-pair');
+  await expect(pairs).toHaveCount(2);
+  await expect(pairs.nth(0)).toContainText('Edited copy of the same card · Differs in tags');
+  await expect(pairs.nth(0)).toContainText('Tags: test');
+  await expect(pairs.nth(1)).toContainText('Differs in meaning');
+  await expect(pairs.nth(1).locator('.dup-card').nth(1)).toContainText('Newer');
+
+  // Take the edited meaning, keep your version of the tags.
+  await pairs
+    .nth(1)
+    .getByRole('button', { name: /Keep new/ })
+    .click();
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+
+  await page.goto('./#/cards');
+  await expect(page.getByText('goodbye. test')).toBeVisible();
+  await expect(page.locator('.card-list > li')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Edit 老師' }).click();
+  await expect(page.getByLabel('Tags')).toHaveValue('');
 });
 
 test('a hostile backup file is rejected', async ({ page }, testInfo) => {
