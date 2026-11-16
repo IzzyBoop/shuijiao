@@ -74,7 +74,12 @@ export function StudyHome() {
                   <Icon name="study" /> Study now
                 </a>
               ) : (
-                <span class="badge ok">All done for today</span>
+                <>
+                  <span class="badge ok">All done for today</span>
+                  <a class="button" href={href('/study-ahead')}>
+                    <Icon name="study" /> Study anyway
+                  </a>
+                </>
               )}
             </div>
           </div>
@@ -101,7 +106,8 @@ export function StudyHome() {
                   <a class="button" href={href(`/browse/${deck.id}`)}>
                     Flip
                   </a>
-                  <a class="button" href={href(`/review/${deck.id}`)} aria-disabled={c.due + c.fresh === 0}>
+                  {/* With nothing due, the session page offers to study ahead. */}
+                  <a class="button" href={href(`/review/${deck.id}`)}>
                     Study
                   </a>
                 </li>

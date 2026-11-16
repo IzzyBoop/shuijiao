@@ -82,6 +82,44 @@ describe('queue', () => {
     );
   });
 
+  it('studying ahead brings up cards that are not due, the soonest first, after the rest', () => {
+    const review = (id: string, due: number) => ({
+      ...emptyState(id, 'tpl-reading', NOW),
+      state: 2 as const,
+      scheduleStatus: 'review' as const,
+      due,
+    });
+    const day = 86_400_000;
+    const states = [review('far', NOW + 9 * day), review('due', NOW - 1000), review('soon', NOW + day)];
+    const cards = [card('far'), card('due'), card('soon'), card('new')];
+    const input = { cards, templates, states, now: NOW, newLimit: 5 };
+
+    // Ordinarily only what is due, and the new card.
+    expect(buildQueue(input).map((i) => i.card.id)).toEqual(['due', 'new']);
+    // Ahead: the same, then the others in the order they would have come up.
+    expect(buildQueue({ ...input, ahead: true }).map((i) => i.card.id)).toEqual([
+      'due',
+      'new',
+      'soon',
+      'far',
+    ]);
+    // They keep their state, so answering them counts as an early review.
+    const soon = buildQueue({ ...input, ahead: true })[2];
+    expect(soon?.state?.due).toBe(NOW + day);
+  });
+
+  it('studying ahead with every card already seen still gives a session', () => {
+    const later = {
+      ...emptyState('a', 'tpl-reading', NOW),
+      state: 2 as const,
+      scheduleStatus: 'review' as const,
+      due: NOW + 86_400_000,
+    };
+    const input = { cards: [card('a')], templates, states: [later], now: NOW, newLimit: 10 };
+    expect(buildQueue(input)).toEqual([]);
+    expect(buildQueue({ ...input, ahead: true }).map((i) => i.card.id)).toEqual(['a']);
+  });
+
   it('starts the study day at 04:00 local time', () => {
     const start = new Date(startOfStudyDay(NOW));
     expect(start.getHours()).toBe(4);

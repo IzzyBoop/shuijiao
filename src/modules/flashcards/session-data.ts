@@ -18,13 +18,26 @@ export async function activeTemplates(): Promise<Template[]> {
   return active.length > 0 ? active : all.slice(0, 1);
 }
 
-export async function loadSession(deckId: string | undefined, now = Date.now()): Promise<SessionData> {
+export interface SessionOptions {
+  /**
+   * Study ahead: a session the student asks for when nothing is due. Cards come up before
+   * they are due, and a fresh day's worth of new cards is allowed on top of today's.
+   */
+  ahead?: boolean;
+}
+
+export async function loadSession(
+  deckId: string | undefined,
+  { ahead = false }: SessionOptions = {},
+  now = Date.now(),
+): Promise<SessionData> {
   const [cards, templates] = await Promise.all([store.listCards(deckId), activeTemplates(), initScheduler()]);
   const states = await store.listReviewStates(templates.map((t) => t.id));
-  const newToday = await store.countReviewsSince(startOfStudyDay(now), true);
-  const newLimit = Math.max(0, getStudyPrefs().newPerDay - newToday);
+  const perDay = getStudyPrefs().newPerDay;
+  const newToday = ahead ? 0 : await store.countReviewsSince(startOfStudyDay(now), true);
+  const newLimit = Math.max(0, perDay - newToday);
   return {
-    queue: buildQueue({ cards, templates, states, now, newLimit }),
+    queue: buildQueue({ cards, templates, states, now, newLimit, ahead }),
     templates,
     totalCards: cards.length,
   };

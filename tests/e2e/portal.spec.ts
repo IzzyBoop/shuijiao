@@ -52,6 +52,32 @@ test('review a card with spaced repetition', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
 });
 
+test('with nothing due, a session can be studied anyway', async ({ page }) => {
+  await addCard(page, '你好');
+  await page.goto('./#/');
+  await page.getByRole('link', { name: 'Study now' }).click();
+  await expect(page.locator('.flashcard')).toContainText('你好');
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: /Easy/ }).click();
+  await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
+
+  // Nothing is due now: the home page says so and offers a session all the same.
+  await page.goto('./#/');
+  await expect(page.getByText('All done for today')).toBeVisible();
+  await page.getByRole('link', { name: 'Study anyway' }).click();
+  await expect(page.getByText('Studying ahead')).toBeVisible();
+  await expect(page.locator('.flashcard')).toContainText('你好');
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: /Good/ }).click();
+  await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
+
+  // The ordinary session has nothing, and offers the same.
+  await page.goto('./#/review');
+  await expect(page.getByRole('heading', { name: /Nothing to study/ })).toBeVisible();
+  await page.getByRole('link', { name: 'Study anyway' }).click();
+  await expect(page.locator('.flashcard')).toContainText('你好');
+});
+
 test('flip through keeps the front visible and shows the back below it', async ({ page }) => {
   await addCard(page, '银行');
   await page.goto('./#/browse');

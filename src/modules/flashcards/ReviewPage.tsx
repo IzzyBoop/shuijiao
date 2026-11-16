@@ -19,9 +19,18 @@ function say(text: string) {
   void speak(text, { voiceUri: p.voiceUri, rate: p.speechRate });
 }
 
+/** The ordinary session: what is due, and today's new cards. */
 export function ReviewPage({ params }: RouteProps) {
-  const deckId = params.deckId;
-  const session = useAsync(() => loadSession(deckId), [deckId]);
+  return <ReviewSession deckId={params.deckId} ahead={false} />;
+}
+
+/** A session the student asked for although nothing is due: cards come up ahead of schedule. */
+export function StudyAheadPage({ params }: RouteProps) {
+  return <ReviewSession deckId={params.deckId} ahead />;
+}
+
+function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: boolean }) {
+  const session = useAsync(() => loadSession(deckId, { ahead }), [deckId, ahead]);
   const [queue, setQueue] = useState<QueueItem[] | null>(null);
   const [shown, setShown] = useState(false);
   const [done, setDone] = useState(0);
@@ -94,16 +103,31 @@ export function ReviewPage({ params }: RouteProps) {
   if (!queue) return <p class="muted">Loading…</p>;
 
   if (!item) {
+    const aheadPath = deckId ? `/study-ahead/${deckId}` : '/study-ahead';
+    const hasCards = (session.data?.totalCards ?? 0) > 0;
     return (
       <section class="panel stack">
         <h1>{done > 0 ? 'Session complete 🎉' : 'Nothing to study right now'}</h1>
         <p class="muted">
           {done > 0
             ? `You reviewed ${done} card${done === 1 ? '' : 's'}.`
-            : 'No cards are due. Add new cards or come back later.'}
+            : hasCards
+              ? 'No cards are due.'
+              : 'There are no cards here yet. Add some to start studying.'}
         </p>
+        {hasCards && !ahead && (
+          <p class="muted">
+            Want to study anyway? Your cards come up ahead of schedule, the ones due soonest first, and your
+            answers count as usual. Nothing is reset.
+          </p>
+        )}
         <div class="row">
-          <a class="button primary" href={href('/')}>
+          {hasCards && !ahead && (
+            <a class="button primary" href={href(aheadPath)}>
+              Study anyway
+            </a>
+          )}
+          <a class={hasCards && !ahead ? 'button' : 'button primary'} href={href('/')}>
             Back to Study
           </a>
           <a class="button" href={href('/add')}>
@@ -121,6 +145,7 @@ export function ReviewPage({ params }: RouteProps) {
     <>
       <div class="page-head">
         <span class="muted small">
+          {ahead && 'Studying ahead · '}
           {queue.length} left · {item.template.name}
         </span>
         <a href={href('/')} class="small">

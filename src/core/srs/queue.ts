@@ -21,14 +21,23 @@ export interface QueueInput {
   now: number;
   /** New cards still allowed today. */
   newLimit: number;
+  /**
+   * Study ahead: also bring up cards that are not due yet, soonest first, after the due
+   * ones. For a session the student asks for when nothing is due.
+   */
+  ahead?: boolean;
 }
 
-/** Due learning cards first, then due reviews (oldest first), then new cards up to the limit. */
-export function buildQueue({ cards, templates, states, now, newLimit }: QueueInput): QueueItem[] {
+/**
+ * Due learning cards first, then due reviews (oldest first), then new cards up to the limit.
+ * When studying ahead, cards that are not due yet come last, the soonest first.
+ */
+export function buildQueue({ cards, templates, states, now, newLimit, ahead }: QueueInput): QueueItem[] {
   const byKey = new Map(states.map((s) => [s.key, s]));
   const learning: QueueItem[] = [];
   const reviews: QueueItem[] = [];
   const fresh: QueueItem[] = [];
+  const early: QueueItem[] = [];
 
   for (const card of cards) {
     if (card.deleted) continue;
@@ -38,13 +47,16 @@ export function buildQueue({ cards, templates, states, now, newLimit }: QueueInp
         fresh.push({ card, template, state });
       } else if (state.due <= now) {
         (state.state === 2 ? reviews : learning).push({ card, template, state });
+      } else if (ahead) {
+        early.push({ card, template, state });
       }
     }
   }
   const byDue = (a: QueueItem, b: QueueItem) => (a.state?.due ?? 0) - (b.state?.due ?? 0);
   learning.sort(byDue);
   reviews.sort(byDue);
-  return [...learning, ...reviews, ...fresh.slice(0, Math.max(0, newLimit))];
+  early.sort(byDue);
+  return [...learning, ...reviews, ...fresh.slice(0, Math.max(0, newLimit)), ...early];
 }
 
 export function countQueue(items: readonly QueueItem[]): { due: number; fresh: number } {

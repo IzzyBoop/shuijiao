@@ -3,7 +3,7 @@ import { BrowsePage } from './BrowsePage';
 import { CardEditor } from './CardEditor';
 import { CardsPage } from './CardsPage';
 import { DecksPage } from './DecksPage';
-import { ReviewPage } from './ReviewPage';
+import { ReviewPage, StudyAheadPage } from './ReviewPage';
 import { StudyHome } from './StudyHome';
 import { TemplatesPage } from './TemplatesPage';
 
@@ -18,6 +18,8 @@ export const flashcardsModule: PortalModule = {
     { path: '/', title: 'Study', component: StudyHome },
     { path: '/review', title: 'Review', component: ReviewPage },
     { path: '/review/:deckId', title: 'Review', component: ReviewPage },
+    { path: '/study-ahead', title: 'Study ahead', component: StudyAheadPage },
+    { path: '/study-ahead/:deckId', title: 'Study ahead', component: StudyAheadPage },
     { path: '/browse', title: 'Flip through', component: BrowsePage },
     { path: '/browse/:deckId', title: 'Flip through', component: BrowsePage },
     { path: '/add', title: 'Add card', component: CardEditor },
