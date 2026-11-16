@@ -1,0 +1,257 @@
+/*
+ * Theme tokens. Each theme maps its palette onto the same semantic variables,
+ * so components only ever use var(--token).
+ * Tone colours follow a common convention: 1 red, 2 orange, 3 green, 4 blue, 5 neutral.
+ */
+
+:root,
+[data-theme='default-light'] {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --border: #d1d9e0;
+  --text: #1f2328;
+  --muted: #59636e;
+  --accent: #0969da;
+  --on-accent: #ffffff;
+  --ok: #1a7f37;
+  --warn: #9a6700;
+  --danger: #cf222e;
+  --tone1: #cf222e;
+  --tone2: #bc4c00;
+  --tone3: #1a7f37;
+  --tone4: #0969da;
+  --tone5: #59636e;
+}
+
+[data-theme='default-dark'] {
+  --bg: #0d1117;
+  --surface: #151b23;
+  --surface-2: #212830;
+  --border: #3d444d;
+  --text: #e6edf3;
+  --muted: #9198a1;
+  --accent: #4493f8;
+  --on-accent: #0d1117;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --danger: #f85149;
+  --tone1: #ff7b72;
+  --tone2: #ffa657;
+  --tone3: #7ee787;
+  --tone4: #79c0ff;
+  --tone5: #9198a1;
+}
+
+/* Catppuccin — https://catppuccin.com/palette */
+[data-theme='catppuccin-latte'] {
+  --bg: #eff1f5;
+  --surface: #e6e9ef;
+  --surface-2: #dce0e8;
+  --border: #bcc0cc;
+  --text: #4c4f69;
+  --muted: #6c6f85;
+  --accent: #8839ef;
+  --on-accent: #eff1f5;
+  --ok: #40a02b;
+  --warn: #df8e1d;
+  --danger: #d20f39;
+  --tone1: #d20f39;
+  --tone2: #fe640b;
+  --tone3: #40a02b;
+  --tone4: #1e66f5;
+  --tone5: #6c6f85;
+}
+
+[data-theme='catppuccin-frappe'] {
+  --bg: #303446;
+  --surface: #292c3c;
+  --surface-2: #414559;
+  --border: #51576d;
+  --text: #c6d0f5;
+  --muted: #a5adce;
+  --accent: #ca9ee6;
+  --on-accent: #232634;
+  --ok: #a6d189;
+  --warn: #e5c890;
+  --danger: #e78284;
+  --tone1: #e78284;
+  --tone2: #ef9f76;
+  --tone3: #a6d189;
+  --tone4: #8caaee;
+  --tone5: #a5adce;
+}
+
+[data-theme='catppuccin-macchiato'] {
+  --bg: #24273a;
+  --surface: #1e2030;
+  --surface-2: #363a4f;
+  --border: #494d64;
+  --text: #cad3f5;
+  --muted: #a5adcb;
+  --accent: #c6a0f6;
+  --on-accent: #181926;
+  --ok: #a6da95;
+  --warn: #eed49f;
+  --danger: #ed8796;
+  --tone1: #ed8796;
+  --tone2: #f5a97f;
+  --tone3: #a6da95;
+  --tone4: #8aadf4;
+  --tone5: #a5adcb;
+}
+
+[data-theme='catppuccin-mocha'] {
+  --bg: #1e1e2e;
+  --surface: #181825;
+  --surface-2: #313244;
+  --border: #45475a;
+  --text: #cdd6f4;
+  --muted: #a6adc8;
+  --accent: #cba6f7;
+  --on-accent: #11111b;
+  --ok: #a6e3a1;
+  --warn: #f9e2af;
+  --danger: #f38ba8;
+  --tone1: #f38ba8;
+  --tone2: #fab387;
+  --tone3: #a6e3a1;
+  --tone4: #89b4fa;
+  --tone5: #a6adc8;
+}
+
+/* Rosé Pine — https://rosepinetheme.com/palette */
+[data-theme='rose-pine-dawn'] {
+  --bg: #faf4ed;
+  --surface: #fffaf3;
+  --surface-2: #f2e9e1;
+  --border: #dfdad9;
+  --text: #575279;
+  --muted: #797593;
+  --accent: #907aa9;
+  --on-accent: #faf4ed;
+  --ok: #286983;
+  --warn: #ea9d34;
+  --danger: #b4637a;
+  --tone1: #b4637a;
+  --tone2: #d7827e;
+  --tone3: #56949f;
+  --tone4: #286983;
+  --tone5: #797593;
+}
+
+[data-theme='rose-pine-moon'] {
+  --bg: #232136;
+  --surface: #2a273f;
+  --surface-2: #393552;
+  --border: #44415a;
+  --text: #e0def4;
+  --muted: #908caa;
+  --accent: #c4a7e7;
+  --on-accent: #232136;
+  --ok: #9ccfd8;
+  --warn: #f6c177;
+  --danger: #eb6f92;
+  --tone1: #eb6f92;
+  --tone2: #f6c177;
+  --tone3: #9ccfd8;
+  --tone4: #3e8fb0;
+  --tone5: #908caa;
+}
+
+[data-theme='rose-pine'] {
+  --bg: #191724;
+  --surface: #1f1d2e;
+  --surface-2: #26233a;
+  --border: #403d52;
+  --text: #e0def4;
+  --muted: #908caa;
+  --accent: #c4a7e7;
+  --on-accent: #191724;
+  --ok: #9ccfd8;
+  --warn: #f6c177;
+  --danger: #eb6f92;
+  --tone1: #eb6f92;
+  --tone2: #f6c177;
+  --tone3: #9ccfd8;
+  --tone4: #31748f;
+  --tone5: #908caa;
+}
+
+/* Nord — https://www.nordtheme.com/docs/colors-and-palettes */
+[data-theme='nord-light'] {
+  --bg: #eceff4;
+  --surface: #f8f9fb;
+  --surface-2: #e5e9f0;
+  --border: #d8dee9;
+  --text: #2e3440;
+  --muted: #4c566a;
+  --accent: #5e81ac;
+  --on-accent: #eceff4;
+  --ok: #4f7a3a;
+  --warn: #9a6a1a;
+  --danger: #bf616a;
+  --tone1: #bf616a;
+  --tone2: #b5683f;
+  --tone3: #4f7a3a;
+  --tone4: #5e81ac;
+  --tone5: #4c566a;
+}
+
+[data-theme='nord'] {
+  --bg: #2e3440;
+  --surface: #3b4252;
+  --surface-2: #434c5e;
+  --border: #4c566a;
+  --text: #eceff4;
+  --muted: #d8dee9;
+  --accent: #88c0d0;
+  --on-accent: #2e3440;
+  --ok: #a3be8c;
+  --warn: #ebcb8b;
+  --danger: #bf616a;
+  --tone1: #bf616a;
+  --tone2: #d08770;
+  --tone3: #a3be8c;
+  --tone4: #81a1c1;
+  --tone5: #d8dee9;
+}
+
+/* Gruvbox — https://github.com/morhetz/gruvbox */
+[data-theme='gruvbox-light'] {
+  --bg: #fbf1c7;
+  --surface: #f9f5d7;
+  --surface-2: #ebdbb2;
+  --border: #d5c4a1;
+  --text: #3c3836;
+  --muted: #665c54;
+  --accent: #076678;
+  --on-accent: #fbf1c7;
+  --ok: #79740e;
+  --warn: #b57614;
+  --danger: #9d0006;
+  --tone1: #9d0006;
+  --tone2: #af3a03;
+  --tone3: #79740e;
+  --tone4: #076678;
+  --tone5: #665c54;
+}
+
+[data-theme='gruvbox-dark'] {
+  --bg: #282828;
+  --surface: #32302f;
+  --surface-2: #3c3836;
+  --border: #504945;
+  --text: #ebdbb2;
+  --muted: #bdae93;
+  --accent: #83a598;
+  --on-accent: #1d2021;
+  --ok: #b8bb26;
+  --warn: #fabd2f;
+  --danger: #fb4934;
+  --tone1: #fb4934;
+  --tone2: #fe8019;
+  --tone3: #b8bb26;
+  --tone4: #83a598;
+  --tone5: #bdae93;
+}
