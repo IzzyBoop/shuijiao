@@ -102,16 +102,25 @@ export function BrowsePage({ params }: RouteProps) {
       ) : (
         <>
           <div class="flashcard" aria-live="polite">
-            <CardSide card={card} fields={flipped ? template.back : template.front} />
+            {/* Like study mode: the front stays put and the back appears underneath. */}
+            <CardSide card={card} fields={template.front} />
+            {flipped && (
+              <>
+                <hr />
+                <CardSide card={card} fields={template.back} alsoShown={template.front} />
+                {card.notes && <div class="muted small">{card.notes}</div>}
+              </>
+            )}
           </div>
-          <div class="row spread mt">
+          <div class="flip-controls mt">
             <button
               type="button"
+              aria-label="Previous card"
               onClick={() => {
                 go(-1);
               }}
             >
-              ← Previous
+              ← <span class="flip-label">Previous</span>
             </button>
             <button
               type="button"
@@ -120,20 +129,21 @@ export function BrowsePage({ params }: RouteProps) {
                 setFlipped((f) => !f);
               }}
             >
-              Flip <span class="kbd">Space</span>
+              {flipped ? 'Hide answer' : 'Show answer'} <span class="kbd">Space</span>
             </button>
-            <span class="muted">
-              {index + 1} / {order.length}
-            </span>
             <button
               type="button"
+              aria-label="Next card"
               onClick={() => {
                 go(1);
               }}
             >
-              Next →
+              <span class="flip-label">Next</span> →
             </button>
           </div>
+          <p class="muted small center mt">
+            Card {index + 1} of {order.length} · ← → to move
+          </p>
         </>
       )}
     </>

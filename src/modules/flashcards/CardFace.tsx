@@ -1,7 +1,16 @@
 import type { Card, CardField } from '../../core/db/model';
 import { AudioButton, Pinyin, Simp, Trad } from '../../core/ui/chinese';
 
-function FieldView({ field, card, fields }: { field: CardField; card: Card; fields: readonly CardField[] }) {
+/** `visible`: every field currently on screen (this side plus the front, once revealed). */
+function FieldView({
+  field,
+  card,
+  visible,
+}: {
+  field: CardField;
+  card: Card;
+  visible: readonly CardField[];
+}) {
   switch (field) {
     case 'traditional':
       return (
@@ -11,7 +20,7 @@ function FieldView({ field, card, fields }: { field: CardField; card: Card; fiel
         />
       );
     case 'simplified': {
-      const withTrad = fields.includes('traditional');
+      const withTrad = visible.includes('traditional');
       if (withTrad && card.simplified === card.traditional) return null;
       return (
         <div>
@@ -29,15 +38,29 @@ function FieldView({ field, card, fields }: { field: CardField; card: Card; fiel
   }
 }
 
-/** Renders one side of a flashcard with the given fields, in a fixed, readable order. */
-export function CardSide({ card, fields }: { card: Card; fields: readonly CardField[] }) {
+/**
+ * Renders one side of a flashcard with the given fields, in a fixed, readable order.
+ * `alsoShown` lists fields already visible elsewhere on the card (the front, when
+ * showing the back), so simplified characters only take the big size when the
+ * traditional ones aren't on screen.
+ */
+export function CardSide({
+  card,
+  fields,
+  alsoShown = [],
+}: {
+  card: Card;
+  fields: readonly CardField[];
+  alsoShown?: readonly CardField[];
+}) {
+  const visible = [...fields, ...alsoShown];
   const order: CardField[] = ['traditional', 'simplified', 'pinyin', 'audio', 'meaning'];
   return (
     <>
       {order
         .filter((f) => fields.includes(f))
         .map((f) => (
-          <FieldView key={f} field={f} card={card} fields={fields} />
+          <FieldView key={f} field={f} card={card} visible={visible} />
         ))}
     </>
   );

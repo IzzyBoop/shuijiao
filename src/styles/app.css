@@ -880,3 +880,25 @@ a > .icon {
   padding: 16px !important;
   border-radius: var(--radius-sm);
 }
+
+.page-head select {
+  width: auto;
+  max-width: 100%;
+}
+
+.flip-controls {
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 2fr) 1fr;
+  gap: 8px;
+}
+
+.center {
+  text-align: center;
+}
+
+/* On phones the arrows alone are enough for Previous/Next. */
+@media (max-width: 420px) {
+  .flip-label {
+    display: none;
+  }
+}

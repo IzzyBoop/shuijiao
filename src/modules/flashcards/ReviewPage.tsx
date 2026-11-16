@@ -133,7 +133,7 @@ export function ReviewPage({ params }: RouteProps) {
         {shown && (
           <>
             <hr />
-            <CardSide card={item.card} fields={item.template.back} />
+            <CardSide card={item.card} fields={item.template.back} alsoShown={item.template.front} />
             {item.card.notes && <div class="muted small">{item.card.notes}</div>}
           </>
         )}
