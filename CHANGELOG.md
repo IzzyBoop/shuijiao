@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [0.1.0-beta.1] - 2026-11-16
+
 ### Added
 
 - First beta of 水餃 (Shuǐjiǎo), a Mandarin flashcard portal for our course.
