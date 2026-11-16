@@ -11,6 +11,7 @@ import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import type { AutoFill } from '../../core/lang/autofill';
 import { requestPersistentStorage } from '../../core/db/persist';
+import { Dialog } from '../../core/ui/Dialog';
 import { cardListPath } from './return-path';
 
 type CheckedField = 'traditional' | 'simplified' | 'pinyin' | 'meaning';
@@ -123,6 +124,7 @@ export function CardEditor({ params }: RouteProps) {
   const editingId = params.id;
   const presetDeck = params.deckId;
   const decks = useAsync(() => store.listDecks(), []);
+  const deckName = (id: string) => decks.data?.find((d) => d.id === id)?.name ?? 'Unknown deck';
   const [input, setInput] = useState('');
   const [draft, setDraft] = useState<Draft>(presetDeck ? { ...EMPTY, deckId: presetDeck } : EMPTY);
   const [fill, setFill] = useState<AutoFill | null>(null);
@@ -132,6 +134,8 @@ export function CardEditor({ params }: RouteProps) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<Card[]>([]);
+  /** The card waiting on "You already have this card" (null when the dialog is closed). */
+  const [pendingDuplicate, setPendingDuplicate] = useState<{ card: Card; matches: Card[] } | null>(null);
   const [existing, setExisting] = useState<Card | null>(null);
 
   // Edit mode: load the card; its fields count as already confirmed.
@@ -160,14 +164,20 @@ export function CardEditor({ params }: RouteProps) {
     });
   }, [editingId]);
 
-  // Warn about duplicates when adding.
+  // Warn about duplicates as soon as the characters are known (ignoring the card being edited).
   useEffect(() => {
-    if (editingId || !draft.simplified) {
+    if (!draft.simplified.trim() && !draft.traditional.trim()) {
       setDuplicates([]);
       return;
     }
-    void store.findCardsByHanzi(draft.simplified).then(setDuplicates);
-  }, [draft.simplified, editingId]);
+    let alive = true;
+    void store.findDuplicates(draft.traditional, draft.simplified, editingId).then((found) => {
+      if (alive) setDuplicates(found);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [draft.traditional, draft.simplified, editingId]);
 
   const lookUp = async () => {
     const text = cleanText(input, LIMITS.hanzi);
@@ -228,7 +238,7 @@ export function CardEditor({ params }: RouteProps) {
 
   const allConfirmed = CHECKED.every((f) => confirmed.has(f) && draft[f].trim());
 
-  const save = async () => {
+  const save = async (allowDuplicate = false) => {
     if (!allConfirmed) return;
     const now = Date.now();
     const card: Card = {
@@ -246,6 +256,15 @@ export function CardEditor({ params }: RouteProps) {
       deleted: 0,
     };
     try {
+      // Check again at save time, so the question is based on what is stored right now.
+      const matches = allowDuplicate
+        ? []
+        : await store.findDuplicates(card.traditional, card.simplified, existing?.id);
+      if (matches.length > 0) {
+        setPendingDuplicate({ card, matches });
+        return;
+      }
+      setPendingDuplicate(null);
       await store.saveCard(card);
       void requestPersistentStorage();
       if (existing) {
@@ -363,6 +382,23 @@ export function CardEditor({ params }: RouteProps) {
               ))}
             </div>
           </div>
+          {duplicates.length > 0 && (
+            <div class="notice warn" role="status">
+              <Icon name="alert" />
+              <span>
+                <strong>
+                  You already have {duplicates.length === 1 ? 'a card' : `${duplicates.length} cards`} for{' '}
+                  <Trad text={draft.traditional || draft.simplified} />.
+                </strong>{' '}
+                {duplicates.length === 1 ? (
+                  <a href={href(`/cards/${duplicates[0]?.id ?? ''}`)}>Open it</a>
+                ) : (
+                  <a href={href(`/cards`)}>See your cards</a>
+                )}
+                {editingId ? '' : ' instead, or continue if you want a second copy.'}
+              </span>
+            </div>
+          )}
           {fill && !fill.inDictionary && fill.kind === 'word' && (
             <div class="notice warn">
               This exact word isn't in the dictionary, so please check every field carefully.
@@ -456,13 +492,6 @@ export function CardEditor({ params }: RouteProps) {
             </label>
           </div>
 
-          {duplicates.length > 0 && (
-            <div class="notice warn">
-              You already have a card for <Simp text={draft.simplified} />.{' '}
-              <a href={href(`/cards/${duplicates[0]?.id ?? ''}`)}>Open it</a>
-            </div>
-          )}
-
           <div class="row spread">
             <span class="small muted">
               {allConfirmed
@@ -482,6 +511,63 @@ export function CardEditor({ params }: RouteProps) {
           </div>
         </section>
       )}
+
+      <Dialog
+        open={pendingDuplicate !== null}
+        title={existing ? 'Another card has these characters' : 'You already have this card'}
+        onClose={() => {
+          setPendingDuplicate(null);
+        }}
+        actions={
+          <>
+            <button
+              type="button"
+              class="primary"
+              autofocus
+              onClick={() => {
+                setPendingDuplicate(null);
+              }}
+            >
+              {existing ? 'Keep editing' : 'Don’t add'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const first = pendingDuplicate?.matches[0];
+                setPendingDuplicate(null);
+                if (first) navigate(`/cards/${first.id}`);
+              }}
+            >
+              Open existing card
+            </button>
+            <button type="button" class="danger" onClick={() => void save(true)}>
+              {existing ? 'Save anyway' : 'Add anyway'}
+            </button>
+          </>
+        }
+      >
+        <p>
+          {pendingDuplicate && pendingDuplicate.matches.length > 1
+            ? `You already have ${pendingDuplicate.matches.length} cards with these characters:`
+            : 'You already have a card with these characters:'}
+        </p>
+        <ul class="duplicate-list">
+          {pendingDuplicate?.matches.map((c) => (
+            <li key={c.id}>
+              <Trad text={c.traditional} class="card-row-hanzi" />
+              {c.simplified !== c.traditional && <Simp text={c.simplified} class="muted" />}
+              <Pinyin text={c.pinyin} />
+              <span class="badge">{deckName(c.deckId)}</span>
+              <span class="small muted full truncate">{c.meaning}</span>
+            </li>
+          ))}
+        </ul>
+        <p class="small muted">
+          {existing
+            ? 'Saving anyway leaves you with two cards for the same characters, studied separately.'
+            : 'Adding it anyway gives you a second card that is studied separately.'}
+        </p>
+      </Dialog>
     </>
   );
 }

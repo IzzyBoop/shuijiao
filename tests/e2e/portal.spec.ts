@@ -32,6 +32,50 @@ test('add a card: auto-fill, confirm every field, save', async ({ page }) => {
   await expect(page.getByText('銀行')).toBeVisible();
 });
 
+test('adding a duplicate card asks for confirmation first', async ({ page }) => {
+  await addCard(page, '银行');
+
+  // Same word again, typed in traditional this time.
+  await page.goto('./#/add');
+  await page.getByLabel('Word or sentence in Chinese').fill('銀行');
+  await page.getByRole('button', { name: 'Fill in details' }).click();
+  await expect(page.getByText(/You already have a card for/)).toBeVisible({ timeout: 30_000 });
+  for (const box of await page.getByRole('checkbox', { name: 'Looks right' }).all()) await box.check();
+
+  const dialog = page.getByRole('dialog', { name: 'You already have this card' });
+  const save = page.getByRole('button', { name: 'Save card' });
+
+  // "Don't add" is the default and keeps you on the form.
+  await save.click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('yínháng');
+  await expect(dialog.getByRole('button', { name: 'Don’t add' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+
+  // Escape also cancels.
+  await save.click();
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+
+  await page.goto('./#/cards');
+  await expect(page.locator('.card-list > li')).toHaveCount(1);
+
+  // "Add anyway" really adds a second copy.
+  await page.goBack();
+  await page.goto('./#/add');
+  await page.getByLabel('Word or sentence in Chinese').fill('銀行');
+  await page.getByRole('button', { name: 'Fill in details' }).click();
+  await expect(page.getByText(/You already have a card for/)).toBeVisible({ timeout: 30_000 });
+  for (const box of await page.getByRole('checkbox', { name: 'Looks right' }).all()) await box.check();
+  await save.click();
+  await dialog.getByRole('button', { name: 'Add anyway' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
+  await page.goto('./#/cards');
+  await expect(page.locator('.card-list > li')).toHaveCount(2);
+});
+
 test('a sentence gets word-by-word hints and needs a written meaning', async ({ page }) => {
   await page.goto('./#/add');
   await page.getByLabel('Word or sentence in Chinese').fill('我们去银行。');

@@ -41,6 +41,8 @@ export interface StudyStore {
   listCards(deckId?: string): Promise<Card[]>;
   getCard(id: string): Promise<Card | undefined>;
   findCardsByHanzi(text: string): Promise<Card[]>;
+  /** Cards with the same traditional or simplified characters (optionally ignoring one card). */
+  findDuplicates(traditional: string, simplified: string, excludeId?: string): Promise<Card[]>;
   saveCard(card: Card): Promise<void>;
   deleteCard(id: string): Promise<void>;
   /** Soft-deletes several cards at once. */
@@ -109,6 +111,12 @@ export class LocalStudyStore implements StudyStore {
     ]);
     const byId = new Map([...a, ...b].map((c) => [c.id, c]));
     return live([...byId.values()]);
+  }
+  async findDuplicates(traditional: string, simplified: string, excludeId?: string) {
+    const texts = [...new Set([traditional.trim(), simplified.trim()].filter(Boolean))];
+    const found = (await Promise.all(texts.map((t) => this.findCardsByHanzi(t)))).flat();
+    const byId = new Map(found.filter((c) => c.id !== excludeId).map((c) => [c.id, c]));
+    return [...byId.values()];
   }
   async saveCard(card: Card) {
     if (!(await this.db.cards.get(card.id)) && (await this.db.cards.count()) >= LIMITS.cards) {

@@ -8,6 +8,13 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Duplicate check when saving a card**: if you already have a card with the same characters
+  (in either script), a popup shows the existing card and asks whether to add it anyway, open
+  the existing card, or not add it. The warning also appears at the top of the form, and the
+  same check applies when you edit a card to match another one.
+
 ### Changed
 
 - Lists throughout the portal now use the Oxford comma ("Chrome, Edge, or Safari"), including
