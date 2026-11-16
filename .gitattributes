@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.woff2 binary
+*.gz binary
+public/dict/*.json -diff linguist-generated=true
+package-lock.json -diff linguist-generated=true

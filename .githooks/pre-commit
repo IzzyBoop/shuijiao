@@ -1,0 +1,45 @@
+#!/bin/sh
+# Refuses commits that would leak personal data or secrets.
+set -eu
+
+ALLOWED_EMAIL="43628079+IzzyBoop@users.noreply.github.com"
+
+check_ident() {
+  label=$1
+  ident=$(git var "$label")
+  email=$(printf '%s' "$ident" | sed -n 's/.*<\(.*\)>.*/\1/p')
+  offset=$(printf '%s' "$ident" | awk '{print $NF}')
+  if [ "$email" != "$ALLOWED_EMAIL" ]; then
+    echo "pre-commit: $label email is '$email', expected the GitHub no-reply address." >&2
+    exit 1
+  fi
+  if [ "$offset" != "+0000" ]; then
+    echo "pre-commit: $label time offset is $offset. Commit with TZ=UTC." >&2
+    exit 1
+  fi
+}
+
+check_ident GIT_AUTHOR_IDENT
+check_ident GIT_COMMITTER_IDENT
+
+# Block files that should never be committed.
+blocked=$(git diff --cached --name-only --diff-filter=ACR | grep -Ei '(^|/)(\.env(\..*)?|.*\.(pem|key|p12|pfx|keystore)|id_(rsa|ed25519|ecdsa).*|credentials.*\.json)$' | grep -v '\.env\.example$' || true)
+if [ -n "$blocked" ]; then
+  echo "pre-commit: refusing to commit sensitive-looking files:" >&2
+  echo "$blocked" >&2
+  exit 1
+fi
+
+# Block personal paths and the private email from staged content.
+if git diff --cached -U0 --diff-filter=ACM -- . ':(exclude).githooks/*' ':(exclude)tools/check-dist.mjs' \
+  | grep -E '^\+' | grep -Eiq '/Users/[a-z]|gmail\.com'; then
+  echo "pre-commit: staged changes contain a home-directory path or personal email." >&2
+  exit 1
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --redact --no-banner --exit-code 1 .
+else
+  echo "pre-commit: gitleaks is not installed (brew install gitleaks)." >&2
+  exit 1
+fi

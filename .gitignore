@@ -1,0 +1,49 @@
+# Dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Test artifacts
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Secrets: this project needs none, so anything like this is a mistake
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.secret
+secrets/
+credentials*.json
+
+# Raw dictionary downloads (only the processed index is committed)
+tools/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editor files
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Claude Code local settings
+.claude/settings.local.json
