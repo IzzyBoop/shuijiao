@@ -921,3 +921,36 @@ a > .icon {
   font-weight: 500;
   color: var(--muted);
 }
+
+/* ---------- Releases ---------- */
+
+.release + .release {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.release h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.release h4 {
+  margin: 12px 0 4px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.release-items {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.release-items li + li {
+  margin-top: 4px;
+}
+
+.version {
+  font-variant-numeric: tabular-nums;
+}

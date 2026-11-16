@@ -1,8 +1,12 @@
 /// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
+import { parseChangelog } from './tools/changelog.ts';
+
+const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
 
 /**
  * Content Security Policy for production builds. GitHub Pages cannot send
@@ -80,12 +84,46 @@ function serviceWorkerPlugin(): Plugin {
   };
 }
 
+/**
+ * Exposes CHANGELOG.md to the app as `virtual:changelog` (released versions only,
+ * as plain text). A production build fails if package.json's version has no
+ * changelog entry, so every shipped version is documented.
+ */
+function changelogPlugin(): Plugin {
+  const id = 'virtual:changelog';
+  const resolved = '\0' + id;
+  let isBuild = false;
+  return {
+    name: 'portal:changelog',
+    configResolved(config) {
+      isBuild = config.command === 'build';
+    },
+    resolveId(source) {
+      return source === id ? resolved : null;
+    },
+    load(source) {
+      if (source !== resolved) return null;
+      this.addWatchFile('CHANGELOG.md');
+      const releases = parseChangelog(readFileSync('CHANGELOG.md', 'utf8')).filter(
+        (r) => r.version !== 'Unreleased',
+      );
+      if (isBuild && !releases.some((r) => r.version === pkg.version)) {
+        this.error(`CHANGELOG.md has no entry for version ${pkg.version}. Use tools/release.sh to release.`);
+      }
+      return `export default ${JSON.stringify(releases)};`;
+    },
+  };
+}
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   base: './',
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },
-  plugins: [cspPlugin(), serviceWorkerPlugin()],
+  plugins: [cspPlugin(), serviceWorkerPlugin(), changelogPlugin()],
   build: {
     target: 'es2022',
     sourcemap: false,

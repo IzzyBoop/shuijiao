@@ -1,12 +1,14 @@
 import type { PortalModule } from '../../core/modules';
 import { ExternalLink } from '../../core/ui/ExternalLink';
 import dictionaryInfo from '../../core/lang/dict-meta.json';
+import { WhatsNew } from './WhatsNew';
 
 function AboutPage() {
   return (
     <>
       <div class="page-head">
         <h1>About</h1>
+        <span class="badge">Version {__APP_VERSION__}</span>
       </div>
 
       <section class="panel stack">
@@ -22,6 +24,8 @@ function AboutPage() {
         </p>
         <p>Pronunciation uses your device's built-in speech voices, so audio is generated on your device.</p>
       </section>
+
+      <WhatsNew />
 
       <section class="panel stack">
         <h2>Credits and licences</h2>
@@ -44,6 +48,6 @@ function AboutPage() {
 
 export const aboutModule: PortalModule = {
   id: 'about',
-  nav: [{ label: 'About & privacy', path: '/about', icon: 'info', order: 100, placement: 'footer' }],
+  nav: [{ label: "About & what's new", path: '/about', icon: 'info', order: 100, placement: 'footer' }],
   routes: [{ path: '/about', title: 'About', component: AboutPage }],
 };

@@ -44,6 +44,28 @@ The navigation bar and routes are built from that list.
 
 Edit `src/content/resources.json`. Every link must be `https://`; `npm run build` fails otherwise.
 
+## Versions and releases
+
+Versions follow [Semantic Versioning](https://semver.org/): `0.1.0-beta.1`, `0.1.0-beta.2`, … then
+`0.1.0`. The current version is shown in the app's footer and on the About page, together with
+"What's new", which is built from [CHANGELOG.md](CHANGELOG.md).
+
+1. As you make changes, add a line for each under `## [Unreleased]` in `CHANGELOG.md`
+   (sections: Added, Changed, Fixed, Removed, Security, Known issues).
+2. To release, with everything committed, run:
+
+   ```sh
+   tools/release.sh 0.1.0-beta.2
+   ```
+
+   It stamps the version and today's date (UTC) into `package.json` and the changelog, runs
+   every check, build and end-to-end test, then creates a `chore(release)` commit and an
+   annotated tag `v0.1.0-beta.2`. If anything fails, it puts the files back. It never pushes.
+
+3. Publish with `git push --follow-tags`.
+
+A production build fails if the version in `package.json` has no changelog entry.
+
 ## Commit rules
 
 - Commits use the GitHub no-reply address and UTC times. Run commits as `TZ=UTC git commit ...`.

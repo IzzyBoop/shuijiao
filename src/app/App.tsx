@@ -77,6 +77,7 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
       <footer class="footer">
         <div class="footer-inner">
           <span>Your cards are stored only on this device.</span>
+          <span class="version">v{__APP_VERSION__}</span>
           <span class="row">
             {FOOTER_NAV.map((item) => (
               <a key={item.path} href={href(item.path)}>
