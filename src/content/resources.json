@@ -1,0 +1,24 @@
+{
+  "categories": [
+    {
+      "name": "Textbook audio",
+      "description": "Audio tracks that go with our course textbook.",
+      "links": []
+    },
+    {
+      "name": "Dictionaries",
+      "links": [
+        {
+          "title": "MDBG Chinese Dictionary",
+          "url": "https://www.mdbg.net/chinese/dictionary",
+          "description": "Online version of CC-CEDICT, the dictionary this portal uses for auto-fill."
+        },
+        {
+          "title": "Wiktionary: Chinese",
+          "url": "https://en.wiktionary.org/wiki/Wiktionary:About_Chinese",
+          "description": "Character etymology, stroke order and pronunciations."
+        }
+      ]
+    }
+  ]
+}
