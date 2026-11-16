@@ -5,6 +5,7 @@ import { href } from '../../core/router';
 import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
 import type { Card } from '../../core/db/model';
+import { useKeydown } from '../../core/ui/useKeydown';
 import { CardSide } from './CardFace';
 
 function shuffled<T>(list: readonly T[]): T[] {
@@ -45,20 +46,14 @@ export function BrowsePage({ params }: RouteProps) {
     setFlipped(false);
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLSelectElement) return;
-      if (e.key === 'ArrowRight') go(1);
-      else if (e.key === 'ArrowLeft') go(-1);
-      else if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        setFlipped((f) => !f);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
+  useKeydown((e) => {
+    if (e.target instanceof HTMLSelectElement) return;
+    if (e.key === 'ArrowRight') go(1);
+    else if (e.key === 'ArrowLeft') go(-1);
+    else if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      setFlipped((f) => !f);
+    }
   });
 
   if (data.error) return <div class="notice error">{data.error}</div>;

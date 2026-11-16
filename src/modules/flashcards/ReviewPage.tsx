@@ -8,6 +8,7 @@ import type { QueueItem } from '../../core/srs/queue';
 import { speak, stopSpeaking } from '../../core/lang/tts';
 import { getStudyPrefs } from '../../core/study-prefs';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useKeydown } from '../../core/ui/useKeydown';
 import { CardSide } from './CardFace';
 import { loadSession } from './session-data';
 
@@ -79,24 +80,18 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
     setDone((d) => d + 1);
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (!item) return;
-      if (!shown && (e.key === ' ' || e.key === 'Enter')) {
-        e.preventDefault();
-        setShown(true);
-      } else if (shown && ['1', '2', '3', '4'].includes(e.key)) {
-        e.preventDefault();
-        void grade(Number(e.key) as Grade);
-      } else if (e.key === 'r') {
-        say(item.card.simplified);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-    };
+  useKeydown((e) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (!item) return;
+    if (!shown && (e.key === ' ' || e.key === 'Enter')) {
+      e.preventDefault();
+      setShown(true);
+    } else if (shown && ['1', '2', '3', '4'].includes(e.key)) {
+      e.preventDefault();
+      void grade(Number(e.key) as Grade);
+    } else if (e.key === 'r') {
+      say(item.card.simplified);
+    }
   });
 
   if (session.error) return <div class="notice error">{session.error}</div>;
