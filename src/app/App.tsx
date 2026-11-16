@@ -16,9 +16,7 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    document.title = match
-      ? `${match.route.title} · Chinese Study Portal`
-      : 'Not found · Chinese Study Portal';
+    document.title = match ? `${match.route.title} · 水餃 Shuǐjiǎo` : 'Not found · 水餃 Shuǐjiǎo';
     window.scrollTo(0, 0);
   }, [path]);
 
@@ -38,9 +36,11 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
         <div class="topbar-inner">
           <a class="brand" href={href('/')}>
             <span class="brand-mark" lang="zh-Hant" aria-hidden="true">
-              學
+              餃
             </span>
-            <span class="brand-name">Chinese Study Portal</span>
+            <span class="brand-name">
+              <span lang="zh-Hant">水餃</span> <span class="brand-sub">Shuǐjiǎo</span>
+            </span>
           </a>
           <nav class="nav" aria-label="Main">
             {MAIN_NAV.map((item) => (

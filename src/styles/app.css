@@ -130,6 +130,13 @@ p {
 
 .brand-name {
   display: none;
+  font-family: var(--font-hant);
+}
+
+.brand-sub {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  color: var(--muted);
 }
 
 .nav {

@@ -15,7 +15,7 @@ export class PortalDB extends Dexie {
   reviewLogs!: EntityTable<ReviewLog, 'id'>;
   meta!: EntityTable<MetaRow, 'key'>;
 
-  constructor(name = 'chinese-study-portal') {
+  constructor(name = 'shuijiao') {
     super(name);
     // Schema changes: add a new this.version(n) block with an upgrade(); never edit old ones.
     this.version(1).stores({

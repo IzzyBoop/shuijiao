@@ -9,7 +9,7 @@ import { hasUnsafeChars } from '../safe/text';
  * it has passed this schema.
  */
 
-export const BACKUP_FORMAT = 'chinese-study-portal-backup';
+export const BACKUP_FORMAT = 'shuijiao-backup';
 export const BACKUP_VERSION = 1;
 
 const MAX_TIME = 4_102_444_800_000; // year 2100

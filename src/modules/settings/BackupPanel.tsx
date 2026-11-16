@@ -65,7 +65,7 @@ export function BackupPanel() {
     try {
       const backup = await store.exportBackup();
       const date = new Date().toISOString().slice(0, 10);
-      downloadJson(backup, `chinese-study-backup-${date}.json`);
+      downloadJson(backup, `shuijiao-backup-${date}.json`);
       await store.setMeta('lastBackupAt', Date.now());
       lastBackup.reload();
       setStatus({

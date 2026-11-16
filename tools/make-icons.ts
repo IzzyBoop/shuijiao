@@ -26,7 +26,7 @@ for (const { file, size, maskable } of sizes) {
   await page.setViewportSize({ width: size, height: size });
   await page.setContent(`<!doctype html><html><body style="margin:0;background:transparent">
     <div style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${BG};display:grid;place-items:center">
-      <span style="font-family:'PingFang TC','Noto Sans TC',sans-serif;font-weight:600;font-size:${glyph}px;line-height:1;color:${FG}">學</span>
+      <span style="font-family:'PingFang TC','Noto Sans TC',sans-serif;font-weight:600;font-size:${glyph}px;line-height:1;color:${FG}">餃</span>
     </div></body></html>`);
   await page.screenshot({ path: `public/icons/${file}`, omitBackground: true });
   console.log(`public/icons/${file}`);

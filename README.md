@@ -1,6 +1,6 @@
-# Chinese Study Portal
+# 水餃 (Shuǐjiǎo)
 
-A Mandarin flashcard portal for our course. It shows traditional characters first, with simplified
+A Mandarin flashcard portal for our course, hosted at **https://shuijiao.dev**. It shows traditional characters first, with simplified
 characters, pinyin, a meaning, and spoken pronunciation. Students add their own cards, choose
 which fields go on the front and back of each card, and review them with spaced repetition (FSRS).
 

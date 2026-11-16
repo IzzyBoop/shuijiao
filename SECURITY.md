@@ -33,11 +33,11 @@ The portal is a fully static site. There is no server, no account system, no dat
 
 These come from GitHub Pages not allowing custom HTTP headers:
 
-| Missing header                                                 | Mitigation                                                                                          |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `Content-Security-Policy: frame-ancestors` / `X-Frame-Options` | `theme-init.js` detects framing and hides the whole UI; the app has no one-click sensitive actions. |
-| `Strict-Transport-Security`                                    | GitHub Pages "Enforce HTTPS" redirect; a `.dev`/`.app` domain is HSTS-preloaded by browsers.        |
-| `Permissions-Policy`, `Cross-Origin-Opener-Policy`             | No powerful features are used; no cross-origin windows are opened with an opener.                   |
+| Missing header                                                 | Mitigation                                                                                                                                                                        |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Content-Security-Policy: frame-ancestors` / `X-Frame-Options` | `theme-init.js` detects framing and hides the whole UI; the app has no one-click sensitive actions.                                                                               |
+| `Strict-Transport-Security`                                    | GitHub Pages "Enforce HTTPS" redirect, plus the `.dev` top-level domain is on every major browser's HSTS preload list, so browsers never connect to shuijiao.dev over plain HTTP. |
+| `Permissions-Policy`, `Cross-Origin-Opener-Policy`             | No powerful features are used; no cross-origin windows are opened with an opener.                                                                                                 |
 
 ## Service worker kill switch
 

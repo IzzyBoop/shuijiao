@@ -27,17 +27,21 @@ once when the repository is created, and re-check it before any pentest.
 
 ## GitHub Pages and the custom domain
 
-- [ ] **Account Settings → Pages → Add a verified domain** _before_ pointing DNS at GitHub.
+- [ ] **Account Settings → Pages → Add a verified domain** (`shuijiao.dev`) _before_ pointing DNS at GitHub.
       This stops anyone else from claiming the domain on their own Pages site (subdomain takeover).
 - [ ] **Repository Settings → Pages:** Source = **GitHub Actions**. Enter the custom domain, wait for
       the certificate, then tick **Enforce HTTPS**.
-- [ ] DNS at the registrar:
-  - an apex domain uses GitHub's A/AAAA records; a subdomain uses a `CNAME` to `izzyboop.github.io`.
+- [ ] DNS at the registrar for **shuijiao.dev**:
+  - Apex `shuijiao.dev`: `A` records `185.199.108.153`, `185.199.109.153`, `185.199.110.153`,
+    `185.199.111.153`, and `AAAA` records `2606:50c0:8000::153`, `2606:50c0:8001::153`,
+    `2606:50c0:8002::153`, `2606:50c0:8003::153`.
+  - `www.shuijiao.dev`: `CNAME` to `izzyboop.github.io` (GitHub then redirects it to the apex).
+  - Check GitHub's current list before setting these: https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site
   - Add a CAA record so only Let's Encrypt (which GitHub uses) can issue certificates:
     `CAA 0 issue "letsencrypt.org"`.
   - Turn on registrar lock and DNSSEC if the registrar offers them.
-- [ ] Prefer a `.dev` or `.app` domain: browsers force HTTPS on these (HSTS preload), which makes up
-      for GitHub Pages not sending a `Strict-Transport-Security` header.
+- [ ] Keep "Enforce HTTPS" ticked. `.dev` is HSTS-preloaded, so browsers already refuse plain
+      HTTP to shuijiao.dev; the redirect covers anything else.
 
 ## Before each release or pentest
 

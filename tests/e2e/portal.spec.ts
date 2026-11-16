@@ -98,7 +98,7 @@ test('a hostile backup file is rejected', async ({ page }, testInfo) => {
   const file = testInfo.outputPath('evil.json');
   await writeFile(
     file,
-    '{"__proto__":{"isAdmin":true},"format":"chinese-study-portal-backup","version":1,"exportedAt":1,"decks":[],"cards":[],"templates":[],"reviewStates":[],"reviewLogs":[]}',
+    '{"__proto__":{"isAdmin":true},"format":"shuijiao-backup","version":1,"exportedAt":1,"decks":[],"cards":[],"templates":[],"reviewStates":[],"reviewLogs":[]}',
   );
   await page.goto('./#/settings');
   await page.locator('input[type=file]').setInputFiles(file);
