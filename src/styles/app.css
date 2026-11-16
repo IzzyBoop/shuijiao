@@ -896,3 +896,28 @@ a > .icon {
     display: none;
   }
 }
+
+.stat-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ok);
+}
+
+/* Deck rows on the Study page: buttons drop below the name on narrow screens. */
+.list > li.deck-row {
+  flex-wrap: wrap;
+}
+
+.deck-row > .grow {
+  flex: 1 1 180px;
+}
+
+.stat-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+}

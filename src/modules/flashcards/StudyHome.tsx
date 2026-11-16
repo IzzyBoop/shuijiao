@@ -5,6 +5,8 @@ import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
 import { loadSession } from './session-data';
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 export function StudyHome() {
   const data = useAsync(async () => {
     const decks = await store.listDecks();
@@ -59,12 +61,23 @@ export function StudyHome() {
       ) : (
         <section class="panel">
           <div class="row spread">
-            <div>
-              <div class="stat">{counts.due + counts.fresh}</div>
-              <div class="muted">
-                {counts.due} due · {counts.fresh} new · {all.totalCards} cards total
+            {counts.due + counts.fresh > 0 ? (
+              <div>
+                <div class="stat">
+                  {counts.due + counts.fresh} <span class="stat-label">to study</span>
+                </div>
+                <div class="muted">
+                  {counts.due} due · {counts.fresh} new · {plural(all.totalCards, 'card')} total
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <div class="stat-done">
+                  <Icon name="check" /> All done for today
+                </div>
+                <div class="muted">Nothing is due · {plural(all.totalCards, 'card')} total</div>
+              </div>
+            )}
             <div class="row">
               <a class="button" href={href('/browse')}>
                 <Icon name="cards" /> Flip through
@@ -74,12 +87,9 @@ export function StudyHome() {
                   <Icon name="study" /> Study now
                 </a>
               ) : (
-                <>
-                  <span class="badge ok">All done for today</span>
-                  <a class="button" href={href('/study-ahead')}>
-                    <Icon name="study" /> Study anyway
-                  </a>
-                </>
+                <a class="button" href={href('/study-ahead')}>
+                  <Icon name="study" /> Study anyway
+                </a>
               )}
             </div>
           </div>
@@ -93,23 +103,25 @@ export function StudyHome() {
             {perDeck.map(({ deck, session }) => {
               const c = countQueue(session.queue);
               return (
-                <li key={deck.id}>
+                <li key={deck.id} class="deck-row">
                   <div class="grow">
                     <div class="truncate">{deck.name}</div>
                     <div class="muted small">
-                      {c.due} due · {c.fresh} new · {session.totalCards} cards
+                      {c.due} due · {c.fresh} new · {plural(session.totalCards, 'card')}
                     </div>
                   </div>
-                  <a class="button" href={href(`/cards/deck/${deck.id}`)}>
-                    Cards
-                  </a>
-                  <a class="button" href={href(`/browse/${deck.id}`)}>
-                    Flip
-                  </a>
-                  {/* With nothing due, the session page offers to study ahead. */}
-                  <a class="button" href={href(`/review/${deck.id}`)}>
-                    Study
-                  </a>
+                  <div class="row">
+                    <a class="button" href={href(`/cards/deck/${deck.id}`)}>
+                      Cards
+                    </a>
+                    <a class="button" href={href(`/browse/${deck.id}`)}>
+                      Flip
+                    </a>
+                    {/* With nothing due, the session page offers to study ahead. */}
+                    <a class="button" href={href(`/review/${deck.id}`)}>
+                      Study
+                    </a>
+                  </div>
                 </li>
               );
             })}
