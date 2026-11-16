@@ -117,16 +117,16 @@ p {
 }
 
 .brand-mark {
-  font-family: var(--font-hant);
   background: var(--accent);
-  color: var(--on-accent);
   border-radius: var(--radius-sm);
+  width: 34px;
   height: 34px;
-  padding: 0 8px;
   display: grid;
   place-items: center;
-  font-size: 18px;
-  letter-spacing: 0.08em;
+  font-size: 20px;
+  line-height: 1;
+  /* Colour emoji fonts, so the dumpling shows in colour on every system. */
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
 }
 
 .brand-name {

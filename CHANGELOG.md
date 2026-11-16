@@ -15,6 +15,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   without losing your place. Study shortcuts are paused while the popup is open, so typing
   can't rate or flip the card.
 
+### Changed
+
+- The header now shows a 🥟 badge followed by 水餃 (shuǐjiǎo).
+
 ## [0.1.0-beta.2] - 2026-11-16
 
 ### Added

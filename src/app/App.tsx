@@ -34,12 +34,15 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
       </a>
       <header class="topbar">
         <div class="topbar-inner">
-          <a class="brand" href={href('/')} aria-label="水餃 Shuǐjiǎo, home">
-            <span class="brand-mark" lang="zh-Hant" aria-hidden="true">
-              水餃
+          <a class="brand" href={href('/')} aria-label="水餃 (shuǐjiǎo), home">
+            <span class="brand-mark" aria-hidden="true">
+              🥟
             </span>
             <span class="brand-name" aria-hidden="true">
-              Shuǐjiǎo
+              <span lang="zh-Hant" class="hanzi-trad">
+                水餃
+              </span>{' '}
+              (shuǐjiǎo)
             </span>
           </a>
           <nav class="nav" aria-label="Main">
