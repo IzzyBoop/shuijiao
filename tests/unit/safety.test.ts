@@ -41,7 +41,7 @@ describe('cleanText', () => {
     expect(hasUnsafeChars('普通話')).toBe(false);
   });
 
-  it('collapses newlines unless multiline, trims and truncates', () => {
+  it('collapses newlines unless multiline, trims, and truncates', () => {
     expect(cleanText('  a\nb  ', 50)).toBe('a b');
     expect(cleanText('a\nb', 50, true)).toBe('a\nb');
     expect(cleanText('x'.repeat(20), 5)).toBe('xxxxx');
@@ -108,5 +108,15 @@ describe('normaliseUserUrl', () => {
   it('explains why http links are refused', () => {
     const r = normaliseUserUrl('http://example.com');
     expect(r.ok ? '' : r.error).toMatch(/https/);
+  });
+});
+
+describe('list formatting', () => {
+  it('uses the Oxford comma', async () => {
+    const { andList, orList } = await import('../../src/core/format');
+    expect(andList(['a'])).toBe('a');
+    expect(andList(['a', 'b'])).toBe('a and b');
+    expect(andList(['a', 'b', 'c'])).toBe('a, b, and c');
+    expect(orList(['Chrome', 'Edge', 'Safari'])).toBe('Chrome, Edge, or Safari');
   });
 });

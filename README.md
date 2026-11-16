@@ -59,7 +59,7 @@ Versions follow [Semantic Versioning](https://semver.org/): `0.1.0-beta.1`, `0.1
    ```
 
    It stamps the version and today's date (UTC) into `package.json` and the changelog, runs
-   every check, build and end-to-end test, then creates a `chore(release)` commit and an
+   every check, build, and end-to-end test, then creates a `chore(release)` commit and an
    annotated tag `v0.1.0-beta.2`. If anything fails, it puts the files back. It never pushes.
 
 3. Publish with `git push --follow-tags`.

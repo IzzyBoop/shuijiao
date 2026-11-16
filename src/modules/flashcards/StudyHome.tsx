@@ -1,4 +1,5 @@
 import { store } from '../../core/db/store';
+import { andList } from '../../core/format';
 import { href } from '../../core/router';
 import { countQueue } from '../../core/srs/queue';
 import { Icon } from '../../core/ui/Icon';
@@ -50,7 +51,7 @@ export function StudyHome() {
           <h2>Welcome! 歡迎!</h2>
           <p>
             Start by adding words or sentences from class. Type them in Chinese, in traditional or simplified,
-            and the portal fills in the other script, pinyin and meaning for you to check.
+            and the portal fills in the other script, pinyin, and meaning for you to check.
           </p>
           <p>
             <a class="button primary" href={href('/add')}>
@@ -130,7 +131,7 @@ export function StudyHome() {
       )}
 
       <p class="small muted">
-        Studying: {all.templates.map((t) => t.name).join(', ')} ·{' '}
+        Studying: {andList(all.templates.map((t) => t.name))} ·{' '}
         <a href={href('/templates')}>Change card types</a>
       </p>
     </>

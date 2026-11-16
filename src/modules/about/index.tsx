@@ -14,8 +14,8 @@ function AboutPage() {
       <section class="panel stack">
         <h2>Your privacy</h2>
         <p>
-          Everything you add (cards, decks, review history and settings) is stored only in this browser on
-          this device. Nothing is sent to a server, and there are no accounts, trackers or analytics.
+          Everything you add (cards, decks, review history, and settings) is stored only in this browser on
+          this device. Nothing is sent to a server, and there are no accounts, trackers, or analytics.
         </p>
         <p>
           That also means clearing your browser's site data deletes your cards. Use{' '}
@@ -38,7 +38,7 @@ function AboutPage() {
           entries.
         </p>
         <p>
-          Built with Preact, Dexie, opencc-js, pinyin-pro, ts-fsrs and Valibot (MIT, Apache-2.0 and
+          Built with Preact, Dexie, opencc-js, pinyin-pro, ts-fsrs, and Valibot (MIT, Apache-2.0, and
           BSD-3-Clause licences). Icons adapted from Feather (MIT).
         </p>
       </section>

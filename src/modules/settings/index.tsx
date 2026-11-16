@@ -214,7 +214,8 @@ function VoicePanel() {
             <strong>Firefox on Mac often can't play Chinese audio.</strong>
             <p class="small">
               It uses an older Apple speech system that only sees some voices and is often silent or makes a
-              clicking sound. Everything else works in Firefox; for pronunciation, use Chrome, Edge or Safari.
+              clicking sound. Everything else works in Firefox; for pronunciation, use Chrome, Edge, or
+              Safari.
             </p>
           </div>
         </div>
@@ -353,7 +354,7 @@ function StoragePanel() {
         <summary>Erase all study data</summary>
         <div class="stack mt">
           <p class="small">
-            This deletes every card, deck and review on this device. Download a backup first. Type{' '}
+            This deletes every card, deck, and review on this device. Download a backup first. Type{' '}
             <strong>ERASE</strong> to confirm.
           </p>
           <div class="row">

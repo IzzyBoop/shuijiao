@@ -69,7 +69,7 @@ describe('parseBackup', () => {
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
   });
 
-  it('rejects unknown fields, oversized strings and bad ids', () => {
+  it('rejects unknown fields, oversized strings, and bad ids', () => {
     expect(
       parseBackup(JSON.stringify(backup({ cards: [{ ...card(), html: '<img onerror=x>' } as Card] }))).ok,
     ).toBe(false);
@@ -218,7 +218,7 @@ describe('LocalStudyStore import', () => {
 });
 
 describe('LocalStudyStore links', () => {
-  it('saves, lists newest first and soft-deletes links', async () => {
+  it('saves, lists newest first, and soft-deletes links', async () => {
     const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
     await store.saveLink(link({ id: 'a', title: 'First', createdAt: 1 }));
     await store.saveLink(link({ id: 'b', title: 'Second', createdAt: 2 }));
@@ -229,7 +229,7 @@ describe('LocalStudyStore links', () => {
 });
 
 describe('LocalStudyStore bulk card operations', () => {
-  it('deletes, restores and moves several cards at once', async () => {
+  it('deletes, restores, and moves several cards at once', async () => {
     const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
     const now = Date.now();
     await store.saveDeck({ id: 'l2', name: 'Lesson 2', createdAt: now, updatedAt: now, deleted: 0 });

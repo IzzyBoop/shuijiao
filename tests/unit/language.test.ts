@@ -92,7 +92,9 @@ describe('autofill', () => {
 
   it('moves measure words to notes', () => {
     const r = autofillWith(dict, '书');
-    expect(r.notes).toMatch(/^Measure word:/);
+    expect(r.notes).toMatch(/^Measure words?: /);
+    // Several measure words are offered as alternatives, with the Oxford comma.
+    expect(r.notes).toMatch(/, or /);
     expect(r.meaning).not.toMatch(/CL:/);
   });
 

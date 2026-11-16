@@ -13,7 +13,7 @@ once when the repository is created, and re-check it before any pentest.
 
 - [ ] **Settings → General:** turn off Wikis and Projects if unused. Allow only squash or rebase merges.
 - [ ] **Settings → Rules → Rulesets → New branch ruleset** for `main`:
-      block force pushes, block deletions, require linear history, require the `verify` status check.
+      block force pushes, block deletions, require linear history, and require the `verify` status check.
       (While you are the only contributor, you can allow yourself to bypass pull requests.)
 - [ ] **Settings → Actions → General:**
   - "Allow select actions": only GitHub-owned actions (everything in the workflows is GitHub-owned).

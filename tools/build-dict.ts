@@ -5,7 +5,7 @@
 //
 // Output:
 //   public/dict/cedict.<hash>.txt   one entry per line: trad \t simp ("=" if same) \t pinyin \t glosses
-//   src/core/lang/dict-meta.json    file name, entry count, source date and SHA-256
+//   src/core/lang/dict-meta.json    file name, entry count, source date, and SHA-256
 //
 // CC-CEDICT is licensed CC BY-SA 4.0 (see LICENSE).
 import { createHash } from 'node:crypto';

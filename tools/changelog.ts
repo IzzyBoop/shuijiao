@@ -17,7 +17,7 @@ const SECTION = /^### (.+?)\s*$/;
 const ITEM = /^- (.*)$/;
 const CONTINUATION = /^ {2,}(\S.*)$/;
 
-/** Strips Markdown emphasis, code and links so items read as plain text. */
+/** Strips Markdown emphasis, code, and links so items read as plain text. */
 export function plainText(md: string): string {
   return md
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')

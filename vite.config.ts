@@ -106,9 +106,7 @@ function changelogPlugin(): Plugin {
       // Absolute path: in dev, a relative one is mistaken for an import of the virtual module.
       const file = resolve('CHANGELOG.md');
       this.addWatchFile(file);
-      const releases = parseChangelog(readFileSync(file, 'utf8')).filter(
-        (r) => r.version !== 'Unreleased',
-      );
+      const releases = parseChangelog(readFileSync(file, 'utf8')).filter((r) => r.version !== 'Unreleased');
       if (isBuild && !releases.some((r) => r.version === pkg.version)) {
         this.error(`CHANGELOG.md has no entry for version ${pkg.version}. Use tools/release.sh to release.`);
       }

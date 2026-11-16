@@ -19,7 +19,7 @@ const SAMPLE = `# Changelog
 `;
 
 describe('changelog', () => {
-  it('parses releases, sections and wrapped items as plain text', () => {
+  it('parses releases, sections, and wrapped items as plain text', () => {
     const releases = parseChangelog(SAMPLE);
     expect(releases.map((r) => [r.version, r.date])).toEqual([
       ['Unreleased', null],

@@ -180,7 +180,7 @@ export function CardsPage({ params }: RouteProps) {
         <input
           type="search"
           class="grow"
-          placeholder="Search characters, pinyin, meaning, notes or tags"
+          placeholder="Search characters, pinyin, meaning, notes, or tags"
           aria-label="Search cards"
           value={query}
           maxLength={100}

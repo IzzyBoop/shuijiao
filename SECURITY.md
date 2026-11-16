@@ -7,11 +7,11 @@ Do not open a public issue for security problems.
 
 ## Design
 
-The portal is a fully static site. There is no server, no account system, no database and no API key.
+The portal is a fully static site. There is no server, no account system, no database, and no API key.
 
 - **Student data** (cards, review history, settings) lives only in the student's own browser
   (IndexedDB and localStorage). It is never sent anywhere. Backups are files the student downloads.
-- **No third-party requests.** No CDNs, web fonts, analytics or trackers. Every file is served from
+- **No third-party requests.** No CDNs, web fonts, analytics, or trackers. Every file is served from
   the portal's own origin.
 - **Content Security Policy** (delivered as `<meta>`, because GitHub Pages cannot set headers):
   `default-src 'none'`, scripts/styles/images only from `'self'`, no inline script or style,
@@ -19,14 +19,14 @@ The portal is a fully static site. There is no server, no account system, no dat
   (`require-trusted-types-for 'script'`). The only Trusted Types policy is `sw-url`, which accepts
   nothing but the service worker's fixed URL.
 - **No HTML rendering of data.** All text is rendered through Preact as text nodes. ESLint bans
-  `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `eval`
+  `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `eval`,
   and `new Function`; Trusted Types blocks them in the browser as a second layer.
 - **Imported backup files** are size-limited and validated against a strict schema (allowed keys
   only, per-field length limits, record-count limits) before anything is written.
 - **External links** must be `https:` (checked at build time and again at render time) and open with
   `rel="noopener noreferrer"`.
 - **Supply chain:** few runtime dependencies, exact version pins, lockfile, `ignore-scripts=true`,
-  `npm audit` and `npm audit signatures` in CI, Dependabot, GitHub Actions pinned to commit SHAs with
+  `npm audit` and `npm audit signatures` in CI, Dependabot, and GitHub Actions pinned to commit SHAs with
   least-privilege permissions.
 
 ## Known limitations (accepted risks)

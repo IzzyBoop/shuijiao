@@ -1,7 +1,7 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
 /**
- * Every test page records CSP / Trusted Types violations, uncaught errors and
+ * Every test page records CSP / Trusted Types violations, uncaught errors, and
  * dialogs (an alert() would mean injected script ran). Each test fails if any occur.
  */
 export const test = base.extend<{ guard: undefined }>({

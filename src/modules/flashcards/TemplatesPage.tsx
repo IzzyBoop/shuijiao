@@ -1,12 +1,13 @@
 import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
+import { andList } from '../../core/format';
 import { CARD_FIELDS, FIELD_LABELS, LIMITS, newId, type CardField, type Template } from '../../core/db/model';
 import { cleanText } from '../../core/safe/text';
 import { updateStudyPrefs, useStudyPrefs } from '../../core/study-prefs';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 
-const describe = (fields: readonly CardField[]) => fields.map((f) => FIELD_LABELS[f]).join(', ');
+const describe = (fields: readonly CardField[]) => andList(fields.map((f) => FIELD_LABELS[f]));
 
 function TemplateBuilder({ onSaved }: { onSaved: () => void }) {
   const [name, setName] = useState('');

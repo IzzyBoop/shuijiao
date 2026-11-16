@@ -39,7 +39,7 @@ npm version "$VERSION" --no-git-tag-version --allow-same-version >/dev/null
 node tools/stamp-changelog.ts "$VERSION" "$DATE"
 npx prettier --write CHANGELOG.md >/dev/null
 
-echo "release: running checks, build and end-to-end tests…"
+echo "release: running checks, build, and end-to-end tests…"
 npm run check
 npm run build
 npm run e2e

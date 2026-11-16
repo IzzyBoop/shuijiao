@@ -4,6 +4,7 @@ import { splitGlosses, type DictEntry, type Dictionary } from './dictionary';
 import { loadDictionary } from './dict-loader';
 import { capitalize, isCjkPunctuation, joinWord, numberedToMarks, westernPunctuation } from './pinyin-format';
 import type { CardKind } from '../db/model';
+import { orList } from '../format';
 
 export interface AmbiguousSegment {
   /** Position of the segment in the text, in characters. */
@@ -125,7 +126,9 @@ export function autofillWith(dict: Dictionary, input: string): AutoFill {
       const line = m.join('; ');
       if (!meaning) {
         meaning = line;
-        if (measureWords.length) notes = `Measure word: ${measureWords.join(', ')}`;
+        if (measureWords.length) {
+          notes = `Measure word${measureWords.length > 1 ? 's' : ''}: ${orList(measureWords)}`;
+        }
       } else if (line && line !== meaning) {
         meaningOptions.push(line);
       }

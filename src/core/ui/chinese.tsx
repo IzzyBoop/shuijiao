@@ -48,7 +48,7 @@ export function Pinyin({ text, class: cls = '' }: { text: string; class?: string
 /** Explains a speech problem in plain words, or null if audio played. */
 export function speechProblem(result: SpeakResult): string | null {
   if (result === 'silent') {
-    return "No sound: this browser can't play Chinese audio on this device. Try Chrome, Edge or Safari.";
+    return "No sound: this browser can't play Chinese audio on this device. Try Chrome, Edge, or Safari.";
   }
   if (result === 'failed') return 'Audio failed. Settings → Pronunciation has an audio check.';
   if (result === 'unsupported') return "Audio isn't supported in this browser.";
