@@ -356,3 +356,79 @@ describe('LocalStudyStore import deck choice', () => {
     expect((await store.listCards(DEFAULT_DECK_ID)).length).toBe(0);
   });
 });
+
+describe('LocalStudyStore import duplicates', () => {
+  const fresh = () => new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+  // You already have 銀行 (card "mine"); the backup has a different 银行 card ("theirs").
+  const setup = async () => {
+    const store = fresh();
+    await store.saveCard(card({ id: 'mine', meaning: 'bank (mine)' }));
+    const file = backup({
+      cards: [
+        card({ id: 'theirs', traditional: '銀行', simplified: '银行', meaning: 'bank (theirs)' }),
+        card({ id: 'other', traditional: '你好', simplified: '你好', meaning: 'hello' }),
+      ],
+    });
+    return { store, file };
+  };
+
+  it('finds cards with the same characters in either script, but not the same card', async () => {
+    const { store, file } = await setup();
+    const dups = await store.findImportDuplicates(file);
+    expect(dups.map((d) => [d.incoming.id, d.existing.map((c) => c.id)])).toEqual([['theirs', ['mine']]]);
+    // A card with the same id is the same card (merged by date), not a duplicate.
+    expect(await store.findImportDuplicates(backup({ cards: [card({ id: 'mine' })] }))).toEqual([]);
+  });
+
+  it('keep old: skips the imported duplicate', async () => {
+    const { store, file } = await setup();
+    const result = await store.applyImport(file, { deckMode: 'keep', duplicates: { default: 'old' } });
+    expect(result.duplicatesKeptOld).toBe(1);
+    expect((await store.listCards()).map((c) => c.meaning).sort()).toEqual(['bank (mine)', 'hello']);
+  });
+
+  it('keep new: imports the duplicate and deletes the card you had', async () => {
+    const { store, file } = await setup();
+    const result = await store.applyImport(file, { deckMode: 'keep', duplicates: { default: 'new' } });
+    expect(result.duplicatesReplaced).toBe(1);
+    expect((await store.listCards()).map((c) => c.meaning).sort()).toEqual(['bank (theirs)', 'hello']);
+  });
+
+  it('per card: individual choices override the default', async () => {
+    const { store, file } = await setup();
+    await store.applyImport(file, {
+      deckMode: 'keep',
+      duplicates: { default: 'old', choices: { theirs: 'new' } },
+    });
+    expect((await store.listCards()).map((c) => c.id).sort()).toEqual(['other', 'theirs']);
+  });
+
+  it('skipping a duplicate also drops its study progress from the file', async () => {
+    const { store } = await setup();
+    const file = backup({
+      cards: [card({ id: 'theirs' })],
+      reviewStates: [
+        {
+          key: 'theirs|tpl-reading',
+          cardId: 'theirs',
+          templateId: 'tpl-reading',
+          due: 1,
+          stability: 1,
+          stabilityFast: 1,
+          difficulty: 5,
+          scheduledDays: 1,
+          learningStep: 0,
+          reps: 1,
+          lapses: 0,
+          state: 2,
+          scheduleStatus: 'review',
+          lastReview: 1,
+          updatedAt: 1,
+        },
+      ],
+    });
+    const preview = await store.previewImport(file, { deckMode: 'keep' });
+    expect(preview.reviewStates.added).toBe(0);
+    expect(preview.orphans).toBe(0);
+  });
+});

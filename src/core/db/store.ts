@@ -26,8 +26,23 @@ export type ImportDeckMode =
   /** All into "My cards", which is created or restored if needed. */
   | 'my-cards';
 
+/** For an imported card that matches a card you already have: keep yours, or take the new one. */
+export type DuplicateChoice = 'old' | 'new';
+
 export interface ImportOptions {
   deckMode: ImportDeckMode;
+  /** How to resolve imported cards with the same characters as existing cards. Default: keep old. */
+  duplicates?: {
+    default: DuplicateChoice;
+    /** Per imported card id, overriding the default. */
+    choices?: Readonly<Record<string, DuplicateChoice>>;
+  };
+}
+
+/** An imported card whose characters match one or more cards you already have. */
+export interface ImportDuplicate {
+  incoming: Card;
+  existing: Card[];
 }
 
 const DEFAULT_IMPORT: ImportOptions = { deckMode: 'keep' };
@@ -42,6 +57,10 @@ export interface ImportPreview {
   reviewStates: MergeCounts;
   reviewLogs: MergeCounts;
   links: MergeCounts;
+  /** Imported duplicates skipped in favour of the cards you already have. */
+  duplicatesKeptOld: number;
+  /** Imported duplicates that replace the cards you already have. */
+  duplicatesReplaced: number;
   /** Records dropped because they point at something that doesn't exist. */
   orphans: number;
 }
@@ -86,6 +105,8 @@ export interface StudyStore {
   deleteLink(id: string): Promise<void>;
 
   exportBackup(): Promise<Backup>;
+  /** Imported cards with the same characters as cards you already have (but a different id). */
+  findImportDuplicates(backup: Backup): Promise<ImportDuplicate[]>;
   previewImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
   applyImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
   eraseAll(): Promise<void>;
@@ -335,11 +356,53 @@ export class LocalStudyStore implements StudyStore {
     return { cardRows, deckRows, counts, created: [...created] };
   }
 
-  private async plan(backup: Backup, { deckMode }: ImportOptions) {
-    const builtinIds = new Set(builtinTemplates(0).map((t) => t.id));
-    const orphansBefore = backup.cards.length + backup.reviewStates.length + backup.reviewLogs.length;
+  async findImportDuplicates(backup: Backup): Promise<ImportDuplicate[]> {
+    const localIds = new Set(await this.db.cards.toCollection().primaryKeys());
+    const byText = new Map<string, Card[]>();
+    for (const card of live(await this.db.cards.toArray())) {
+      for (const text of new Set([card.traditional, card.simplified])) {
+        const list = byText.get(text);
+        if (list) list.push(card);
+        else byText.set(text, [card]);
+      }
+    }
+    const out: ImportDuplicate[] = [];
+    for (const incoming of backup.cards) {
+      // The same card (same id) from an earlier backup is merged as usual, not a duplicate.
+      if (incoming.deleted === 1 || localIds.has(incoming.id)) continue;
+      const matches = new Map<string, Card>();
+      for (const text of [incoming.traditional, incoming.simplified]) {
+        for (const card of byText.get(text) ?? []) matches.set(card.id, card);
+      }
+      if (matches.size > 0) out.push({ incoming, existing: [...matches.values()] });
+    }
+    return out;
+  }
 
-    const decks = await this.planDecks(backup, deckMode);
+  private async plan(backup: Backup, { deckMode, duplicates }: ImportOptions) {
+    const builtinIds = new Set(builtinTemplates(0).map((t) => t.id));
+
+    // Duplicates: "old" skips the imported card (and its progress); "new" imports it and
+    // deletes the matching cards you had.
+    const skip = new Set<string>();
+    const retire = new Set<string>();
+    let replaced = 0;
+    for (const { incoming, existing } of await this.findImportDuplicates(backup)) {
+      const choice = duplicates?.choices?.[incoming.id] ?? duplicates?.default ?? 'old';
+      if (choice === 'old') {
+        skip.add(incoming.id);
+      } else {
+        replaced++;
+        for (const card of existing) retire.add(card.id);
+      }
+    }
+    const kept: Backup = { ...backup, cards: backup.cards.filter((c) => !skip.has(c.id)) };
+    const notSkipped = (r: { cardId: string }) => !skip.has(r.cardId);
+    const reviewStatesIn = backup.reviewStates.filter(notSkipped);
+    const reviewLogsIn = backup.reviewLogs.filter(notSkipped);
+    const orphansBefore = kept.cards.length + reviewStatesIn.length + reviewLogsIn.length;
+
+    const decks = await this.planDecks(kept, deckMode);
     // Built-in templates are never overwritten from a file; custom ones are always marked non-builtin.
     const templateRows = backup.templates
       .filter((t) => !builtinIds.has(t.id))
@@ -361,12 +424,12 @@ export class LocalStudyStore implements StudyStore {
     const validRef = (r: { cardId: string; templateId: string }) =>
       cardIds.has(r.cardId) && templateIds.has(r.templateId);
 
-    const stateRows = backup.reviewStates
+    const stateRows = reviewStatesIn
       .filter(validRef)
       .map((s) => ({ ...s, key: stateKey(s.cardId, s.templateId) }));
     const reviewStates = await this.mergeRows(this.db.reviewStates, stateRows, (r) => r.key);
 
-    const logRows = backup.reviewLogs.filter(validRef);
+    const logRows = reviewLogsIn.filter(validRef);
     const existingLogIds = new Set(await this.db.reviewLogs.toCollection().primaryKeys());
     const newLogs = logRows.filter((l) => !existingLogIds.has(l.id));
 
@@ -375,6 +438,7 @@ export class LocalStudyStore implements StudyStore {
       throw new Error(`Import would exceed the limit of ${LIMITS.links} links.`);
     }
 
+    for (const card of cardRows) retire.delete(card.id);
     const total = (await this.db.cards.count()) + cards.counts.added;
     if (total > LIMITS.cards) throw new Error(`Import would exceed the limit of ${LIMITS.cards} cards.`);
 
@@ -387,6 +451,7 @@ export class LocalStudyStore implements StudyStore {
         reviewStates: reviewStates.toWrite,
         reviewLogs: newLogs,
         links: links.toWrite,
+        retireCardIds: [...retire],
       },
       preview: {
         decksCreated: decks.created,
@@ -396,6 +461,8 @@ export class LocalStudyStore implements StudyStore {
         reviewStates: reviewStates.counts,
         reviewLogs: { added: newLogs.length, updated: 0, skipped: logRows.length - newLogs.length },
         links: links.counts,
+        duplicatesKeptOld: skip.size,
+        duplicatesReplaced: replaced,
         orphans,
       } satisfies ImportPreview,
     };
@@ -440,6 +507,12 @@ export class LocalStudyStore implements StudyStore {
         await db.decks.bulkPut(writes.decks);
         await db.templates.bulkPut(writes.templates);
         await db.cards.bulkPut(writes.cards);
+        if (writes.retireCardIds.length > 0) {
+          await db.cards
+            .where('id')
+            .anyOf(writes.retireCardIds)
+            .modify({ deleted: 1, updatedAt: Date.now() });
+        }
         await db.reviewStates.bulkPut(writes.reviewStates);
         await db.reviewLogs.bulkAdd(writes.reviewLogs);
         return preview;

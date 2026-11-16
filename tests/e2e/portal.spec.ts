@@ -173,7 +173,7 @@ test('backup: export, erase, import restores cards', async ({ page }, testInfo) 
 
   await page.locator('input[type=file]').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
-  await expect(page.getByText(/Imported: 1 new cards/)).toBeVisible();
+  await expect(page.getByText(/Imported: 1 new card\b/)).toBeVisible();
   await page.goto('./#/cards');
   await expect(page.getByText('銀行')).toBeVisible();
 });
@@ -223,6 +223,90 @@ test('import lets you keep the original decks or put everything in My cards', as
   await page.goto('./#/cards');
   await expect(page.getByRole('link', { name: /Lesson/ })).toHaveCount(0);
   await expect(page.locator('.card-list .badge', { hasText: 'My cards' })).toHaveCount(2);
+});
+
+test('duplicates on import: keep old, keep new, or choose card by card', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const card = (id: string, t: string, meaning: string, updatedAt = now) => ({
+    id,
+    deckId: 'default-deck',
+    kind: 'word',
+    traditional: t,
+    simplified: t,
+    pinyin: 'x',
+    meaning,
+    notes: '',
+    tags: [],
+    createdAt: now,
+    updatedAt,
+    deleted: 0,
+  });
+  // 25 characters you already have, so the side-by-side list needs two pages.
+  const chars = [...'一二三四五六七八九十百千万上下左右大小中山水火木金'];
+  const mine = chars.map((c, i) => card(`mine-${i}`, c, `mine ${c}`));
+  const theirs = chars.map((c, i) => card(`theirs-${i}`, c, `theirs ${c}`, now + 1));
+  const file = (name: string, cards: unknown[]) => {
+    const path = testInfo.outputPath(name);
+    return writeFile(
+      path,
+      JSON.stringify({
+        format: 'shuijiao-backup',
+        version: 1,
+        exportedAt: now,
+        decks: [],
+        cards,
+        templates: [],
+        reviewStates: [],
+        reviewLogs: [],
+        links: [],
+      }),
+    ).then(() => path);
+  };
+
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(await file('mine.json', mine));
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported: 25 new cards/)).toBeVisible();
+
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(await file('theirs.json', theirs));
+  await expect(page.getByText(/25 cards in this backup have the same characters/)).toBeVisible();
+  await expect(page.getByLabel(/Keep old/)).toBeChecked();
+
+  await page.getByLabel('Choose for each card').check();
+  const pairs = page.locator('.dup-pair');
+  await expect(pairs).toHaveCount(20);
+  await expect(page.getByText('Page 1 of 2').first()).toBeVisible();
+  await expect(pairs.first()).toContainText('mine 一');
+  await expect(pairs.first()).toContainText('theirs 一');
+
+  // Keep the new card for 一 (page 1) and for 金 (page 2); everything else stays old.
+  await pairs
+    .first()
+    .getByRole('button', { name: /Keep new/ })
+    .click();
+  await expect(pairs.first().getByRole('button', { name: /Keep new/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByRole('button', { name: 'Next →' }).first().click();
+  await expect(pairs).toHaveCount(5);
+  await pairs
+    .last()
+    .getByRole('button', { name: /Keep new/ })
+    .click();
+  await expect(page.getByText('Keeping 23 old · 2 new')).toBeVisible();
+  await expect(page.getByText(/Duplicates: 23 kept as you have them, 2 replaced/)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+  await expect(page.getByText(/2 replaced/)).toBeVisible();
+
+  await page.goto('./#/cards');
+  await page.getByLabel('Search cards').fill('theirs');
+  await expect(page.locator('.card-list > li')).toHaveCount(2);
+  await page.getByLabel('Search cards').fill('');
+  await expect(page.locator('.card-list > li')).toHaveCount(25);
 });
 
 test('a hostile backup file is rejected', async ({ page }, testInfo) => {

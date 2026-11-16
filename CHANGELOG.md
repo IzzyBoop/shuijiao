@@ -20,6 +20,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 - **Choose where imported cards go**: when importing a backup, put the cards back into the decks
   they came from (any that don't exist are created, and deleted ones are restored), or put them
   all into "My cards" (created if you don't have it). The preview names the decks it will create.
+- **Handle duplicates when importing**: if a backup has cards with the same characters as cards
+  you already have, choose to keep yours, keep the backup's, or choose card by card on a
+  side-by-side list (20 pairs per page) showing both versions with their deck and when they last
+  changed. Importing now happens on its own page.
 
 ### Changed
 

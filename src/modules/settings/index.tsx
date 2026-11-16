@@ -17,6 +17,7 @@ import { setThemeState, useThemeState } from '../../app/ThemeToggle';
 import { SettingRow } from '../../core/ui/SettingRow';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { AudioCheck } from './AudioCheck';
+import { ImportPage } from './ImportPage';
 import { BackupPanel } from './BackupPanel';
 import { requestPersistentStorage } from '../../core/db/persist';
 
@@ -403,5 +404,8 @@ function SettingsPage() {
 export const settingsModule: PortalModule = {
   id: 'settings',
   nav: [{ label: 'Settings', path: '/settings', icon: 'settings', order: 50 }],
-  routes: [{ path: '/settings', title: 'Settings', component: SettingsPage }],
+  routes: [
+    { path: '/settings', title: 'Settings', component: SettingsPage },
+    { path: '/import', title: 'Import a backup', component: ImportPage },
+  ],
 };
