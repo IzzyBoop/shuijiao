@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [0.1.0-beta.2] - 2026-11-16
+
 ### Added
 
 - **Duplicate check when saving a card**: if you already have a card with the same characters
