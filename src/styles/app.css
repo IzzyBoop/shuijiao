@@ -121,22 +121,16 @@ p {
   background: var(--accent);
   color: var(--on-accent);
   border-radius: var(--radius-sm);
-  width: 32px;
-  height: 32px;
+  height: 34px;
+  padding: 0 8px;
   display: grid;
   place-items: center;
   font-size: 18px;
+  letter-spacing: 0.08em;
 }
 
 .brand-name {
   display: none;
-  font-family: var(--font-hant);
-}
-
-.brand-sub {
-  font-family: var(--font-ui);
-  font-weight: 500;
-  color: var(--muted);
 }
 
 .nav {
