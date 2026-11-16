@@ -67,7 +67,7 @@ export function BrowsePage({ params }: RouteProps) {
   return (
     <>
       <div class="page-head">
-        <h1>Browse{data.data.deck ? `: ${data.data.deck.name}` : ''}</h1>
+        <h1>Flip through{data.data.deck ? `: ${data.data.deck.name}` : ''}</h1>
         <div class="row">
           <select
             aria-label="Card type"

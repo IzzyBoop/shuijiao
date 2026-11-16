@@ -821,3 +821,62 @@ input.switch:checked {
 a > .icon {
   margin-left: 0.25em;
 }
+
+/* ---------- Card list ---------- */
+
+.deck-tabs {
+  margin-bottom: var(--gap);
+}
+
+.deck-tabs .chip {
+  min-height: 36px;
+  text-decoration: none;
+}
+
+.deck-tabs .chip[aria-current='page'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+.chip .count {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar > input[type='search'] {
+  flex: 1 1 240px;
+  width: auto;
+}
+
+.toolbar > select {
+  width: auto;
+}
+
+.bulk-bar {
+  border-color: var(--accent);
+}
+
+.card-list > li.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.row-check {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.quick-edit {
+  background: var(--surface-2);
+  margin: 4px -16px;
+  padding: 16px !important;
+  border-radius: var(--radius-sm);
+}

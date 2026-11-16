@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
+import { href } from '../../core/router';
 import { DEFAULT_DECK_ID } from '../../core/db/defaults';
 import { LIMITS, newId, type Deck } from '../../core/db/model';
 import { cleanText } from '../../core/safe/text';
@@ -86,7 +87,9 @@ export function DecksPage() {
             return (
               <li key={d.id}>
                 <div class="grow">
-                  <div class="truncate">{d.name}</div>
+                  <a class="truncate" href={href(`/cards/deck/${d.id}`)}>
+                    {d.name}
+                  </a>
                   <div class="small muted">{count} cards</div>
                 </div>
                 <button

@@ -116,6 +116,78 @@ test('resource links are https and open safely', async ({ page }) => {
   }
 });
 
+test('browse cards by deck, quick-edit, delete with undo, and move in bulk', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const deck = (id: string, name: string) => ({ id, name, createdAt: now, updatedAt: now, deleted: 0 });
+  const card = (id: string, deckId: string, t: string, s: string, p: string, m: string) => ({
+    id,
+    deckId,
+    kind: 'word',
+    traditional: t,
+    simplified: s,
+    pinyin: p,
+    meaning: m,
+    notes: '',
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
+  });
+  const file = testInfo.outputPath('sample.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [deck('l1', 'Lesson 1'), deck('l2', 'Lesson 2')],
+      cards: [
+        card('a', 'l1', '銀行', '银行', 'yínháng', 'bank'),
+        card('b', 'l1', '你好', '你好', 'nǐhǎo', 'hello'),
+        card('c', 'l2', '老師', '老师', 'lǎoshī', 'teacher'),
+      ],
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported: 3 new cards/)).toBeVisible();
+
+  // Deck tabs filter the list and have their own address.
+  await page.goto('./#/cards');
+  await page.getByRole('link', { name: /Lesson 2/ }).click();
+  await expect(page).toHaveURL(/#\/cards\/deck\/l2$/);
+  await expect(page.locator('.card-list > li')).toHaveCount(1);
+  await expect(page.getByText('老師')).toBeVisible();
+
+  // Quick edit in place: Enter saves without leaving the page.
+  await page.getByRole('button', { name: 'Edit 老師' }).click();
+  await page.getByLabel('Meaning').fill('teacher (polite)');
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('teacher (polite)')).toBeVisible();
+  await expect(page).toHaveURL(/#\/cards\/deck\/l2$/);
+
+  // Delete is instant and can be undone.
+  await page.getByRole('button', { name: 'Delete 老師' }).click();
+  await expect(page.getByText('This deck has no cards yet.')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(page.getByText('老師')).toBeVisible();
+
+  // Select several cards and move them to another deck.
+  await page.getByRole('link', { name: /Lesson 1/ }).click();
+  await page.getByRole('button', { name: 'Select' }).click();
+  await page.getByLabel('Select all shown').check();
+  await page.getByLabel('Move selected cards to deck').selectOption('l2');
+  await page.getByRole('button', { name: 'Move', exact: true }).click();
+  await expect(page.getByText('This deck has no cards yet.')).toBeVisible();
+  await page.getByRole('link', { name: /Lesson 2/ }).click();
+  await expect(page.locator('.card-list > li')).toHaveCount(3);
+});
+
 test('students can add their own links, safely', async ({ page }) => {
   await page.goto('./#/resources');
   const address = page.getByLabel('Web address');

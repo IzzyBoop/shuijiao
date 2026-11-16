@@ -11,6 +11,7 @@ import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import type { AutoFill } from '../../core/lang/autofill';
 import { requestPersistentStorage } from '../../core/db/persist';
+import { cardListPath } from './return-path';
 
 type CheckedField = 'traditional' | 'simplified' | 'pinyin' | 'meaning';
 const CHECKED: readonly CheckedField[] = ['traditional', 'simplified', 'pinyin', 'meaning'];
@@ -120,9 +121,10 @@ function ConfirmField(p: ConfirmFieldProps) {
 
 export function CardEditor({ params }: RouteProps) {
   const editingId = params.id;
+  const presetDeck = params.deckId;
   const decks = useAsync(() => store.listDecks(), []);
   const [input, setInput] = useState('');
-  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [draft, setDraft] = useState<Draft>(presetDeck ? { ...EMPTY, deckId: presetDeck } : EMPTY);
   const [fill, setFill] = useState<AutoFill | null>(null);
   const [origin, setOrigin] = useState<Partial<Record<CheckedField, Origin>>>({});
   const [confirmed, setConfirmed] = useState<Set<CheckedField>>(new Set());
@@ -247,7 +249,7 @@ export function CardEditor({ params }: RouteProps) {
       await store.saveCard(card);
       void requestPersistentStorage();
       if (existing) {
-        navigate('/cards');
+        navigate(cardListPath());
         return;
       }
       setSaved(card.traditional);
@@ -265,7 +267,7 @@ export function CardEditor({ params }: RouteProps) {
   const remove = async () => {
     if (!existing || !window.confirm('Delete this card and its study history?')) return;
     await store.deleteCard(existing.id);
-    navigate('/cards');
+    navigate(cardListPath());
   };
 
   const deckSelect = (
@@ -291,7 +293,7 @@ export function CardEditor({ params }: RouteProps) {
     <>
       <div class="page-head">
         <h1>{editingId ? 'Edit card' : 'Add a card'}</h1>
-        <a href={href('/cards')}>All cards</a>
+        <a href={href(cardListPath())}>{editingId ? 'Back to cards' : 'All cards'}</a>
       </div>
 
       {saved && (

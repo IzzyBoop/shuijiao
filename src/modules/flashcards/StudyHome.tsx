@@ -67,7 +67,7 @@ export function StudyHome() {
             </div>
             <div class="row">
               <a class="button" href={href('/browse')}>
-                <Icon name="cards" /> Browse
+                <Icon name="cards" /> Flip through
               </a>
               {counts.due + counts.fresh > 0 ? (
                 <a class="button primary" href={href('/review')}>
@@ -95,8 +95,11 @@ export function StudyHome() {
                       {c.due} due · {c.fresh} new · {session.totalCards} cards
                     </div>
                   </div>
+                  <a class="button" href={href(`/cards/deck/${deck.id}`)}>
+                    Cards
+                  </a>
                   <a class="button" href={href(`/browse/${deck.id}`)}>
-                    Browse
+                    Flip
                   </a>
                   <a class="button" href={href(`/review/${deck.id}`)} aria-disabled={c.due + c.fresh === 0}>
                     Study

@@ -43,6 +43,11 @@ export interface StudyStore {
   findCardsByHanzi(text: string): Promise<Card[]>;
   saveCard(card: Card): Promise<void>;
   deleteCard(id: string): Promise<void>;
+  /** Soft-deletes several cards at once. */
+  deleteCards(ids: readonly string[]): Promise<void>;
+  /** Undoes a delete. */
+  restoreCards(ids: readonly string[]): Promise<void>;
+  moveCards(ids: readonly string[], deckId: string): Promise<void>;
   countCards(): Promise<number>;
 
   listTemplates(): Promise<Template[]>;
@@ -113,6 +118,29 @@ export class LocalStudyStore implements StudyStore {
   }
   async deleteCard(id: string) {
     await this.db.cards.update(id, { deleted: 1, updatedAt: Date.now() });
+  }
+  async deleteCards(ids: readonly string[]) {
+    const now = Date.now();
+    await this.db.cards
+      .where('id')
+      .anyOf([...ids])
+      .modify({ deleted: 1, updatedAt: now });
+  }
+  async restoreCards(ids: readonly string[]) {
+    const now = Date.now();
+    await this.db.cards
+      .where('id')
+      .anyOf([...ids])
+      .modify({ deleted: 0, updatedAt: now });
+  }
+  async moveCards(ids: readonly string[], deckId: string) {
+    const deck = await this.db.decks.get(deckId);
+    if (!deck || deck.deleted) throw new Error('That deck no longer exists.');
+    const now = Date.now();
+    await this.db.cards
+      .where('id')
+      .anyOf([...ids])
+      .modify({ deckId, updatedAt: now });
   }
   async countCards() {
     return await this.db.cards.filter((c) => c.deleted === 0).count();

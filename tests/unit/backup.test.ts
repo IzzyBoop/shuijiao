@@ -227,3 +227,23 @@ describe('LocalStudyStore links', () => {
     expect((await store.listLinks()).map((l) => l.id)).toEqual(['b']);
   });
 });
+
+describe('LocalStudyStore bulk card operations', () => {
+  it('deletes, restores and moves several cards at once', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    const now = Date.now();
+    await store.saveDeck({ id: 'l2', name: 'Lesson 2', createdAt: now, updatedAt: now, deleted: 0 });
+    await store.saveCard(card({ id: 'a' }));
+    await store.saveCard(card({ id: 'b' }));
+    await store.saveCard(card({ id: 'c' }));
+
+    await store.deleteCards(['a', 'b']);
+    expect((await store.listCards()).map((c) => c.id)).toEqual(['c']);
+    await store.restoreCards(['a', 'b']);
+    expect((await store.listCards()).map((c) => c.id).sort()).toEqual(['a', 'b', 'c']);
+
+    await store.moveCards(['a', 'c'], 'l2');
+    expect((await store.listCards('l2')).map((c) => c.id).sort()).toEqual(['a', 'c']);
+    await expect(store.moveCards(['b'], 'no-such-deck')).rejects.toThrow(/no longer exists/);
+  });
+});
