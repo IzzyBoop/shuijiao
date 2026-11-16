@@ -2,7 +2,15 @@ import { useState } from 'preact/hooks';
 import type { PortalModule } from '../../core/modules';
 import { href } from '../../core/router';
 import { store } from '../../core/db/store';
-import { isNoveltyVoice, listChineseVoices, pickVoice, speak, ttsSupported } from '../../core/lang/tts';
+import {
+  isFirefoxOnMac,
+  isNoveltyVoice,
+  listChineseVoices,
+  pickVoice,
+  speak,
+  ttsSupported,
+} from '../../core/lang/tts';
+import { speechProblem } from '../../core/ui/chinese';
 import { updateStudyPrefs, useStudyPrefs, type HanziFont } from '../../core/study-prefs';
 import { THEME_FAMILIES, THEME_MODES, type ThemeMode } from '../../core/theme/themes';
 import { setThemeState, useThemeState } from '../../app/ThemeToggle';
@@ -166,6 +174,7 @@ function VoicePanel() {
   const prefs = useStudyPrefs();
   const voices = useAsync(listChineseVoices, []);
   const [testing, setTesting] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   if (!ttsSupported()) {
     return (
       <section class="panel">
@@ -182,7 +191,11 @@ function VoicePanel() {
 
   const test = async () => {
     setTesting(true);
-    await speak('你好，欢迎学习中文。', { voiceUri: prefs.voiceUri, rate: prefs.speechRate });
+    setProblem(
+      speechProblem(
+        await speak('你好，欢迎学习中文。', { voiceUri: prefs.voiceUri, rate: prefs.speechRate }),
+      ),
+    );
     setTesting(false);
   };
 
@@ -195,6 +208,17 @@ function VoicePanel() {
   return (
     <section class="panel">
       <h2>Pronunciation</h2>
+      {isFirefoxOnMac() && (
+        <div class="notice warn">
+          <div>
+            <strong>Firefox on Mac often can't play Chinese audio.</strong>
+            <p class="small">
+              It uses an older Apple speech system that only sees some voices and is often silent or makes a
+              clicking sound. Everything else works in Firefox; for pronunciation, use Chrome, Edge or Safari.
+            </p>
+          </div>
+        </div>
+      )}
       {!voices.loading && list.length === 0 && (
         <div class="notice warn">
           <div>
@@ -257,6 +281,11 @@ function VoicePanel() {
         <button type="button" disabled={testing} onClick={() => void test()}>
           {testing ? 'Playing…' : 'Test voice'}
         </button>
+        {problem && (
+          <p class="small warn-text mt" role="status">
+            {problem}
+          </p>
+        )}
       </div>
       <AudioCheck />
     </section>

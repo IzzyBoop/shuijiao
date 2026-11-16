@@ -52,8 +52,18 @@ export function AudioCheck() {
     if (voices.length > 12) add(`  … and ${voices.length - 12} more`);
     const chosen = pickVoice(voices, prefs.voiceUri);
     add(`Chosen voice: ${chosen ? chosen.name : 'none (browser default)'}`);
-    await speak('你好，欢迎学习中文。', { voiceUri: prefs.voiceUri, rate: prefs.speechRate, onEvent: add });
-    add('Done.');
+    const result = await speak('你好，欢迎学习中文。', {
+      voiceUri: prefs.voiceUri,
+      rate: prefs.speechRate,
+      onEvent: add,
+    });
+    add(
+      result === 'played'
+        ? 'Result: played normally.'
+        : result === 'silent'
+          ? 'Result: the browser reported success but produced no sound (a browser/OS speech bug).'
+          : 'Result: speech failed.',
+    );
     setRunning(false);
   };
 

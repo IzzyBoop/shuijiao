@@ -98,7 +98,22 @@ const pause = (ms: number) =>
 /** If speech hasn't started by then, the voice is treated as broken. */
 const START_TIMEOUT_MS = 4000;
 
-type Outcome = 'ended' | 'failed' | 'interrupted';
+/**
+ * Mandarin speech runs at roughly 4–5 syllables a second. A browser that reports
+ * "end" sooner than ~100 ms per character (at normal speed) cannot have produced
+ * audio; Firefox on macOS does this with its legacy speech backend.
+ */
+const MIN_MS_PER_HANZI = 100;
+const HANZI = /\p{Script=Han}/gu;
+
+export function minPlausibleMs(text: string, rate: number): number {
+  return ((text.match(HANZI)?.length ?? 0) * MIN_MS_PER_HANZI) / rate;
+}
+
+type Outcome = 'ended' | 'silent' | 'failed' | 'interrupted';
+
+/** What happened, for the caller to show the student. */
+export type SpeakResult = 'played' | 'silent' | 'failed' | 'unsupported';
 
 function speakOnce(
   text: string,
@@ -145,8 +160,14 @@ function speakOnce(
       log(`start (${at()})`);
     };
     u.onend = () => {
+      const elapsed = performance.now() - t0;
       log(`end (${at()})`);
-      finish('ended');
+      if (elapsed < minPlausibleMs(text, rate)) {
+        log('finished too quickly to have made any sound');
+        finish('silent');
+      } else {
+        finish('ended');
+      }
     };
     u.onerror = (e) => {
       log(`error "${e.error}" (${at()})`);
@@ -158,12 +179,15 @@ function speakOnce(
 
 /**
  * Speaks the text; resolves when finished. Speech already playing is stopped.
- * If the chosen voice fails or never starts (some voices only work in some
+ * If the chosen voice errors or never starts (some voices only work in some
  * browsers), it retries once with the browser's default Chinese voice.
+ * A "silent" result (the browser claims success instantly) is not retried, since
+ * the default voice goes through the same broken engine.
  * Safety timeouts mean a misbehaving voice can never leave buttons stuck.
  */
-export async function speak(text: string, opts: SpeakOptions): Promise<void> {
-  if (!ttsSupported() || !text.trim()) return;
+export async function speak(text: string, opts: SpeakOptions): Promise<SpeakResult> {
+  if (!ttsSupported()) return 'unsupported';
+  if (!text.trim()) return 'played';
   const log = opts.onEvent ?? (() => undefined);
   const synth = window.speechSynthesis;
   if (synth.speaking || synth.pending) {
@@ -181,11 +205,20 @@ export async function speak(text: string, opts: SpeakOptions): Promise<void> {
   const rate = Math.min(Math.max(opts.rate, 0.5), 1.5);
   const clipped = text.slice(0, 500);
 
-  const outcome = await speakOnce(clipped, voice, rate, log);
+  let outcome = await speakOnce(clipped, voice, rate, log);
   if (outcome === 'failed' && voice) {
     log('retrying with the browser default voice');
-    await speakOnce(clipped, undefined, rate, log);
+    outcome = await speakOnce(clipped, undefined, rate, log);
   }
+  if (outcome === 'silent') return 'silent';
+  if (outcome === 'failed') return 'failed';
+  return 'played';
+}
+
+/** Firefox on macOS speaks through Apple's deprecated NSSpeechSynthesizer and is often silent. */
+export function isFirefoxOnMac(): boolean {
+  const ua = navigator.userAgent;
+  return ua.includes('Firefox/') && ua.includes('Mac OS X');
 }
 
 export function stopSpeaking(): void {

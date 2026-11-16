@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isNoveltyVoice, listChineseVoices, pickVoice } from '../../src/core/lang/tts';
+import { isNoveltyVoice, listChineseVoices, minPlausibleMs, pickVoice } from '../../src/core/lang/tts';
 
 const voice = (name: string, lang: string, localService = true) =>
   ({ name, lang, localService, voiceURI: name, default: false }) as SpeechSynthesisVoice;
@@ -101,19 +101,21 @@ describe('speak fallback', () => {
     return spoken;
   }
 
+  /** Behaves like real speech: starts at once, ends after 400 ms. */
+  const speakNormally = (u: FakeUtterance) => {
+    queueMicrotask(() => u.onstart?.());
+    setTimeout(() => u.onend?.(), 400);
+  };
+
   it('retries with the browser default voice when the chosen voice errors', async () => {
     const { speak } = await import('../../src/core/lang/tts');
     const spoken = stubEngine(MAC_VOICES, (u) => {
-      queueMicrotask(() => {
-        if (u.voice) u.onerror?.({ error: 'synthesis-failed' });
-        else {
-          u.onstart?.();
-          u.onend?.();
-        }
-      });
+      if (u.voice) queueMicrotask(() => u.onerror?.({ error: 'synthesis-failed' }));
+      else speakNormally(u);
     });
     const log: string[] = [];
-    await speak('你好', { voiceUri: '', rate: 1, onEvent: (m) => log.push(m) });
+    const result = await speak('你好', { voiceUri: '', rate: 1, onEvent: (m) => log.push(m) });
+    expect(result).toBe('played');
     expect(spoken.map((u) => u.voice?.name ?? 'default')).toEqual(['Tingting', 'default']);
     expect(spoken[1]?.lang).toBe('zh-CN');
     expect(log.join('\n')).toMatch(/retrying with the browser default voice/);
@@ -124,15 +126,11 @@ describe('speak fallback', () => {
     try {
       const { speak } = await import('../../src/core/lang/tts');
       const spoken = stubEngine(MAC_VOICES, (u) => {
-        if (!u.voice)
-          queueMicrotask(() => {
-            u.onstart?.();
-            u.onend?.();
-          });
+        if (!u.voice) speakNormally(u);
       });
       const done = speak('你好', { voiceUri: '', rate: 1 });
       await vi.advanceTimersByTimeAsync(5000);
-      await done;
+      expect(await done).toBe('played');
       expect(spoken).toHaveLength(2);
       expect(spoken[1]?.voice).toBeNull();
     } finally {
@@ -142,13 +140,27 @@ describe('speak fallback', () => {
 
   it('does not retry when speech is fine', async () => {
     const { speak } = await import('../../src/core/lang/tts');
+    const spoken = stubEngine(MAC_VOICES, speakNormally);
+    expect(await speak('你好', { voiceUri: '', rate: 1 })).toBe('played');
+    expect(spoken).toHaveLength(1);
+  });
+
+  it('reports "silent" (and does not retry) when the browser claims to finish instantly', async () => {
+    const { speak } = await import('../../src/core/lang/tts');
+    // What Firefox on macOS does: start and end immediately, no audio.
     const spoken = stubEngine(MAC_VOICES, (u) => {
       queueMicrotask(() => {
         u.onstart?.();
         u.onend?.();
       });
     });
-    await speak('你好', { voiceUri: '', rate: 1 });
+    expect(await speak('你好，欢迎学习中文。', { voiceUri: '', rate: 1.5 })).toBe('silent');
     expect(spoken).toHaveLength(1);
+  });
+
+  it('sets a plausible minimum duration from the number of characters', () => {
+    expect(minPlausibleMs('你好，欢迎学习中文。', 1)).toBe(800);
+    expect(minPlausibleMs('你好', 2)).toBe(100);
+    expect(minPlausibleMs('hello', 1)).toBe(0);
   });
 });

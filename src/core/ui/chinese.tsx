@@ -1,7 +1,7 @@
 import type { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import { toneOf } from '../lang/tones';
-import { speak, ttsSupported } from '../lang/tts';
+import { speak, ttsSupported, type SpeakResult } from '../lang/tts';
 import { getStudyPrefs } from '../study-prefs';
 import { Icon } from './Icon';
 
@@ -45,21 +45,39 @@ export function Pinyin({ text, class: cls = '' }: { text: string; class?: string
   return <span class={`pinyin ${cls}`}>{parts}</span>;
 }
 
+/** Explains a speech problem in plain words, or null if audio played. */
+export function speechProblem(result: SpeakResult): string | null {
+  if (result === 'silent') {
+    return "No sound: this browser can't play Chinese audio on this device. Try Chrome, Edge or Safari.";
+  }
+  if (result === 'failed') return 'Audio failed. Settings → Pronunciation has an audio check.';
+  if (result === 'unsupported') return "Audio isn't supported in this browser.";
+  return null;
+}
+
 export function AudioButton({ text, label = 'Play pronunciation' }: { text: string; label?: string }) {
   const [playing, setPlaying] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   if (!ttsSupported()) {
     return <span class="muted small">Audio isn't supported in this browser.</span>;
   }
   const play = async () => {
     setPlaying(true);
     const prefs = getStudyPrefs();
-    await speak(text, { voiceUri: prefs.voiceUri, rate: prefs.speechRate });
+    setProblem(speechProblem(await speak(text, { voiceUri: prefs.voiceUri, rate: prefs.speechRate })));
     setPlaying(false);
   };
   return (
-    <button type="button" onClick={() => void play()} aria-label={label} disabled={playing || !text}>
-      <Icon name="sound" />
-      <span>{playing ? 'Playing…' : 'Play'}</span>
-    </button>
+    <span class="audio-button">
+      <button type="button" onClick={() => void play()} aria-label={label} disabled={playing || !text}>
+        <Icon name="sound" />
+        <span>{playing ? 'Playing…' : 'Play'}</span>
+      </button>
+      {problem && (
+        <span class="small warn-text" role="status">
+          {problem}
+        </span>
+      )}
+    </span>
   );
 }
