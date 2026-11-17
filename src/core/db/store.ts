@@ -7,6 +7,7 @@ import {
   newId,
   stateKey,
   type Card,
+  type CardKind,
   type Deck,
   type ReviewLog,
   type ReviewState,
@@ -72,6 +73,14 @@ export function cardDifferences(a: Card, b: Card): CardDifference[] {
 const DEFAULT_IMPORT: ImportOptions = { deckMode: 'keep' };
 const MY_CARDS = 'My cards';
 
+/** A change applied to many cards at once from the Cards page. */
+export interface CardBulkChange {
+  kind?: CardKind;
+  deckId?: string;
+  addTags?: readonly string[];
+  removeTags?: readonly string[];
+}
+
 export interface ImportPreview {
   /** Names of decks the import creates or restores. */
   decksCreated: string[];
@@ -114,6 +123,10 @@ export interface StudyStore {
   /** Undoes a delete. */
   restoreCards(ids: readonly string[]): Promise<void>;
   moveCards(ids: readonly string[], deckId: string): Promise<void>;
+  /** Applies one change to many cards; returns the cards as they were, for Undo. */
+  updateCards(ids: readonly string[], change: CardBulkChange): Promise<Card[]>;
+  /** Puts earlier versions of cards back (Undo for updateCards). */
+  restoreCardVersions(cards: readonly Card[]): Promise<void>;
   countCards(): Promise<number>;
 
   listTemplates(): Promise<Template[]>;
@@ -223,6 +236,34 @@ export class LocalStudyStore implements StudyStore {
       .where('id')
       .anyOf([...ids])
       .modify({ deleted: 0, updatedAt: now });
+  }
+  async updateCards(ids: readonly string[], change: CardBulkChange) {
+    return this.db.transaction('rw', this.db.cards, this.db.decks, async () => {
+      if (change.deckId !== undefined) {
+        const deck = await this.db.decks.get(change.deckId);
+        if (!deck || deck.deleted) throw new Error('That deck no longer exists.');
+      }
+      const before = live((await this.db.cards.bulkGet([...ids])).filter((c): c is Card => c !== undefined));
+      const now = Date.now();
+      const remove = new Set(change.removeTags ?? []);
+      const after = before.map((card) => {
+        let tags = card.tags.filter((t) => !remove.has(t));
+        if (change.addTags?.length) tags = [...new Set([...tags, ...change.addTags])].slice(0, LIMITS.tags);
+        return {
+          ...card,
+          kind: change.kind ?? card.kind,
+          deckId: change.deckId ?? card.deckId,
+          tags,
+          updatedAt: now,
+        };
+      });
+      await this.db.cards.bulkPut(after);
+      return before;
+    });
+  }
+  async restoreCardVersions(cards: readonly Card[]) {
+    const now = Date.now();
+    await this.db.cards.bulkPut(cards.map((c) => ({ ...c, updatedAt: now })));
   }
   async moveCards(ids: readonly string[], deckId: string) {
     const deck = await this.db.decks.get(deckId);

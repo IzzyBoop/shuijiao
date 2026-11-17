@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { RouteProps } from '../../core/modules';
-import { store } from '../../core/db/store';
+import { store, type CardBulkChange } from '../../core/db/store';
 import type { Card, Deck } from '../../core/db/model';
 import { href } from '../../core/router';
+import { cleanTags } from '../../core/safe/text';
 import { Pinyin, Simp, Trad } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
@@ -22,6 +23,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   pinyin: 'A–Z (pinyin)',
 };
 const PAGE = 200;
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 const sorters: Record<SortKey, (a: Card, b: Card) => number> = {
   newest: (a, b) => b.createdAt - a.createdAt,
@@ -29,10 +31,13 @@ const sorters: Record<SortKey, (a: Card, b: Card) => number> = {
   pinyin: (a, b) => fold(a.pinyin).localeCompare(fold(b.pinyin)),
 };
 
-interface Undo {
-  ids: string[];
-  message: string;
-}
+/** What Undo puts back: deleted cards, or the earlier versions of changed cards. */
+type Undo = { message: string } & ({ type: 'deleted'; ids: string[] } | { type: 'changed'; cards: Card[] });
+
+/** How many Chinese characters a card has (punctuation and Latin letters don't count). */
+const HAN = /\p{Script=Han}/u;
+const hanCount = (c: Card) => [...c.traditional].filter((ch) => HAN.test(ch)).length;
+type LengthFilter = 'any' | 'one' | 'many';
 
 export function CardsPage({ params }: RouteProps) {
   const deckId = params.deckId;
@@ -40,6 +45,7 @@ export function CardsPage({ params }: RouteProps) {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('newest');
   const [kind, setKind] = useState<'all' | 'word' | 'sentence'>('all');
+  const [length, setLength] = useState<LengthFilter>('any');
   const [limit, setLimit] = useState(PAGE);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
@@ -84,6 +90,7 @@ export function CardsPage({ params }: RouteProps) {
     return (data.data?.cards ?? [])
       .filter((c) => !deckId || c.deckId === deckId)
       .filter((c) => kind === 'all' || c.kind === kind)
+      .filter((c) => length === 'any' || (length === 'one' ? hanCount(c) === 1 : hanCount(c) >= 2))
       .filter(
         (c) =>
           !q ||
@@ -92,7 +99,7 @@ export function CardsPage({ params }: RouteProps) {
           ),
       )
       .sort(sorters[sort]);
-  }, [data.data, deckId, query, sort, kind]);
+  }, [data.data, deckId, query, sort, kind, length]);
   const shown = filtered.slice(0, limit);
   const total = deck ? (counts.get(deck.id) ?? 0) : (data.data?.cards.length ?? 0);
 
@@ -111,19 +118,27 @@ export function CardsPage({ params }: RouteProps) {
       await store.deleteCards(ids);
       setSelected(new Set());
       setEditingId(null);
-      setUndo({ ids, message: ids.length === 1 ? 'Card deleted.' : `${ids.length} cards deleted.` });
+      setUndo({
+        type: 'deleted',
+        ids,
+        message: ids.length === 1 ? 'Card deleted.' : `${ids.length} cards deleted.`,
+      });
     });
 
   const restore = (u: Undo) =>
     run(async () => {
-      await store.restoreCards(u.ids);
+      if (u.type === 'deleted') await store.restoreCards(u.ids);
+      else await store.restoreCardVersions(u.cards);
       setUndo(null);
     });
 
-  const move = (ids: string[], target: string) =>
+  /** Applies a bulk change to the selected cards, with Undo. */
+  const change = (ids: string[], what: CardBulkChange, done: string) =>
     run(async () => {
-      await store.moveCards(ids, target);
-      setSelected(new Set());
+      const before = await store.updateCards(ids, what);
+      // Moved cards leave this deck's list, so start a fresh selection; other changes keep it.
+      if (what.deckId !== undefined) setSelected(new Set());
+      setUndo({ type: 'changed', cards: before, message: `${plural(before.length, 'card')} ${done}.` });
     });
 
   const toggle = (id: string, on: boolean) => {
@@ -134,7 +149,7 @@ export function CardsPage({ params }: RouteProps) {
       return next;
     });
   };
-  const allShownSelected = shown.length > 0 && shown.every((c) => selected.has(c.id));
+  const allSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id));
 
   if (deckId && data.data && !deck) {
     return (
@@ -206,6 +221,19 @@ export function CardsPage({ params }: RouteProps) {
           <option value="sentence">Sentences</option>
         </select>
         <select
+          aria-label="Number of characters"
+          value={length}
+          onChange={(e) => {
+            const v = e.currentTarget.value;
+            setLength(v === 'one' || v === 'many' ? v : 'any');
+            setLimit(PAGE);
+          }}
+        >
+          <option value="any">Any length</option>
+          <option value="one">1 character</option>
+          <option value="many">2+ characters</option>
+        </select>
+        <select
           aria-label="Sort"
           value={sort}
           onChange={(e) => {
@@ -234,12 +262,13 @@ export function CardsPage({ params }: RouteProps) {
       {selecting && (
         <BulkBar
           count={selected.size}
-          allSelected={allShownSelected}
+          matching={filtered.length}
+          allSelected={allSelected}
           decks={decks}
           onSelectAll={(on) => {
-            setSelected(on ? new Set(shown.map((c) => c.id)) : new Set());
+            setSelected(on ? new Set(filtered.map((c) => c.id)) : new Set());
           }}
-          onMove={(target) => void move([...selected], target)}
+          onChange={(what, done) => void change([...selected], what, done)}
           onDelete={() => void remove([...selected])}
         />
       )}
@@ -342,7 +371,7 @@ export function CardsPage({ params }: RouteProps) {
         )}
       </section>
       <p class="small muted">
-        {query.trim() || kind !== 'all' ? `${filtered.length} of ` : ''}
+        {query.trim() || kind !== 'all' || length !== 'any' ? `${filtered.length} of ` : ''}
         {total} card{total === 1 ? '' : 's'}
       </p>
 
@@ -360,61 +389,130 @@ export function CardsPage({ params }: RouteProps) {
 
 function BulkBar({
   count,
+  matching,
   allSelected,
   decks,
   onSelectAll,
-  onMove,
+  onChange,
   onDelete,
 }: {
   count: number;
+  /** How many cards match the current filters. */
+  matching: number;
   allSelected: boolean;
   decks: readonly Deck[];
   onSelectAll: (on: boolean) => void;
-  onMove: (deckId: string) => void;
+  onChange: (change: CardBulkChange, done: string) => void;
   onDelete: () => void;
 }) {
   const [target, setTarget] = useState('');
+  const [tagText, setTagText] = useState('');
+  const tags = cleanTags(tagText);
+  const none = count === 0;
   return (
-    <div class="panel toolbar bulk-bar" role="region" aria-label="Selected cards">
-      <label class="check">
+    <div class="panel bulk-bar stack" role="region" aria-label="Selected cards">
+      <div class="toolbar">
+        <label class="check">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            onChange={(e) => {
+              onSelectAll(e.currentTarget.checked);
+            }}
+          />
+          Select all {matching}
+        </label>
+        <span class="muted" aria-hidden="true">
+          ·
+        </span>
+        <strong>{count} selected</strong>
+      </div>
+      <div class="toolbar">
+        <span class="small muted bulk-label">Type</span>
+        <button
+          type="button"
+          disabled={none}
+          onClick={() => {
+            onChange({ kind: 'word' }, 'set to word');
+          }}
+        >
+          Make words
+        </button>
+        <button
+          type="button"
+          disabled={none}
+          onClick={() => {
+            onChange({ kind: 'sentence' }, 'set to sentence');
+          }}
+        >
+          Make sentences
+        </button>
+      </div>
+      <div class="toolbar">
+        <span class="small muted bulk-label">Tags</span>
         <input
-          type="checkbox"
-          checked={allSelected}
-          onChange={(e) => {
-            onSelectAll(e.currentTarget.checked);
+          type="text"
+          class="grow"
+          aria-label="Tags to add or remove"
+          placeholder="lesson-3, food"
+          value={tagText}
+          onInput={(e) => {
+            setTagText(e.currentTarget.value);
           }}
         />
-        Select all shown
-      </label>
-      <strong>{count} selected</strong>
-      <span class="grow" />
-      <select
-        aria-label="Move selected cards to deck"
-        value={target}
-        onChange={(e) => {
-          setTarget(e.currentTarget.value);
-        }}
-      >
-        <option value="">Move to deck…</option>
-        {decks.map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        disabled={count === 0 || !target}
-        onClick={() => {
-          onMove(target);
-          setTarget('');
-        }}
-      >
-        Move
-      </button>
-      <button type="button" class="danger" disabled={count === 0} onClick={onDelete}>
-        <Icon name="trash" /> Delete
-      </button>
+        <button
+          type="button"
+          disabled={none || tags.length === 0}
+          onClick={() => {
+            onChange({ addTags: tags }, `tagged ${tags.join(', ')}`);
+            setTagText('');
+          }}
+        >
+          Add tag
+        </button>
+        <button
+          type="button"
+          disabled={none || tags.length === 0}
+          onClick={() => {
+            onChange({ removeTags: tags }, `untagged ${tags.join(', ')}`);
+            setTagText('');
+          }}
+        >
+          Remove tag
+        </button>
+      </div>
+      <div class="toolbar">
+        <span class="small muted bulk-label">Deck</span>
+        <select
+          aria-label="Move selected cards to deck"
+          value={target}
+          onChange={(e) => {
+            setTarget(e.currentTarget.value);
+          }}
+        >
+          <option value="">Move to deck…</option>
+          {decks.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          disabled={none || !target}
+          onClick={() => {
+            const name = decks.find((d) => d.id === target)?.name ?? 'the deck';
+            onChange({ deckId: target }, `moved to “${name}”`);
+            setTarget('');
+          }}
+        >
+          Move
+        </button>
+        <span class="grow" />
+        <button type="button" class="danger" disabled={none} onClick={onDelete}>
+          <Icon name="trash" /> Delete
+        </button>
+      </div>
     </div>
   );
 }

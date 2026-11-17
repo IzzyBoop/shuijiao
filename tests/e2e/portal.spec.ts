@@ -710,12 +710,99 @@ test('browse cards by deck, quick-edit, delete with undo, and move in bulk', asy
   // Select several cards and move them to another deck.
   await page.getByRole('link', { name: /Lesson 1/ }).click();
   await page.getByRole('button', { name: 'Select' }).click();
-  await page.getByLabel('Select all shown').check();
+  await page.getByLabel(/^Select all \d+/).check();
   await page.getByLabel('Move selected cards to deck').selectOption('l2');
   await page.getByRole('button', { name: 'Move', exact: true }).click();
   await expect(page.getByText('This deck has no cards yet.')).toBeVisible();
   await page.getByRole('link', { name: /Lesson 2/ }).click();
   await expect(page.locator('.card-list > li')).toHaveCount(3);
+});
+
+test('bulk edit: filter by length, select all, change type and tags, and undo', async ({
+  page,
+}, testInfo) => {
+  const now = 1_763_287_200_000;
+  const card = (id: string, t: string, kind: string) => ({
+    id,
+    deckId: 'default-deck',
+    kind,
+    traditional: t,
+    simplified: t,
+    pinyin: 'x',
+    meaning: 'y',
+    notes: '',
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
+  });
+  const file = testInfo.outputPath('mixed.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [],
+      cards: [
+        card('a', '好', 'sentence'),
+        card('b', '我', 'sentence'),
+        card('c', '你好', 'word'),
+        card('d', '對（了）', 'word'),
+      ],
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+
+  await page.goto('./#/cards');
+  const rows = page.locator('.card-list > li');
+  const lengthFilter = page.getByLabel('Number of characters');
+  const kindFilter = page.getByLabel('Words or sentences');
+
+  // 1 character → words.
+  await lengthFilter.selectOption('one');
+  await expect(rows).toHaveCount(2);
+  await page.getByRole('button', { name: 'Select' }).click();
+  await page.getByLabel(/^Select all \d+/).check();
+  await expect(page.getByText('2 selected')).toBeVisible();
+  await page.getByRole('button', { name: 'Make words' }).click();
+  await expect(page.getByText('2 cards set to word.')).toBeVisible();
+
+  // 2+ characters → sentences ("對（了）" counts 2 Chinese characters).
+  await lengthFilter.selectOption('many');
+  await page.getByLabel(/^Select all \d+/).uncheck();
+  await page.getByLabel(/^Select all \d+/).check();
+  await page.getByRole('button', { name: 'Make sentences' }).click();
+  await expect(page.getByText('2 cards set to sentence.')).toBeVisible();
+
+  await lengthFilter.selectOption('any');
+  await kindFilter.selectOption('word');
+  await expect(rows).toHaveCount(2);
+  await kindFilter.selectOption('sentence');
+  await expect(rows).toHaveCount(2);
+  await expect(page.getByText('你好')).toBeVisible();
+
+  // Undo the last change.
+  await page.getByRole('button', { name: 'Undo' }).click();
+  await expect(rows).toHaveCount(0);
+  await kindFilter.selectOption('all');
+
+  // Tags in bulk.
+  await page.getByLabel(/^Select all \d+/).uncheck();
+  await page.getByLabel(/^Select all \d+/).check();
+  await page.getByLabel('Tags to add or remove').fill('lesson-1');
+  await page.getByRole('button', { name: 'Add tag' }).click();
+  await expect(page.getByText('4 cards tagged lesson-1.')).toBeVisible();
+  await page.getByRole('button', { name: 'Done selecting' }).click();
+  await page.getByLabel('Search cards').fill('lesson-1');
+  await expect(rows).toHaveCount(4);
 });
 
 test('"My cards" can be deleted, moving its cards to another deck', async ({ page }) => {

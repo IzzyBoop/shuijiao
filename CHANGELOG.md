@@ -8,6 +8,13 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Bulk edits on the Cards page**: in Select mode, make many cards words or sentences, add or
+  remove tags, move them to a deck, or delete them, each with Undo. "Select all" now selects every
+  card that matches your filters, not just those on screen.
+- **Filter by length** on the Cards page: 1 character or 2+ characters (Chinese characters only).
+
 ## [0.1.0-beta.3] - 2026-11-17
 
 ### Added

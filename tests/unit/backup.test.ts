@@ -565,3 +565,31 @@ describe('LocalStudyStore decks with the same name', () => {
     expect((await store.listDecks()).map((d) => d.name)).toContain('LESSON 1');
   });
 });
+
+describe('LocalStudyStore bulk edits', () => {
+  it('changes type, tags, and deck for many cards, and can put them back', async () => {
+    const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+    const now = Date.now();
+    await store.saveDeck({ id: 'l2', name: 'Lesson 2', createdAt: now, updatedAt: now, deleted: 0 });
+    await store.saveCard(card({ id: 'a', tags: ['old'] }));
+    await store.saveCard(card({ id: 'b', tags: [] }));
+
+    const before = await store.updateCards(['a', 'b'], { kind: 'sentence', addTags: ['lesson-3'] });
+    expect(before.map((c) => c.kind)).toEqual(['word', 'word']);
+    expect((await store.getCard('a'))?.kind).toBe('sentence');
+    expect((await store.getCard('a'))?.tags).toEqual(['old', 'lesson-3']);
+    expect((await store.getCard('b'))?.tags).toEqual(['lesson-3']);
+
+    await store.updateCards(['a'], { removeTags: ['old'], deckId: 'l2' });
+    expect((await store.getCard('a'))?.tags).toEqual(['lesson-3']);
+    expect((await store.getCard('a'))?.deckId).toBe('l2');
+
+    // Undo the first change: both cards go back to how they were.
+    await store.restoreCardVersions(before);
+    expect((await store.getCard('a'))?.kind).toBe('word');
+    expect((await store.getCard('a'))?.tags).toEqual(['old']);
+    expect((await store.getCard('b'))?.tags).toEqual([]);
+
+    await expect(store.updateCards(['a'], { deckId: 'gone' })).rejects.toThrow(/no longer exists/);
+  });
+});
