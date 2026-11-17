@@ -2,6 +2,7 @@ import { PortalDB } from './database';
 import { BACKUP_FORMAT, BACKUP_VERSION, type Backup } from './backup-schema';
 import { builtinTemplates, DEFAULT_DECK_ID, defaultDeck } from './defaults';
 import {
+  deckNameKey,
   LIMITS,
   newId,
   stateKey,
@@ -148,6 +149,11 @@ export class LocalStudyStore implements StudyStore {
     return decks.sort((a, b) => a.name.localeCompare(b.name));
   }
   async saveDeck(deck: Deck) {
+    const key = deckNameKey(deck.name);
+    const clash = live(await this.db.decks.toArray()).find(
+      (d) => d.id !== deck.id && deckNameKey(d.name) === key,
+    );
+    if (clash && deck.deleted === 0) throw new Error(`You already have a deck called “${clash.name}”.`);
     await this.db.decks.put({ ...deck, updatedAt: Date.now() });
   }
   async deleteDeck(id: string, moveCardsTo?: string) {
@@ -345,16 +351,41 @@ export class LocalStudyStore implements StudyStore {
       if (liveCards.length > 0) myCards();
       deckIdFor = () => myCards();
     } else {
-      const merged = await this.mergeRows(this.db.decks, backup.decks, (r) => r.id);
-      for (const d of merged.toWrite) write(d);
+      // Your live deck with this name (ignoring case and spacing), oldest first.
+      const sameName = (name: string): Deck | undefined => {
+        const key = deckNameKey(name);
+        return [...new Map([...local, ...writes]).values()]
+          .filter((d) => d.deleted === 0 && deckNameKey(d.name) === key)
+          .sort((a, b) => a.createdAt - b.createdAt)[0];
+      };
+      // Decks you share with the file (same id, still here) merge by date as usual.
+      const shared = backup.decks.filter((d) => local.get(d.id)?.deleted === 0);
+      for (const d of (await this.mergeRows(this.db.decks, shared, (r) => r.id)).toWrite) write(d);
+      // Any other deck from the file goes into your deck with the same name if you have
+      // one (decks made on another device have different ids); otherwise it is created.
+      const remap = new Map<string, string>();
+      const others = backup.decks
+        .filter((d) => local.get(d.id)?.deleted !== 0 && d.deleted === 0)
+        .sort((a, b) => a.createdAt - b.createdAt);
+      for (const d of others) {
+        const match = sameName(d.name);
+        if (match) {
+          if (match.id !== d.id) remap.set(d.id, match.id);
+        } else {
+          write({ ...d, deleted: 0, updatedAt: Math.max(d.updatedAt, local.get(d.id)?.updatedAt ?? 0) + 1 });
+        }
+      }
       const fromFile = new Map(backup.decks.map((d) => [d.id, d]));
       deckIdFor = (deckId) => {
-        if (final(deckId)?.deleted === 0) return deckId;
-        const described = fromFile.get(deckId);
+        const id = remap.get(deckId) ?? deckId;
+        if (final(id)?.deleted === 0) return id;
+        const described = fromFile.get(id);
         if (!described) return myCards();
+        const match = sameName(described.name);
+        if (match) return match.id;
         // The deck is in the file but missing or deleted here: bring it (back) in.
-        write({ ...(final(deckId) ?? described), name: described.name, deleted: 0, updatedAt: now });
-        return deckId;
+        write({ ...(final(id) ?? described), name: described.name, deleted: 0, updatedAt: now });
+        return id;
       };
     }
 

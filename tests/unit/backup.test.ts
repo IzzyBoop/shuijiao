@@ -4,7 +4,7 @@ import { BACKUP_FORMAT, parseBackup, type Backup } from '../../src/core/db/backu
 import { PortalDB } from '../../src/core/db/database';
 import { LocalStudyStore } from '../../src/core/db/store';
 import { DEFAULT_DECK_ID } from '../../src/core/db/defaults';
-import type { Card } from '../../src/core/db/model';
+import { deckNameKey, type Card } from '../../src/core/db/model';
 
 const card = (over: Partial<Card> = {}): Card => ({
   id: 'card-1',
@@ -509,5 +509,59 @@ describe('LocalStudyStore import: edited copies of the same cards', () => {
     });
     expect(preview.duplicatesKeptOld).toBe(3);
     expect(preview.reviewStates.added).toBe(1);
+  });
+});
+
+describe('LocalStudyStore decks with the same name', () => {
+  const fresh = () => new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+  const deck = (id: string, name: string, createdAt = 1) => ({
+    id,
+    name,
+    createdAt,
+    updatedAt: createdAt,
+    deleted: 0 as const,
+  });
+
+  it('imports into your deck with the same name instead of making a second one', async () => {
+    const store = fresh();
+    await store.saveDeck(deck('mine', 'Lesson 1', 5));
+    // A deck called "Lesson 1" made on another device has a different id.
+    const file = backup({
+      decks: [deck('theirs', ' lesson  1 ')],
+      cards: [card({ id: 'a', deckId: 'theirs', traditional: '你', simplified: '你' })],
+    });
+    expect((await store.previewImport(file, { deckMode: 'keep' })).decksCreated).toEqual([]);
+    await store.applyImport(file, { deckMode: 'keep' });
+    expect((await store.listDecks()).filter((d) => deckNameKey(d.name) === 'lesson 1')).toHaveLength(1);
+    expect((await store.getCard('a'))?.deckId).toBe('mine');
+  });
+
+  it('two decks with the same name in one file become one deck', async () => {
+    const store = fresh();
+    const file = backup({
+      decks: [deck('x', 'Lesson 2', 1), deck('y', 'lesson 2', 2)],
+      cards: [
+        card({ id: 'a', deckId: 'x', traditional: '你', simplified: '你' }),
+        card({ id: 'b', deckId: 'y', traditional: '好', simplified: '好' }),
+      ],
+    });
+    expect((await store.previewImport(file, { deckMode: 'keep' })).decksCreated).toEqual(['Lesson 2']);
+    await store.applyImport(file, { deckMode: 'keep' });
+    const lesson2 = (await store.listDecks()).filter((d) => deckNameKey(d.name) === 'lesson 2');
+    expect(lesson2).toHaveLength(1);
+    expect((await store.listCards(lesson2[0]?.id)).map((c) => c.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it("won't create or rename a deck to a name you already use", async () => {
+    const store = fresh();
+    await store.saveDeck(deck('l1', 'Lesson 1'));
+    await expect(store.saveDeck(deck('l1b', 'LESSON 1'))).rejects.toThrow(
+      /already have a deck called “Lesson 1”/,
+    );
+    await store.saveDeck(deck('l2', 'Lesson 2'));
+    await expect(store.saveDeck({ ...deck('l2', 'lesson 1') })).rejects.toThrow(/already have/);
+    // Changing the capitals of a deck's own name is fine.
+    await store.saveDeck(deck('l1', 'LESSON 1'));
+    expect((await store.listDecks()).map((d) => d.name)).toContain('LESSON 1');
   });
 });

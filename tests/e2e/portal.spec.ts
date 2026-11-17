@@ -261,6 +261,93 @@ test('import lets you keep the original decks or put everything in My cards', as
   await expect(page.locator('.card-list .badge', { hasText: 'My cards' })).toHaveCount(2);
 });
 
+test('imports go into your existing deck with the same name, and same-name decks can be merged', async ({
+  page,
+}, testInfo) => {
+  const now = 1_763_287_200_000;
+  // You made "Lesson 1" yourself…
+  await page.goto('./#/decks');
+  await page.getByLabel('New deck name').fill('Lesson 1');
+  await page.getByRole('button', { name: 'Add deck' }).click();
+  await expect(page.getByRole('link', { name: 'Lesson 1' })).toBeVisible();
+  // …and a classmate's backup has its own "Lesson 1" (a different deck id).
+  const file = testInfo.outputPath('classmate.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [{ id: 'their-lesson-1', name: 'Lesson 1', createdAt: now, updatedAt: now, deleted: 0 }],
+      cards: [
+        {
+          id: 'c1',
+          deckId: 'their-lesson-1',
+          kind: 'word',
+          traditional: '謝謝',
+          simplified: '谢谢',
+          pinyin: 'xièxie',
+          meaning: 'thanks',
+          notes: '',
+          tags: [],
+          createdAt: now,
+          updatedAt: now,
+          deleted: 0,
+        },
+      ],
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await expect(page.getByText('No new decks are created.')).toBeVisible();
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+  await page.goto('./#/decks');
+  await expect(page.getByRole('link', { name: 'Lesson 1' })).toHaveCount(1);
+
+  // A name you already use is refused.
+  await page.getByLabel('New deck name').fill('lesson 1');
+  await page.getByRole('button', { name: 'Add deck' }).click();
+  await expect(page.getByRole('alert')).toContainText('You already have a deck called “Lesson 1”');
+
+  // Decks with the same name left over from before can be merged in one click.
+  await page.evaluate(
+    (t) =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('shuijiao');
+        open.onsuccess = () => {
+          const tx = open.result.transaction('decks', 'readwrite');
+          tx.objectStore('decks').put({
+            id: 'old-dupe',
+            name: 'Lesson 1',
+            createdAt: t,
+            updatedAt: t,
+            deleted: 0,
+          });
+          tx.oncomplete = () => {
+            open.result.close();
+            resolve();
+          };
+          tx.onerror = () => {
+            reject(new Error('write failed'));
+          };
+        };
+      }),
+    now,
+  );
+  await page.reload();
+  await expect(page.getByText('You have 2 decks called “Lesson 1”')).toBeVisible();
+  await page.getByRole('button', { name: 'Merge into one' }).click();
+  await expect(page.getByText(/You have 2 decks called/)).toBeHidden();
+  await expect(page.getByRole('link', { name: 'Lesson 1' })).toHaveCount(1);
+  await page.getByRole('link', { name: 'Lesson 1' }).click();
+  await expect(page.getByText('謝謝')).toBeVisible();
+});
+
 test('duplicates on import: keep old, keep new, or choose card by card', async ({ page }, testInfo) => {
   const now = 1_763_287_200_000;
   const card = (id: string, t: string, meaning: string, updatedAt = now) => ({

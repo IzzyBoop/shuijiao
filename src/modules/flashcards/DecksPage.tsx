@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
 import { href } from '../../core/router';
-import { LIMITS, newId, type Deck } from '../../core/db/model';
+import { deckNameKey, LIMITS, newId, type Deck } from '../../core/db/model';
 import { cleanText } from '../../core/safe/text';
 import { Dialog } from '../../core/ui/Dialog';
 import { Icon } from '../../core/ui/Icon';
@@ -25,9 +25,14 @@ export function DecksPage() {
       return;
     }
     const now = Date.now();
-    await store.saveDeck({ id: newId(), name: clean, createdAt: now, updatedAt: now, deleted: 0 });
-    setName('');
-    data.reload();
+    try {
+      await store.saveDeck({ id: newId(), name: clean, createdAt: now, updatedAt: now, deleted: 0 });
+      setError(null);
+      setName('');
+      data.reload();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
   };
 
   const rename = async (deck: Deck) => {
@@ -35,19 +40,64 @@ export function DecksPage() {
     if (next === null) return;
     const clean = cleanText(next, LIMITS.deckName);
     if (!clean) return;
-    await store.saveDeck({ ...deck, name: clean });
-    data.reload();
+    try {
+      await store.saveDeck({ ...deck, name: clean });
+      setError(null);
+      data.reload();
+    } catch (err) {
+      setError(errorMessage(err));
+    }
   };
 
   const [deleting, setDeleting] = useState<Deck | null>(null);
   const decks = data.data?.decks ?? [];
+
+  // Decks that share a name (e.g. made before names had to be unique, or by an older import).
+  const byName = new Map<string, Deck[]>();
+  for (const d of decks) {
+    const key = deckNameKey(d.name);
+    byName.set(key, [...(byName.get(key) ?? []), d]);
+  }
+  const sameNameGroups = [...byName.values()].filter((g) => g.length > 1);
+
+  /** Moves every card into the oldest deck of the group and removes the others. */
+  const merge = async (group: readonly Deck[]) => {
+    const [keep, ...rest] = [...group].sort((a, b) => a.createdAt - b.createdAt);
+    if (!keep) return;
+    try {
+      for (const d of rest) await store.deleteDeck(d.id, keep.id);
+      setError(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+    data.reload();
+  };
 
   return (
     <>
       <div class="page-head">
         <h1>Decks</h1>
       </div>
-      {error && <div class="notice error">{error}</div>}
+      {error && (
+        <div class="notice error" role="alert">
+          {error}
+        </div>
+      )}
+      {sameNameGroups.map((group) => {
+        const cards = group.reduce((n, d) => n + (data.data?.counts.get(d.id) ?? 0), 0);
+        return (
+          <div class="notice warn" key={deckNameKey(group[0]?.name ?? '')}>
+            <Icon name="alert" />
+            <span class="grow">
+              You have {group.length} decks called “{group[0]?.name}” ({cards} card{cards === 1 ? '' : 's'} in
+              total).
+            </span>
+            <button type="button" class="primary" onClick={() => void merge(group)}>
+              Merge into one
+            </button>
+          </div>
+        );
+      })}
       <form
         class="panel row"
         onSubmit={(e) => {

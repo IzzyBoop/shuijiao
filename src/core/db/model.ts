@@ -104,6 +104,11 @@ export interface StudentLink {
   deleted: Deleted;
 }
 
+/** Deck names are compared ignoring case and extra spaces: "Lesson 1" = " lesson  1 ". */
+export function deckNameKey(name: string): string {
+  return name.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+}
+
 export const stateKey = (cardId: string, templateId: string): string => `${cardId}|${templateId}`;
 
 /** Limits applied everywhere data enters the app (forms and backup import). */

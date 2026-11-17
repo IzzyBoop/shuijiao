@@ -22,6 +22,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 ### Fixed
 
 - The Cards page says "1 card" instead of "1 cards".
+- Importing with "The decks they were in" no longer creates a second deck with the same name:
+  cards go into your existing deck with that name (ignoring capitals and extra spaces), and
+  same-named decks within one backup become one deck.
+- Decks can't be created or renamed to a name you already use. If you already have two decks with
+  the same name, the Decks page offers to merge them into one, keeping every card's progress.
 
 ### Security
 
