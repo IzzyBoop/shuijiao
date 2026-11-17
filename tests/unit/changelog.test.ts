@@ -13,6 +13,9 @@ const SAMPLE = `# Changelog
 
 ## [0.1.0] - 2026-01-02
 
+The **first** release,
+on two lines.
+
 ### Fixed
 
 - Something.
@@ -25,6 +28,8 @@ describe('changelog', () => {
       ['Unreleased', null],
       ['0.1.0', '2026-01-02'],
     ]);
+    expect(releases[0]?.intro).toBe('');
+    expect(releases[1]?.intro).toBe('The first release, on two lines.');
     expect(releases[0]?.sections[0]).toEqual({
       title: 'Added',
       items: ['Bold thing with code and a link that continues here.'],

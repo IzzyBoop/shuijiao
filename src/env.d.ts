@@ -10,6 +10,7 @@ declare module 'virtual:changelog' {
   interface ChangelogRelease {
     version: string;
     date: string | null;
+    intro: string;
     sections: ChangelogSection[];
   }
   const releases: ChangelogRelease[];

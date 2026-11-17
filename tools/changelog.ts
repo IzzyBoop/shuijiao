@@ -9,6 +9,8 @@ export interface ChangelogSection {
 export interface ChangelogRelease {
   version: string;
   date: string | null;
+  /** Any text between the version heading and its first section, as plain text. */
+  intro: string;
   sections: ChangelogSection[];
 }
 
@@ -16,6 +18,8 @@ const RELEASE = /^## \[([^\]]+)\](?:\s+-\s+(\d{4}-\d{2}-\d{2}))?\s*$/;
 const SECTION = /^### (.+?)\s*$/;
 const ITEM = /^- (.*)$/;
 const CONTINUATION = /^ {2,}(\S.*)$/;
+/** Link reference definitions at the end of the file, e.g. "[1.0.0]: https://…". */
+const LINK_REF = /^\[[^\]]+\]:\s/;
 
 /** Strips Markdown emphasis, code, and links so items read as plain text. */
 export function plainText(md: string): string {
@@ -34,7 +38,7 @@ export function parseChangelog(md: string): ChangelogRelease[] {
   for (const line of md.split('\n')) {
     const r = RELEASE.exec(line);
     if (r) {
-      release = { version: r[1] ?? '', date: r[2] ?? null, sections: [] };
+      release = { version: r[1] ?? '', date: r[2] ?? null, intro: '', sections: [] };
       section = null;
       releases.push(release);
       continue;
@@ -46,7 +50,11 @@ export function parseChangelog(md: string): ChangelogRelease[] {
       release.sections.push(section);
       continue;
     }
-    if (!section) continue;
+    if (!section) {
+      const text = line.trim();
+      if (text && !LINK_REF.test(text)) release.intro = release.intro ? `${release.intro} ${text}` : text;
+      continue;
+    }
     const item = ITEM.exec(line);
     if (item) {
       section.items.push(item[1] ?? '');
@@ -59,6 +67,7 @@ export function parseChangelog(md: string): ChangelogRelease[] {
     }
   }
   for (const rel of releases) {
+    rel.intro = plainText(rel.intro);
     for (const sec of rel.sections) sec.items = sec.items.map(plainText);
     rel.sections = rel.sections.filter((sec) => sec.items.length > 0);
   }

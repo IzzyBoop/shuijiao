@@ -1277,6 +1277,25 @@ test('the backup reminder can be hidden for a week', async ({ page }, testInfo) 
   await expect(reminder).toBeVisible();
 });
 
+test("What's new lists every release, folded up until opened", async ({ page }) => {
+  const changelog = await readFile('CHANGELOG.md', 'utf8');
+  const released = [...changelog.matchAll(/^## \[(\d[^\]]*)\]/gm)].map((m) => m[1]);
+  expect(released.length).toBeGreaterThan(5);
+
+  await page.goto('./#/about');
+  const releases = page.locator('details.release');
+  await expect(releases).toHaveCount(released.length);
+  await expect(releases.first()).toContainText(`Version ${released[0] ?? ''}`);
+  await expect(releases.last()).toContainText(`Version ${released.at(-1) ?? ''}`);
+  for (const r of await releases.all()) await expect(r).not.toHaveAttribute('open');
+
+  const v100 = releases.filter({ hasText: 'Version 1.0.0' });
+  await expect(v100.getByText('The first stable release')).toBeHidden();
+  await v100.locator('summary').click();
+  await expect(v100.getByText('The first stable release')).toBeVisible();
+  await expect(v100.getByText('works best in Google Chrome')).toBeVisible();
+});
+
 test('unknown routes and hostile hashes show "not found"', async ({ page }) => {
   await page.goto('./#/cards/<img src=x onerror=alert(1)>');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
