@@ -92,6 +92,7 @@ export function CardsPage({ params }: RouteProps) {
       .sort(sorters[sort]);
   }, [data.data, deckId, query, sort]);
   const shown = filtered.slice(0, limit);
+  const total = deck ? (counts.get(deck.id) ?? 0) : (data.data?.cards.length ?? 0);
 
   const run = async (action: () => Promise<void>) => {
     setError(null);
@@ -327,7 +328,7 @@ export function CardsPage({ params }: RouteProps) {
       </section>
       <p class="small muted">
         {query.trim() ? `${filtered.length} of ` : ''}
-        {deck ? (counts.get(deck.id) ?? 0) : (data.data?.cards.length ?? 0)} cards
+        {total} card{total === 1 ? '' : 's'}
       </p>
 
       {undo && (

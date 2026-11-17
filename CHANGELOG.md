@@ -19,6 +19,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 - The header now shows a 🥟 badge followed by 水餃 (shuǐjiǎo).
 
+### Fixed
+
+- The Cards page says "1 card" instead of "1 cards".
+
 ### Security
 
 - The offline service worker now ignores messages that don't come from the portal itself
