@@ -12,3 +12,12 @@ export function andList(items: readonly string[]): string {
 export function orList(items: readonly string[]): string {
   return or.format(items);
 }
+
+/**
+ * The date on the user's own clock as YYYY-MM-DD (for file names). Unlike
+ * toISOString(), which gives the UTC date, this matches the user's calendar.
+ */
+export function localDateStamp(date: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}

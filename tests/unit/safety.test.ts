@@ -119,4 +119,11 @@ describe('list formatting', () => {
     expect(andList(['a', 'b', 'c'])).toBe('a, b, and c');
     expect(orList(['Chrome', 'Edge', 'Safari'])).toBe('Chrome, Edge, or Safari');
   });
+
+  it('stamps dates with the local calendar date', async () => {
+    const { localDateStamp } = await import('../../src/core/format');
+    // Built from local parts, so the stamp must match them whatever the time zone.
+    expect(localDateStamp(new Date(2026, 10, 16, 23, 59))).toBe('2026-11-16');
+    expect(localDateStamp(new Date(2027, 0, 5, 0, 1))).toBe('2027-01-05');
+  });
 });

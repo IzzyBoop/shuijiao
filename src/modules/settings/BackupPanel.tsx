@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { parseBackup } from '../../core/db/backup-schema';
 import { LIMITS } from '../../core/db/model';
 import { store } from '../../core/db/store';
+import { localDateStamp } from '../../core/format';
 import { navigate } from '../../core/router';
 import { setPendingImport } from './pending-import';
 import { Icon } from '../../core/ui/Icon';
@@ -31,7 +32,8 @@ export function BackupPanel() {
     setBusy(true);
     try {
       const backup = await store.exportBackup();
-      const date = new Date().toISOString().slice(0, 10);
+      // Named with the local date; the exportedAt timestamp inside stays time-zone neutral.
+      const date = localDateStamp();
       downloadJson(backup, `shuijiao-backup-${date}.json`);
       await store.setMeta('lastBackupAt', Date.now());
       lastBackup.reload();

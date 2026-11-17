@@ -8,6 +8,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Fixed
+
+- Backup files are named with the date on your own device (for example
+  `shuijiao-backup-2026-11-16.json` in the evening in the Americas), instead of the UTC date.
+
 ## [0.1.0-beta.4] - 2026-11-17
 
 ### Added

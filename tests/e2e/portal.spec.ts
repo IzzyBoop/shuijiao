@@ -624,6 +624,19 @@ test('re-importing an edited backup from the same device asks about each edited 
   await expect(page.getByLabel('Tags')).toHaveValue('');
 });
 
+test.describe('backup file names', () => {
+  // 20:00 UTC on 16 Nov is already 10:00 on 17 Nov on Kiritimati (UTC+14).
+  test.use({ timezoneId: 'Pacific/Kiritimati' });
+
+  test('use the local date, not the UTC date', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-11-16T20:00:00Z'));
+    await page.goto('./#/settings');
+    const download = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download backup' }).click();
+    expect((await download).suggestedFilename()).toBe('shuijiao-backup-2026-11-17.json');
+  });
+});
+
 test('a hostile backup file is rejected', async ({ page }, testInfo) => {
   const file = testInfo.outputPath('evil.json');
   await writeFile(
