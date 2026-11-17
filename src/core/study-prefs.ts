@@ -21,6 +21,8 @@ export interface StudyPrefs {
   showSimplified: boolean;
   /** Cards per page in card lists; 0 shows them all. */
   pageSize: PageSize;
+  /** Show each word's (or character's) meaning under the answer. */
+  showBreakdown: boolean;
 }
 
 const isIdList = (v: unknown): v is string[] =>
@@ -42,6 +44,7 @@ function load(): StudyPrefs {
     hanziFont: readPref('study.hanziFont', 'sans', isOneOf(FONTS)),
     showSimplified: readPref('study.showSimplified', true, isBoolean),
     pageSize: readPref('study.pageSize', 50, isPageSize),
+    showBreakdown: readPref('study.showBreakdown', true, isBoolean),
   };
 }
 

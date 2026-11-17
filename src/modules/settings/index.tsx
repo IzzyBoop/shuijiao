@@ -164,6 +164,22 @@ function StudyPanel() {
           }}
         />
       </SettingRow>
+      <SettingRow
+        id="set-breakdown"
+        label="Word-by-word meanings"
+        hint="Under the answer: each word of a sentence, or each character of a word."
+        compact
+      >
+        <input
+          id="set-breakdown"
+          type="checkbox"
+          class="switch"
+          checked={prefs.showBreakdown}
+          onChange={(e) => {
+            updateStudyPrefs({ showBreakdown: e.currentTarget.checked });
+          }}
+        />
+      </SettingRow>
       <p class="mt">
         <a href={href('/templates')}>Choose which card types you study →</a>
       </p>

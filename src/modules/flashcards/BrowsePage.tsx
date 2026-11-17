@@ -7,6 +7,7 @@ import { useAsync } from '../../core/ui/useAsync';
 import type { Card } from '../../core/db/model';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardSide } from './CardFace';
+import { CardBreakdown } from './CardBreakdown';
 import { EditCardDialog } from './EditCardDialog';
 
 function shuffled<T>(list: readonly T[]): T[] {
@@ -136,6 +137,7 @@ export function BrowsePage({ params }: RouteProps) {
                 <hr />
                 <CardSide card={card} fields={template.back} alsoShown={template.front} />
                 {card.notes && <div class="muted small">{card.notes}</div>}
+                <CardBreakdown card={card} />
               </>
             )}
           </div>

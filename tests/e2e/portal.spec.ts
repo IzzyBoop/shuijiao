@@ -1296,6 +1296,30 @@ test("What's new lists every release, folded up until opened", async ({ page }) 
   await expect(v100.getByText('works best in Google Chrome')).toBeVisible();
 });
 
+test('the answer side breaks a word into its characters, with meanings', async ({ page }) => {
+  await addCard(page, '银行');
+  const breakdown = page.getByRole('region', { name: 'Character by character' });
+
+  await page.goto('./#/browse');
+  await expect(breakdown).toHaveCount(0);
+  await page.getByRole('button', { name: /Show answer/ }).click();
+  await expect(breakdown.getByRole('row')).toHaveCount(2);
+  await expect(breakdown.getByRole('row').first()).toContainText('silver');
+  await expect(breakdown.getByRole('row').last()).toContainText('háng');
+
+  await page.goto('./#/review');
+  await page.getByRole('button', { name: /Show answer/ }).click();
+  await expect(breakdown.getByRole('row')).toHaveCount(2);
+
+  // It can be turned off in Settings.
+  await page.goto('./#/settings');
+  await page.getByLabel('Word-by-word meanings').uncheck();
+  await page.goto('./#/browse');
+  await page.getByRole('button', { name: /Show answer/ }).click();
+  await expect(page.locator('.face-meaning')).toBeVisible();
+  await expect(breakdown).toHaveCount(0);
+});
+
 test('unknown routes and hostile hashes show "not found"', async ({ page }) => {
   await page.goto('./#/cards/<img src=x onerror=alert(1)>');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

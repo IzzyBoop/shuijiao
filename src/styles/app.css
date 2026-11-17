@@ -1395,3 +1395,16 @@ button.version:hover {
 .site-notice {
   border-color: var(--accent);
 }
+
+/* ---------- Word-by-word meanings under the answer ---------- */
+
+.breakdown {
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
+  margin-top: 4px;
+}
+
+.breakdown-title {
+  margin-bottom: 4px;
+}

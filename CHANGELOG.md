@@ -8,6 +8,14 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Word-by-word meanings on the answer side.** When studying or flipping through, the answer now
+  shows the meaning of each word in a sentence, or of each character in a word (銀 silver + 行
+  firm = 銀行 bank), with its pinyin. It works on every card, including the course cards. The
+  first time, it downloads the dictionary (about 4 MB), which then works offline. You can turn it
+  off in Settings.
+
 ## [1.0.2] - 2026-11-17
 
 ### Fixed

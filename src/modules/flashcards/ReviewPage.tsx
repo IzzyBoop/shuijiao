@@ -11,6 +11,7 @@ import { getStudyPrefs } from '../../core/study-prefs';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardSide } from './CardFace';
+import { CardBreakdown } from './CardBreakdown';
 import { EditCardDialog } from './EditCardDialog';
 import { loadSession } from './session-data';
 
@@ -181,6 +182,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
             <hr />
             <CardSide card={item.card} fields={item.template.back} alsoShown={item.template.front} />
             {item.card.notes && <div class="muted small">{item.card.notes}</div>}
+            <CardBreakdown card={item.card} />
           </>
         )}
       </div>
