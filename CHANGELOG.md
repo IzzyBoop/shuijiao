@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [0.1.0-beta.5] - 2026-11-17
+
 ### Added
 
 - **Course cards.** A new Course cards button on the Study page shows the cards published for the
