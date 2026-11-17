@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Grade } from 'ts-fsrs';
 import type { RouteProps } from '../../core/modules';
 import { store } from '../../core/db/store';
 import { href } from '../../core/router';
 import { Icon } from '../../core/ui/Icon';
 import { applyReview, emptyState, formatInterval, GRADES, previewDue } from '../../core/srs/scheduler';
-import type { QueueItem } from '../../core/srs/queue';
+import { requeue, type QueueItem } from '../../core/srs/queue';
 import { speak, stopSpeaking } from '../../core/lang/tts';
 import { getStudyPrefs } from '../../core/study-prefs';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
@@ -39,6 +39,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
   const [done, setDone] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (session.data) setQueue(session.data.queue);
@@ -60,6 +61,13 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
     [],
   );
 
+  // Keep keyboard focus on the card, not on a button. Otherwise the button you just
+  // clicked keeps focus, and the key-up of Space would "click" whatever button is in
+  // that spot next (e.g. rate a card Again that you only meant to reveal).
+  useEffect(() => {
+    if (!editing) cardRef.current?.focus({ preventScroll: true });
+  }, [item, shown, editing]);
+
   const grade = async (g: Grade) => {
     if (!item) return;
     const now = Date.now();
@@ -71,11 +79,10 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
       setSaveError(errorMessage(err));
       return;
     }
-    const rest = queue.slice(1);
+    let rest = queue.slice(1);
     if (state.due - now < RELEARN_WINDOW) {
-      const again: QueueItem = { ...item, state };
-      const at = rest.findIndex((q) => (q.state?.due ?? Infinity) > state.due);
-      rest.splice(at === -1 ? rest.length : at, 0, again);
+      // Due again within the session: bring it back after a gap, never straight away.
+      rest = requeue(rest, { ...item, state }, now);
     }
     stopSpeaking();
     setQueue(rest);
@@ -167,7 +174,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
         </span>
       </div>
       {saveError && <div class="notice error">Could not save your answer: {saveError}</div>}
-      <div class="flashcard" aria-live="polite">
+      <div class="flashcard" aria-live="polite" tabIndex={-1} ref={cardRef}>
         <CardSide card={item.card} fields={item.template.front} />
         {shown && (
           <>
@@ -178,7 +185,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
         )}
       </div>
       {!shown ? (
-        <div class="grade-bar">
+        <div class="grade-bar" key="show">
           <button
             type="button"
             class="primary span-all"
@@ -190,7 +197,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
           </button>
         </div>
       ) : (
-        <div class="grade-bar" role="group" aria-label="How well did you remember?">
+        <div class="grade-bar" key="rate" role="group" aria-label="How well did you remember?">
           {GRADES.map(({ grade: g, label, key }) => (
             <button key={g} type="button" class={`grade-${g}`} onClick={() => void grade(g)}>
               <span>{label}</span>

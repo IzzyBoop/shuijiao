@@ -11,12 +11,19 @@ import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import type { AutoFill } from '../../core/lang/autofill';
 import { requestPersistentStorage } from '../../core/db/persist';
+import { andList } from '../../core/format';
 import { Dialog } from '../../core/ui/Dialog';
 import { InfoTip } from '../../core/ui/InfoTip';
 import { cardListPath } from './return-path';
 
 type CheckedField = 'traditional' | 'simplified' | 'pinyin' | 'meaning';
 const CHECKED: readonly CheckedField[] = ['traditional', 'simplified', 'pinyin', 'meaning'];
+const FIELD_NAMES: Record<CheckedField, string> = {
+  traditional: 'the traditional characters',
+  simplified: 'the simplified characters',
+  pinyin: 'the pinyin',
+  meaning: 'the meaning',
+};
 type Origin = 'auto' | 'edited' | 'saved';
 
 interface Draft {
@@ -275,6 +282,13 @@ export function CardEditor({ params }: RouteProps) {
       });
     }
     setDraft((d) => ({ ...d, kind, pinyin }));
+  };
+
+  const emptyFields = CHECKED.filter((f) => !draft[f].trim());
+
+  /** Ticks (or unticks) every field at once; empty fields can't be ticked. */
+  const confirmAll = (on: boolean) => {
+    setConfirmed(on ? new Set(CHECKED.filter((f) => draft[f].trim())) : new Set());
   };
 
   const allConfirmed = CHECKED.every((f) => confirmed.has(f) && draft[f].trim());
@@ -644,11 +658,25 @@ export function CardEditor({ params }: RouteProps) {
           </div>
 
           <div class="row spread">
-            <span class="small muted">
-              {allConfirmed
-                ? 'All fields checked.'
-                : `Tick “Looks right” on each field (${confirmed.size}/4).`}
-            </span>
+            <div class="stack-tight">
+              <label class="check">
+                <input
+                  type="checkbox"
+                  checked={allConfirmed}
+                  onChange={(e) => {
+                    confirmAll(e.currentTarget.checked);
+                  }}
+                />
+                <strong>All fields look right</strong>
+              </label>
+              <span class="small muted">
+                {allConfirmed
+                  ? 'All fields checked.'
+                  : emptyFields.length > 0
+                    ? `Fill in ${andList(emptyFields.map((f) => FIELD_NAMES[f]))} first (${confirmed.size}/4 checked).`
+                    : `Tick “Looks right” on each field, or tick all at once (${confirmed.size}/4).`}
+              </span>
+            </div>
             <div class="row">
               {existing && (
                 <button type="button" class="danger" onClick={() => void remove()}>

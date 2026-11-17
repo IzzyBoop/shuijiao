@@ -8,7 +8,18 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **"All fields look right"** on the add-card page ticks every filled-in field at once (and
+  unticks them all); it tells you which fields still need filling in.
+
 ### Fixed
+
+- **The same card no longer comes back again and again in a row.** A card you press Again (or
+  Hard) on now returns after a few other cards, roughly when it's due, instead of jumping to the
+  front of the new cards; and when you study several card types, one card's types are kept apart.
+- Pressing Space to show the answer right after clicking a rating no longer rates the next card
+  "Again" by accident, and in Flip through, Space after clicking Flip flips once instead of twice.
 
 - Backup files are named with the date on your own device (for example
   `shuijiao-backup-2026-11-16.json` in the evening in the Americas), instead of the UTC date.

@@ -1188,3 +1188,8 @@ a > .icon {
   width: auto;
   min-width: 0;
 }
+
+/* The card takes keyboard focus during study; no focus ring needed on it. */
+.flashcard:focus {
+  outline: none;
+}

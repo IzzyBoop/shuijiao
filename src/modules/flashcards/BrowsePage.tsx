@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { RouteProps } from '../../core/modules';
 import { store } from '../../core/db/store';
 import { href } from '../../core/router';
@@ -33,6 +33,7 @@ export function BrowsePage({ params }: RouteProps) {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [editing, setEditing] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [templateId, setTemplateId] = useState('tpl-reading');
 
   useEffect(() => {
@@ -47,6 +48,12 @@ export function BrowsePage({ params }: RouteProps) {
     setIndex((i) => (i + delta + order.length) % order.length);
     setFlipped(false);
   };
+
+  // Keep focus on the card so Space flips once (a focused Flip button would also be
+  // "clicked" by the key-up and flip it straight back).
+  useEffect(() => {
+    if (!editing) cardRef.current?.focus({ preventScroll: true });
+  }, [index, flipped, editing]);
 
   useKeydown((e) => {
     // While the edit popup is open, keys belong to it.
@@ -121,7 +128,7 @@ export function BrowsePage({ params }: RouteProps) {
         </div>
       ) : (
         <>
-          <div class="flashcard" aria-live="polite">
+          <div class="flashcard" aria-live="polite" tabIndex={-1} ref={cardRef}>
             {/* Like study mode: the front stays put and the back appears underneath. */}
             <CardSide card={card} fields={template.front} />
             {flipped && (

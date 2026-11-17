@@ -202,6 +202,96 @@ test('review a card with spaced repetition', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
 });
 
+test('pressing Again does not bring the same card straight back', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const chars = ['一', '二', '三', '四', '五', '六'];
+  const file = testInfo.outputPath('six.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [],
+      cards: chars.map((c, i) => ({
+        id: `c${i}`,
+        deckId: 'default-deck',
+        kind: 'word',
+        traditional: c,
+        simplified: c,
+        pinyin: 'x',
+        meaning: `number ${i + 1}`,
+        notes: '',
+        tags: [],
+        createdAt: now + i,
+        updatedAt: now + i,
+        deleted: 0,
+      })),
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+
+  await page.goto('./#/review');
+  const face = page.locator('.flashcard .face-traditional');
+  await expect(face).toBeVisible();
+  // Press Again on every card, several times: the next card must always be a different one.
+  for (let round = 0; round < 5; round++) {
+    const previous = (await face.textContent())?.trim() ?? '';
+    await page.keyboard.press('Space');
+    await page.getByRole('button', { name: /Again/ }).click();
+    await expect(face, `round ${round}: "${previous}" came straight back`).not.toHaveText(previous);
+  }
+});
+
+test('after clicking a rating, Space reveals the next answer without rating it', async ({ page }) => {
+  await addCard(page, '你好');
+  await addCard(page, '谢谢');
+  await page.goto('./#/review');
+  const card = page.locator('.flashcard');
+  await expect(card.locator('.face-traditional')).toBeVisible();
+  await page.getByRole('button', { name: /Show answer/ }).click();
+  await page.getByRole('button', { name: /Good/ }).click(); // mouse: focus would stay on a button
+  await expect(page.getByText(/^1 left/)).toBeVisible();
+  await page.keyboard.press('Space');
+  // The answer is shown and the card is still waiting for a rating (not rated "Again").
+  await expect(page.getByRole('button', { name: /Easy/ })).toBeVisible();
+  await expect(page.getByText(/^1 left/)).toBeVisible();
+});
+
+test('"All fields look right" ticks every field at once', async ({ page }) => {
+  await page.goto('./#/add');
+  await page.getByLabel('Word or sentence in Chinese').fill('银行');
+  await page.getByRole('button', { name: 'Fill in details' }).click();
+  await expect(page.locator('#field-traditional')).toHaveValue('銀行', { timeout: 30_000 });
+  const all = page.getByLabel('All fields look right');
+  const save = page.getByRole('button', { name: 'Save card' });
+  await expect(save).toBeDisabled();
+  await all.check();
+  await expect(page.getByRole('checkbox', { name: 'Looks right' })).toHaveCount(4);
+  for (const box of await page.getByRole('checkbox', { name: 'Looks right' }).all())
+    await expect(box).toBeChecked();
+  await expect(save).toBeEnabled();
+  await all.uncheck();
+  await expect(save).toBeDisabled();
+
+  // With the meaning empty, the others are ticked and you're told what's missing.
+  await page.locator('#field-meaning').fill('');
+  await all.click();
+  await expect(all).not.toBeChecked();
+  await expect(page.getByText(/Fill in the meaning first \(3\/4 checked\)/)).toBeVisible();
+  await page.locator('#field-meaning').fill('bank');
+  await expect(all).toBeChecked();
+  await save.click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
+});
+
 test('with nothing due, a session can be studied anyway', async ({ page }) => {
   await addCard(page, '你好');
   await page.goto('./#/');
