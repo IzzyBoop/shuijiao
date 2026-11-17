@@ -14,6 +14,12 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   the card's details in a popup over the session. Save, and the card updates where you are
   without losing your place. Study shortcuts are paused while the popup is open, so typing
   can't rate or flip the card.
+- **Create a deck while adding a card**: a New deck button next to the Deck menu makes a deck and
+  selects it. Typing the name of a deck you already have just selects it.
+- **Word / sentence now does something**: it sets the pinyin style of auto-filled pinyin (sentences
+  get a capital letter and punctuation), shows sentences smaller on flashcards so they fit, opens the
+  word-by-word hints for sentences, and can be used to filter the Cards page. It can also be changed
+  in the quick editor.
 
 ### Changed
 

@@ -90,6 +90,16 @@ describe('autofill', () => {
     expect(r.wordGlosses.map((g) => g.simplified)).toEqual(['我们', '去', '银行']);
   });
 
+  it('offers both word-style and sentence-style pinyin', () => {
+    const s = autofillWith(dict, '我们去银行。');
+    expect(s.pinyinAsSentence).toBe('Wǒmen qù yínháng.');
+    expect(s.pinyinAsWord).toBe('wǒmen qù yínháng.');
+    const w = autofillWith(dict, '银行');
+    expect([w.pinyinAsWord, w.pinyinAsSentence]).toEqual(['yínháng', 'Yínháng']);
+    // Proper nouns keep their capital either way.
+    expect(autofillWith(dict, '北京').pinyinAsWord).toBe('Běijīng');
+  });
+
   it('moves measure words to notes', () => {
     const r = autofillWith(dict, '书');
     expect(r.notes).toMatch(/^Measure words?: /);

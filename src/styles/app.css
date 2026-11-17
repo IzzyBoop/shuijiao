@@ -1120,3 +1120,7 @@ a > .icon {
 .dialog.wide {
   width: min(760px, calc(100vw - 32px));
 }
+
+.face-simplified.primary.long {
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+}

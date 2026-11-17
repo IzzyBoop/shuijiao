@@ -39,6 +39,7 @@ export function CardsPage({ params }: RouteProps) {
   const prefs = useStudyPrefs();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortKey>('newest');
+  const [kind, setKind] = useState<'all' | 'word' | 'sentence'>('all');
   const [limit, setLimit] = useState(PAGE);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
@@ -82,6 +83,7 @@ export function CardsPage({ params }: RouteProps) {
     const q = fold(query.trim());
     return (data.data?.cards ?? [])
       .filter((c) => !deckId || c.deckId === deckId)
+      .filter((c) => kind === 'all' || c.kind === kind)
       .filter(
         (c) =>
           !q ||
@@ -90,7 +92,7 @@ export function CardsPage({ params }: RouteProps) {
           ),
       )
       .sort(sorters[sort]);
-  }, [data.data, deckId, query, sort]);
+  }, [data.data, deckId, query, sort, kind]);
   const shown = filtered.slice(0, limit);
   const total = deck ? (counts.get(deck.id) ?? 0) : (data.data?.cards.length ?? 0);
 
@@ -190,6 +192,19 @@ export function CardsPage({ params }: RouteProps) {
             setLimit(PAGE);
           }}
         />
+        <select
+          aria-label="Words or sentences"
+          value={kind}
+          onChange={(e) => {
+            const v = e.currentTarget.value;
+            setKind(v === 'word' || v === 'sentence' ? v : 'all');
+            setLimit(PAGE);
+          }}
+        >
+          <option value="all">Words &amp; sentences</option>
+          <option value="word">Words</option>
+          <option value="sentence">Sentences</option>
+        </select>
         <select
           aria-label="Sort"
           value={sort}
@@ -327,7 +342,7 @@ export function CardsPage({ params }: RouteProps) {
         )}
       </section>
       <p class="small muted">
-        {query.trim() ? `${filtered.length} of ` : ''}
+        {query.trim() || kind !== 'all' ? `${filtered.length} of ` : ''}
         {total} card{total === 1 ? '' : 's'}
       </p>
 

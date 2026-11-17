@@ -76,6 +76,80 @@ test('adding a duplicate card asks for confirmation first', async ({ page }) => 
   await expect(page.locator('.card-list > li')).toHaveCount(2);
 });
 
+test('the word / sentence switch changes pinyin style, card size, and the Cards filter', async ({ page }) => {
+  await page.goto('./#/add');
+  await page.getByLabel('Word or sentence in Chinese').fill('我们去银行。');
+  await page.getByRole('button', { name: 'Fill in details' }).click();
+  const pinyin = page.locator('#field-pinyin');
+  await expect(pinyin).toHaveValue('Wǒmen qù yínháng.', { timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Sentence' })).toHaveAttribute('aria-pressed', 'true');
+
+  // Switching to Word re-formats the auto-filled pinyin and asks you to check it again.
+  const pinyinCheck = page.locator('.confirm-field').filter({ has: pinyin }).getByRole('checkbox');
+  await pinyinCheck.check();
+  await page.getByRole('button', { name: 'Word', exact: true }).click();
+  await expect(pinyin).toHaveValue('wǒmen qù yínháng.');
+  await expect(pinyinCheck).not.toBeChecked();
+  await page.getByRole('button', { name: 'Sentence' }).click();
+  await expect(pinyin).toHaveValue('Wǒmen qù yínháng.');
+
+  // Pinyin you typed yourself is never changed.
+  await pinyin.fill('my own pinyin');
+  await page.getByRole('button', { name: 'Word', exact: true }).click();
+  await expect(pinyin).toHaveValue('my own pinyin');
+  await page.getByRole('button', { name: 'Sentence' }).click();
+
+  await page.locator('#field-meaning').fill('We go to the bank.');
+  for (const box of await page.getByRole('checkbox', { name: 'Looks right' }).all()) await box.check();
+  await page.getByRole('button', { name: 'Save card' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
+  await addCard(page, '你好');
+
+  // Sentences are shown smaller when studying.
+  await page.goto('./#/browse');
+  await page.getByRole('button', { name: 'Shuffle' }).isVisible();
+  const sentenceShown = page.locator('.face-traditional.long', { hasText: '我們去銀行。' });
+  const wordShown = page.locator('.face-traditional:not(.long)', { hasText: '你好' });
+  await expect(sentenceShown.or(wordShown)).toBeVisible();
+
+  // The Cards page can show just sentences or just words.
+  await page.goto('./#/cards');
+  await page.getByLabel('Words or sentences').selectOption('sentence');
+  await expect(page.locator('.card-list > li')).toHaveCount(1);
+  await expect(page.getByText('我們去銀行。')).toBeVisible();
+  await page.getByLabel('Words or sentences').selectOption('word');
+  await expect(page.getByText('你好')).toBeVisible();
+  await expect(page.locator('.card-list > li')).toHaveCount(1);
+});
+
+test('a new deck can be created while adding a card', async ({ page }) => {
+  await page.goto('./#/add');
+  await page.getByLabel('Word or sentence in Chinese').fill('谢谢');
+  await page.getByRole('button', { name: 'Fill in details' }).click();
+  await expect(page.locator('#field-traditional')).toHaveValue('謝謝', { timeout: 30_000 });
+
+  await page.getByRole('button', { name: 'New deck' }).click();
+  await expect(page.getByLabel('New deck name')).toBeFocused();
+  await page.getByLabel('New deck name').fill('Lesson 4');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#card-deck')).toHaveValue(/.+/);
+  await expect(page.locator('#card-deck option:checked')).toHaveText('Lesson 4');
+
+  // Typing a name you already have just selects that deck.
+  await page.getByRole('button', { name: 'New deck' }).click();
+  await page.getByLabel('New deck name').fill('my CARDS');
+  await page.getByRole('button', { name: 'Create' }).click();
+  await expect(page.locator('#card-deck option:checked')).toHaveText('My cards');
+  await page.locator('#card-deck').selectOption({ label: 'Lesson 4' });
+
+  for (const box of await page.getByRole('checkbox', { name: 'Looks right' }).all()) await box.check();
+  await page.getByRole('button', { name: 'Save card' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible();
+  await page.goto('./#/decks');
+  await expect(page.getByRole('link', { name: 'Lesson 4' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Lesson 4' }).locator('..')).toContainText('1 card');
+});
+
 test('a sentence gets word-by-word hints and needs a written meaning', async ({ page }) => {
   await page.goto('./#/add');
   await page.getByLabel('Word or sentence in Chinese').fill('我们去银行。');

@@ -1,9 +1,9 @@
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { RouteProps } from '../../core/modules';
 import { store } from '../../core/db/store';
 import { DEFAULT_DECK_ID } from '../../core/db/defaults';
-import { LIMITS, newId, type Card, type CardKind } from '../../core/db/model';
+import { deckNameKey, LIMITS, newId, type Card, type CardKind, type Deck } from '../../core/db/model';
 import { href, navigate } from '../../core/router';
 import { cleanTags, cleanText } from '../../core/safe/text';
 import { AudioButton, Pinyin, Simp, Trad } from '../../core/ui/chinese';
@@ -124,7 +124,20 @@ export function CardEditor({ params }: RouteProps) {
   const editingId = params.id;
   const presetDeck = params.deckId;
   const decks = useAsync(() => store.listDecks(), []);
-  const deckName = (id: string) => decks.data?.find((d) => d.id === id)?.name ?? 'Unknown deck';
+  // Decks created from this screen, shown straight away while the list reloads.
+  const [createdDecks, setCreatedDecks] = useState<Deck[]>([]);
+  const deckList = [
+    ...(decks.data ?? []),
+    ...createdDecks.filter((c) => !(decks.data ?? []).some((d) => d.id === c.id)),
+  ].sort((a, b) => a.name.localeCompare(b.name));
+  const [newDeckOpen, setNewDeckOpen] = useState(false);
+  const [newDeckName, setNewDeckName] = useState('');
+  const [newDeckError, setNewDeckError] = useState<string | null>(null);
+  const newDeckInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (newDeckOpen) newDeckInput.current?.focus();
+  }, [newDeckOpen]);
+  const deckName = (id: string) => deckList.find((d) => d.id === id)?.name ?? 'Unknown deck';
   const [input, setInput] = useState('');
   const [draft, setDraft] = useState<Draft>(presetDeck ? { ...EMPTY, deckId: presetDeck } : EMPTY);
   const [fill, setFill] = useState<AutoFill | null>(null);
@@ -167,11 +180,10 @@ export function CardEditor({ params }: RouteProps) {
   // New cards start in "My cards" (or the deck you came from). If that deck no longer
   // exists, switch to one that does, so a card can never be saved into a deleted deck.
   useEffect(() => {
-    const list = decks.data;
-    const first = list?.[0];
-    if (!list || !first || list.some((d) => d.id === draft.deckId)) return;
+    const first = deckList[0];
+    if (!decks.data || !first || deckList.some((d) => d.id === draft.deckId)) return;
     setDraft((d) => ({ ...d, deckId: first.id }));
-  }, [decks.data, draft.deckId]);
+  }, [decks.data, createdDecks, draft.deckId]);
 
   // Warn about duplicates as soon as the characters are known (ignoring the card being edited).
   useEffect(() => {
@@ -245,6 +257,25 @@ export function CardEditor({ params }: RouteProps) {
     });
   };
 
+  /** Word or sentence; auto-filled pinyin switches to the matching style. */
+  const setKind = (kind: CardKind) => {
+    const pinyin =
+      fill && origin.pinyin === 'auto'
+        ? kind === 'sentence'
+          ? fill.pinyinAsSentence
+          : fill.pinyinAsWord
+        : draft.pinyin;
+    if (pinyin !== draft.pinyin) {
+      // The value changed, so it needs checking again.
+      setConfirmed((prev) => {
+        const next = new Set(prev);
+        next.delete('pinyin');
+        return next;
+      });
+    }
+    setDraft((d) => ({ ...d, kind, pinyin }));
+  };
+
   const allConfirmed = CHECKED.every((f) => confirmed.has(f) && draft[f].trim());
 
   const save = async (allowDuplicate = false) => {
@@ -298,23 +329,108 @@ export function CardEditor({ params }: RouteProps) {
     navigate(cardListPath());
   };
 
+  /** Creates a deck from the add-card screen and selects it (or selects an existing one with that name). */
+  const createDeck = async () => {
+    const name = cleanText(newDeckName, LIMITS.deckName);
+    if (!name) return;
+    const existing = deckList.find((d) => deckNameKey(d.name) === deckNameKey(name));
+    if (existing) {
+      setDraft((d) => ({ ...d, deckId: existing.id }));
+      closeNewDeck();
+      return;
+    }
+    const now = Date.now();
+    const deck: Deck = { id: newId(), name, createdAt: now, updatedAt: now, deleted: 0 };
+    try {
+      await store.saveDeck(deck);
+      setCreatedDecks((c) => [...c, deck]);
+      setDraft((d) => ({ ...d, deckId: deck.id }));
+      closeNewDeck();
+      decks.reload();
+    } catch (err) {
+      setNewDeckError(errorMessage(err));
+    }
+  };
+  const closeNewDeck = () => {
+    setNewDeckOpen(false);
+    setNewDeckName('');
+    setNewDeckError(null);
+  };
+
   const deckSelect = (
-    <label class="field">
-      <span class="field-label">Deck</span>
-      <select
-        value={draft.deckId}
-        onChange={(e) => {
-          const deckId = e.currentTarget.value;
-          setDraft((d) => ({ ...d, deckId }));
-        }}
-      >
-        {(decks.data ?? []).map((d) => (
-          <option key={d.id} value={d.id}>
-            {d.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div class="field">
+      <label class="field-label" for="card-deck">
+        Deck
+      </label>
+      {newDeckOpen ? (
+        <div class="stack-tight">
+          <div class="row">
+            <input
+              type="text"
+              class="grow"
+              aria-label="New deck name"
+              placeholder="e.g. Lesson 4"
+              maxLength={LIMITS.deckName}
+              value={newDeckName}
+              ref={newDeckInput}
+              onInput={(e) => {
+                setNewDeckName(e.currentTarget.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void createDeck();
+                } else if (e.key === 'Escape') {
+                  closeNewDeck();
+                }
+              }}
+            />
+            <button
+              type="button"
+              class="primary"
+              disabled={!newDeckName.trim()}
+              onClick={() => void createDeck()}
+            >
+              Create
+            </button>
+            <button type="button" onClick={closeNewDeck}>
+              Cancel
+            </button>
+          </div>
+          {newDeckError && (
+            <div class="small warn-text" role="alert">
+              {newDeckError}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div class="row">
+          <select
+            id="card-deck"
+            class="grow"
+            value={draft.deckId}
+            onChange={(e) => {
+              const deckId = e.currentTarget.value;
+              setDraft((d) => ({ ...d, deckId }));
+            }}
+          >
+            {deckList.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              setNewDeckOpen(true);
+            }}
+          >
+            <Icon name="plus" /> New deck
+          </button>
+        </div>
+      )}
+    </div>
   );
 
   return (
@@ -383,7 +499,7 @@ export function CardEditor({ params }: RouteProps) {
                   type="button"
                   aria-pressed={draft.kind === k}
                   onClick={() => {
-                    setDraft((d) => ({ ...d, kind: k }));
+                    setKind(k);
                   }}
                 >
                   {k === 'word' ? 'Word' : 'Sentence'}
@@ -391,6 +507,11 @@ export function CardEditor({ params }: RouteProps) {
               ))}
             </div>
           </div>
+          <p class="small muted">
+            {draft.kind === 'sentence'
+              ? 'Sentence: pinyin is written as a sentence (capital letter, punctuation), the card text is smaller so it fits when studying, and you can filter sentences on the Cards page.'
+              : 'Word: pinyin is written word by word, the characters are shown large when studying, and you can filter words on the Cards page.'}
+          </p>
           {duplicates.length > 0 && (
             <div class="notice warn" role="status">
               <Icon name="alert" />
@@ -465,7 +586,9 @@ export function CardEditor({ params }: RouteProps) {
             options={fill?.meaningOptions}
             onChange={setField('meaning')}
             onConfirm={confirm('meaning')}
-            hint={fill && fill.wordGlosses.length > 0 ? <GlossHints fill={fill} /> : undefined}
+            hint={
+              fill && fill.wordGlosses.length > 0 ? <GlossHints fill={fill} kind={draft.kind} /> : undefined
+            }
           />
 
           <label class="field">
@@ -639,9 +762,9 @@ function AmbiguityHints({
   );
 }
 
-function GlossHints({ fill }: { fill: AutoFill }) {
+function GlossHints({ fill, kind }: { fill: AutoFill; kind: CardKind }) {
   return (
-    <details class="mt" open={fill.kind === 'sentence'}>
+    <details class="mt" open={kind === 'sentence'}>
       <summary class="small">Word-by-word dictionary hints</summary>
       <table class="gloss-table">
         <tbody>
@@ -658,7 +781,7 @@ function GlossHints({ fill }: { fill: AutoFill }) {
           ))}
         </tbody>
       </table>
-      {fill.kind === 'sentence' && (
+      {kind === 'sentence' && (
         <p class="small muted">Write the sentence's meaning in your own words above.</p>
       )}
     </details>

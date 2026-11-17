@@ -1,6 +1,9 @@
 import type { Card, CardField } from '../../core/db/model';
 import { AudioButton, Pinyin, Simp, Trad } from '../../core/ui/chinese';
 
+/** Sentences (and very long words) use a smaller size that wraps, so they fit on the card. */
+const isLong = (card: Card) => card.kind === 'sentence' || [...card.traditional].length > 6;
+
 /** `visible`: every field currently on screen (this side plus the front, once revealed). */
 function FieldView({
   field,
@@ -13,19 +16,17 @@ function FieldView({
 }) {
   switch (field) {
     case 'traditional':
-      return (
-        <Trad
-          text={card.traditional}
-          class={`face-traditional${[...card.traditional].length > 6 ? ' long' : ''}`}
-        />
-      );
+      return <Trad text={card.traditional} class={`face-traditional${isLong(card) ? ' long' : ''}`} />;
     case 'simplified': {
       const withTrad = visible.includes('traditional');
       if (withTrad && card.simplified === card.traditional) return null;
       return (
         <div>
           {withTrad && <div class="face-label">Simplified</div>}
-          <Simp text={card.simplified} class={`face-simplified${withTrad ? '' : ' primary'}`} />
+          <Simp
+            text={card.simplified}
+            class={`face-simplified${withTrad ? '' : ' primary'}${!withTrad && isLong(card) ? ' long' : ''}`}
+          />
         </div>
       );
     }

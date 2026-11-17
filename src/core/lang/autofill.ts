@@ -27,6 +27,9 @@ export interface AutoFill {
   traditional: string;
   simplified: string;
   pinyin: string;
+  /** The pinyin formatted as a word ("yínháng") and as a sentence ("Wǒmen qù yínháng."). */
+  pinyinAsWord: string;
+  pinyinAsSentence: string;
   pinyinOptions: string[];
   meaning: string;
   meaningOptions: string[];
@@ -95,20 +98,19 @@ export function autofillWith(dict: Dictionary, input: string): AutoFill {
       spaced.push(seg.trim());
     }
   }
-  let pinyin = words.join(' ');
+  let pinyinAsWord = words.join(' ');
   let spacedPinyin = spaced.join(' ');
-  if (kind === 'sentence') {
-    pinyin = capitalize(pinyin);
-    spacedPinyin = capitalize(spacedPinyin);
-  }
 
   const dictReadings = wholeEntries.map((e) => joinWord(numberedToMarks(e.pinyinNumbered).split(' ')));
   // Use dictionary capitalisation for proper nouns (Běijīng), but only when no common-noun
   // reading matches exactly (书 is "shū", even though "Shū" is also an entry).
-  if (!dictReadings.includes(pinyin)) {
-    const caseMatch = dictReadings.find((r) => r.toLowerCase() === pinyin.toLowerCase());
-    if (caseMatch) pinyin = caseMatch;
+  if (!dictReadings.includes(pinyinAsWord)) {
+    const caseMatch = dictReadings.find((r) => r.toLowerCase() === pinyinAsWord.toLowerCase());
+    if (caseMatch) pinyinAsWord = caseMatch;
   }
+  const pinyinAsSentence = capitalize(pinyinAsWord);
+  const pinyin = kind === 'sentence' ? pinyinAsSentence : pinyinAsWord;
+  if (kind === 'sentence') spacedPinyin = capitalize(spacedPinyin);
   const pinyinOptions = dedupe([...dictReadings, spacedPinyin].filter((p) => p !== pinyin));
 
   let meaning = '';
@@ -158,6 +160,8 @@ export function autofillWith(dict: Dictionary, input: string): AutoFill {
     traditional,
     simplified,
     pinyin,
+    pinyinAsWord,
+    pinyinAsSentence,
     pinyinOptions,
     meaning,
     meaningOptions: dedupe(meaningOptions),
