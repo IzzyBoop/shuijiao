@@ -82,7 +82,10 @@ test('the word / sentence switch changes pinyin style, card size, and the Cards 
   await page.getByRole('button', { name: 'Fill in details' }).click();
   const pinyin = page.locator('#field-pinyin');
   await expect(pinyin).toHaveValue('Wǒmen qù yínháng.', { timeout: 30_000 });
-  await expect(page.getByRole('button', { name: 'Sentence' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Sentence', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
 
   // Switching to Word re-formats the auto-filled pinyin and asks you to check it again.
   const pinyinCheck = page.locator('.confirm-field').filter({ has: pinyin }).getByRole('checkbox');
@@ -90,14 +93,14 @@ test('the word / sentence switch changes pinyin style, card size, and the Cards 
   await page.getByRole('button', { name: 'Word', exact: true }).click();
   await expect(pinyin).toHaveValue('wǒmen qù yínháng.');
   await expect(pinyinCheck).not.toBeChecked();
-  await page.getByRole('button', { name: 'Sentence' }).click();
+  await page.getByRole('button', { name: 'Sentence', exact: true }).click();
   await expect(pinyin).toHaveValue('Wǒmen qù yínháng.');
 
   // Pinyin you typed yourself is never changed.
   await pinyin.fill('my own pinyin');
   await page.getByRole('button', { name: 'Word', exact: true }).click();
   await expect(pinyin).toHaveValue('my own pinyin');
-  await page.getByRole('button', { name: 'Sentence' }).click();
+  await page.getByRole('button', { name: 'Sentence', exact: true }).click();
 
   await page.locator('#field-meaning').fill('We go to the bank.');
   for (const box of await page.getByRole('checkbox', { name: 'Looks right' }).all()) await box.check();

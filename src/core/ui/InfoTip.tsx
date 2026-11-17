@@ -60,6 +60,14 @@ export function InfoTip({ label, children }: { label: string; children: Componen
       onMouseLeave={() => {
         if (!pinned) setOpen(false);
       }}
+      // Escape on the button itself closes immediately (the page-wide listener below
+      // covers Escape pressed elsewhere while the tip is pinned open).
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          setOpen(false);
+          setPinned(false);
+        }
+      }}
     >
       <button
         type="button"
