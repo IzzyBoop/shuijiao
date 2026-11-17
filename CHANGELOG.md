@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-17
+
 ### Fixed
 
 - **What's new** on the About page lists every release again (it only showed the latest five).
