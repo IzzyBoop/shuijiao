@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [0.1.0-beta.6] - 2026-11-17
+
 ### Added
 
 - **How to**, a new tab with a video walkthrough of the whole portal: adding cards, the course
