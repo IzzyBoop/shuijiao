@@ -4,6 +4,7 @@ import { href, matchRoute, usePath } from '../core/router';
 import { Icon } from '../core/ui/Icon';
 import { ThemeToggle } from './ThemeToggle';
 import { VersionEgg } from './VersionEgg';
+import { ChromeNotice } from './ChromeNotice';
 
 function isActive(navPath: string, current: string): boolean {
   if (navPath === '/')
@@ -66,6 +67,7 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
       </header>
 
       <main id="main" tabIndex={-1}>
+        <ChromeNotice />
         {match ? (
           <match.route.component params={match.params} />
         ) : (

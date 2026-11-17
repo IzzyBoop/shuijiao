@@ -1201,6 +1201,82 @@ test('the How to tab shows the walkthrough video, which is never cached offline'
   expect(sw).not.toContain('"./media/');
 });
 
+test('the "works best in Chrome" message can be closed for good', async ({ page }) => {
+  await page.goto('./#/');
+  const notice = page.locator('.site-notice');
+  await expect(notice).toContainText('works best in Google Chrome');
+  await page.goto('./#/cards');
+  await expect(notice).toBeVisible();
+  await notice.getByRole('button', { name: 'Close this message' }).click();
+  await expect(notice).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Cards' })).toBeVisible();
+  await expect(notice).toHaveCount(0);
+});
+
+test('Google Chrome users never see the Chrome message', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'userAgentData', {
+      value: { brands: [{ brand: 'Google Chrome', version: '142' }] },
+    });
+  });
+  await page.goto('./#/');
+  await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+  await expect(page.locator('.site-notice')).toHaveCount(0);
+});
+
+test('the backup reminder can be hidden for a week', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const file = testInfo.outputPath('ten.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [],
+      cards: [...'一二三四五六七八九十'].map((t, i) => ({
+        id: `c${i}`,
+        deckId: 'default-deck',
+        kind: 'word',
+        traditional: t,
+        simplified: t,
+        pinyin: 'x',
+        meaning: 'y',
+        notes: '',
+        tags: [],
+        createdAt: now,
+        updatedAt: now,
+        deleted: 0,
+      })),
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported: 10 new cards/)).toBeVisible();
+
+  await page.goto('./#/');
+  const reminder = page.locator('.notice', { hasText: 'Download a backup' });
+  await expect(reminder).toBeVisible();
+  await reminder.getByRole('button', { name: 'Hide this reminder for a week' }).click();
+  await expect(reminder).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText('10 cards total')).toBeVisible();
+  await expect(reminder).toHaveCount(0);
+
+  // Eight days later it's back.
+  await page.evaluate(() => {
+    localStorage.setItem('portal.notice.backupClosedAt', String(Date.now() - 8 * 86_400_000));
+  });
+  await page.reload();
+  await expect(reminder).toBeVisible();
+});
+
 test('unknown routes and hostile hashes show "not found"', async ({ page }) => {
   await page.goto('./#/cards/<img src=x onerror=alert(1)>');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

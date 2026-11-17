@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
 import { ImportBackupButton } from '../../core/import/ImportBackupButton';
+import { backupReminderSnoozed, snoozeBackupReminder } from '../../core/notices';
 import { andList } from '../../core/format';
 import { href } from '../../core/router';
 import { countQueue } from '../../core/srs/queue';
@@ -22,6 +23,7 @@ export function StudyHome() {
   }, []);
 
   const [importError, setImportError] = useState<string | null>(null);
+  const [backupSnoozed, setBackupSnoozed] = useState(() => backupReminderSnoozed());
 
   if (data.error) return <div class="notice error">{data.error}</div>;
   if (!data.data) return <p class="muted">Loading…</p>;
@@ -45,13 +47,25 @@ export function StudyHome() {
         </div>
       </div>
 
-      {backupOld && (
+      {backupOld && !backupSnoozed && (
         <div class="notice warn">
           <Icon name="alert" />
-          <span>
+          <span class="grow">
             Your cards are stored only in this browser. <a href={href('/settings')}>Download a backup</a> so
             you don't lose them.
           </span>
+          <button
+            type="button"
+            class="icon-only ghost notice-close"
+            aria-label="Hide this reminder for a week"
+            title="Hide for a week"
+            onClick={() => {
+              snoozeBackupReminder();
+              setBackupSnoozed(true);
+            }}
+          >
+            <Icon name="x" />
+          </button>
         </div>
       )}
 

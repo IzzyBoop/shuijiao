@@ -1368,3 +1368,17 @@ button.version:hover {
   background: #000;
   border-radius: var(--radius-sm);
 }
+
+/* ---------- Notices that can be closed ---------- */
+
+.notice > .notice-close {
+  flex: none;
+  min-height: 0;
+  min-width: 0;
+  padding: 2px;
+  margin: -2px -4px -2px auto;
+}
+
+.site-notice {
+  border-color: var(--accent);
+}

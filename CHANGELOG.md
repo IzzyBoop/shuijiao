@@ -8,6 +8,13 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- A message at the top of the page says the portal **works best in Google Chrome** for audio. It
+  only appears in other browsers, and once you close it, it stays closed.
+- The **backup reminder** on the Study page can be closed. It stays hidden for a week, then comes
+  back if you still haven't made a backup.
+
 ## [0.1.0-beta.6] - 2026-11-17
 
 ### Added
