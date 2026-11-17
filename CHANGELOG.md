@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [0.1.0-beta.3] - 2026-11-17
+
 ### Added
 
 - **Edit a card while studying or flipping through**: an Edit card button (or press E) opens
