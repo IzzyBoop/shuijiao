@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [0.1.0-beta.4] - 2026-11-17
+
 ### Added
 
 - **Bulk edits on the Cards page**: in Select mode, make many cards words or sentences, add or
