@@ -8,6 +8,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Fixed
+
+- The hint next to "All fields look right" on the add-card page now sits neatly under it.
+
 ## [0.1.0-beta.5] - 2026-11-17
 
 ### Added

@@ -658,7 +658,7 @@ export function CardEditor({ params }: RouteProps) {
           </div>
 
           <div class="row spread">
-            <div class="stack-tight">
+            <div class="confirm-all">
               <label class="check">
                 <input
                   type="checkbox"

@@ -1226,3 +1226,14 @@ a > .icon {
 .course-deck[open] > summary {
   margin-bottom: 8px;
 }
+
+/* "All fields look right": the hint sits under the label, lined up with its text. */
+.confirm-all {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.confirm-all > .small {
+  padding-left: 26px; /* checkbox (18px) + gap (8px) */
+}
