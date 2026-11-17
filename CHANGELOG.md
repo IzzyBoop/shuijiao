@@ -8,6 +8,16 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Pages for card lists.** The Cards page, each deck on the Course cards page, and the
+  side-by-side duplicates on import now show cards a page at a time, with Previous and Next
+  buttons and a choice of 10, 25, 50, or 100 cards per page, or all of them. The portal remembers
+  your choice.
+- When selecting cards, **"Select all on this page"** and **"Select all N cards"** are now separate,
+  and **Clear selection** unselects everything. The count shows how many selected cards aren't on
+  the page you're looking at.
+
 ### Fixed
 
 - The hint next to "All fields look right" on the add-card page now sits neatly under it.

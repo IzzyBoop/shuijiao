@@ -15,10 +15,10 @@ import { andList } from '../../core/format';
 import { href, navigate } from '../../core/router';
 import { Pinyin } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
+import { Pager, usePaging } from '../../core/ui/Pager';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { clearPendingImport, getPendingImport, type PendingImport } from '../../core/import/pending';
 
-const PAGE_SIZE = 20;
 type DuplicateMode = DuplicateChoice | 'choose';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -469,9 +469,8 @@ function DuplicateChooser({
   localDeckName: (id: string) => string;
   incomingDeckName: (card: Card) => string;
 }) {
-  const [page, setPage] = useState(0);
-  const pages = Math.max(1, Math.ceil(duplicates.length / PAGE_SIZE));
-  const shown = duplicates.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const paging = usePaging(duplicates, []);
+  const shown = paging.shown;
   const choiceOf = (id: string): DuplicateChoice => choices[id] ?? 'old';
   const newCount = duplicates.filter((d) => choiceOf(d.incoming.id) === 'new').length;
 
@@ -482,34 +481,8 @@ function DuplicateChooser({
     onChange({ ...choices, [id]: choice });
   };
 
-  const pager = pages > 1 && (
-    <nav class="row spread" aria-label="Duplicate pages">
-      <button
-        type="button"
-        disabled={page === 0}
-        onClick={() => {
-          setPage(page - 1);
-        }}
-      >
-        ← Previous
-      </button>
-      <span class="small muted">
-        Page {page + 1} of {pages}
-      </span>
-      <button
-        type="button"
-        disabled={page >= pages - 1}
-        onClick={() => {
-          setPage(page + 1);
-        }}
-      >
-        Next →
-      </button>
-    </nav>
-  );
-
   return (
-    <div class="stack">
+    <div class="stack" id="dup-chooser">
       <div class="row spread">
         <span class="small">
           Keeping {duplicates.length - newCount} old · {newCount} new
@@ -533,7 +506,7 @@ function DuplicateChooser({
           </button>
         </span>
       </div>
-      {pager}
+      <Pager paging={paging} label="Duplicate pages" />
       <ul class="dup-pairs">
         {shown.map(({ incoming, existing, sameCard, differences }) => {
           const choice = choiceOf(incoming.id);
@@ -596,7 +569,7 @@ function DuplicateChooser({
           );
         })}
       </ul>
-      {pager}
+      <Pager paging={paging} label="Duplicate pages" bottom topId="dup-chooser" />
     </div>
   );
 }

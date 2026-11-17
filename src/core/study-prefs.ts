@@ -5,6 +5,11 @@ import { isBoolean, isNumberIn, isOneOf, isShortString, readPref, writePref } fr
 
 export type HanziFont = 'sans' | 'serif' | 'kai';
 
+/** Cards per page the student can pick in card lists. 0 means all of them. */
+export const PAGE_SIZES = [10, 25, 50, 100, 0] as const;
+export type PageSize = (typeof PAGE_SIZES)[number];
+export const isPageSize = (v: unknown): v is PageSize => (PAGE_SIZES as readonly unknown[]).includes(v);
+
 export interface StudyPrefs {
   activeTemplates: string[];
   newPerDay: number;
@@ -14,6 +19,8 @@ export interface StudyPrefs {
   toneColors: boolean;
   hanziFont: HanziFont;
   showSimplified: boolean;
+  /** Cards per page in card lists; 0 shows them all. */
+  pageSize: PageSize;
 }
 
 const isIdList = (v: unknown): v is string[] =>
@@ -34,6 +41,7 @@ function load(): StudyPrefs {
     toneColors: readPref('study.toneColors', true, isBoolean),
     hanziFont: readPref('study.hanziFont', 'sans', isOneOf(FONTS)),
     showSimplified: readPref('study.showSimplified', true, isBoolean),
+    pageSize: readPref('study.pageSize', 50, isPageSize),
   };
 }
 

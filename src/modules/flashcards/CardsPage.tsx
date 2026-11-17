@@ -8,6 +8,7 @@ import { Pinyin, Simp, Trad } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { useStudyPrefs } from '../../core/study-prefs';
+import { Pager, usePaging } from '../../core/ui/Pager';
 import { rememberCardList } from './return-path';
 import { CardEditForm } from './CardEditForm';
 
@@ -22,7 +23,6 @@ const SORT_LABEL: Record<SortKey, string> = {
   oldest: 'Oldest first',
   pinyin: 'A–Z (pinyin)',
 };
-const PAGE = 200;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 const sorters: Record<SortKey, (a: Card, b: Card) => number> = {
@@ -46,7 +46,6 @@ export function CardsPage({ params }: RouteProps) {
   const [sort, setSort] = useState<SortKey>('newest');
   const [kind, setKind] = useState<'all' | 'word' | 'sentence'>('all');
   const [length, setLength] = useState<LengthFilter>('any');
-  const [limit, setLimit] = useState(PAGE);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -62,7 +61,6 @@ export function CardsPage({ params }: RouteProps) {
     rememberCardList(deckId ? `/cards/deck/${deckId}` : '/cards');
     setSelected(new Set());
     setEditingId(null);
-    setLimit(PAGE);
   }, [deckId]);
 
   // The undo bar disappears after a while.
@@ -100,7 +98,8 @@ export function CardsPage({ params }: RouteProps) {
       )
       .sort(sorters[sort]);
   }, [data.data, deckId, query, sort, kind, length]);
-  const shown = filtered.slice(0, limit);
+  const paging = usePaging(filtered, [deckId, query, kind, length, sort]);
+  const shown = paging.shown;
   const total = deck ? (counts.get(deck.id) ?? 0) : (data.data?.cards.length ?? 0);
 
   const run = async (action: () => Promise<void>) => {
@@ -150,6 +149,8 @@ export function CardsPage({ params }: RouteProps) {
     });
   };
   const allSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id));
+  const pageSelected = shown.length > 0 && shown.every((c) => selected.has(c.id));
+  const selectedHere = shown.filter((c) => selected.has(c.id)).length;
 
   if (deckId && data.data && !deck) {
     return (
@@ -204,7 +205,6 @@ export function CardsPage({ params }: RouteProps) {
           maxLength={100}
           onInput={(e) => {
             setQuery(e.currentTarget.value);
-            setLimit(PAGE);
           }}
         />
         <select
@@ -213,7 +213,6 @@ export function CardsPage({ params }: RouteProps) {
           onChange={(e) => {
             const v = e.currentTarget.value;
             setKind(v === 'word' || v === 'sentence' ? v : 'all');
-            setLimit(PAGE);
           }}
         >
           <option value="all">Words &amp; sentences</option>
@@ -226,7 +225,6 @@ export function CardsPage({ params }: RouteProps) {
           onChange={(e) => {
             const v = e.currentTarget.value;
             setLength(v === 'one' || v === 'many' ? v : 'any');
-            setLimit(PAGE);
           }}
         >
           <option value="any">Any length</option>
@@ -262,11 +260,25 @@ export function CardsPage({ params }: RouteProps) {
       {selecting && (
         <BulkBar
           count={selected.size}
+          offPage={selected.size - selectedHere}
           matching={filtered.length}
+          onPage={shown.length}
+          paged={paging.pages > 1}
           allSelected={allSelected}
+          pageSelected={pageSelected}
           decks={decks}
           onSelectAll={(on) => {
             setSelected(on ? new Set(filtered.map((c) => c.id)) : new Set());
+          }}
+          onSelectPage={(on) => {
+            setSelected((prev) => {
+              const next = new Set(prev);
+              for (const c of shown) {
+                if (on) next.add(c.id);
+                else next.delete(c.id);
+              }
+              return next;
+            });
           }}
           onChange={(what, done) => void change([...selected], what, done)}
           onDelete={() => void remove([...selected])}
@@ -279,7 +291,8 @@ export function CardsPage({ params }: RouteProps) {
         </div>
       )}
 
-      <section class="panel">
+      <section class="panel stack" id="card-list">
+        <Pager paging={paging} label="Card pages" />
         {shown.length === 0 ? (
           <p class="muted">
             {data.loading
@@ -357,18 +370,7 @@ export function CardsPage({ params }: RouteProps) {
             )}
           </ul>
         )}
-        {filtered.length > shown.length && (
-          <div class="mt">
-            <button
-              type="button"
-              onClick={() => {
-                setLimit((l) => l + PAGE);
-              }}
-            >
-              Show more ({filtered.length - shown.length} more)
-            </button>
-          </div>
-        )}
+        <Pager paging={paging} label="Card pages" bottom topId="card-list" />
       </section>
       <p class="small muted">
         {query.trim() || kind !== 'all' || length !== 'any' ? `${filtered.length} of ` : ''}
@@ -389,19 +391,32 @@ export function CardsPage({ params }: RouteProps) {
 
 function BulkBar({
   count,
+  offPage,
   matching,
+  onPage,
+  paged,
   allSelected,
+  pageSelected,
   decks,
   onSelectAll,
+  onSelectPage,
   onChange,
   onDelete,
 }: {
   count: number;
+  /** Selected cards that aren't on the page being shown. */
+  offPage: number;
   /** How many cards match the current filters. */
   matching: number;
+  /** How many cards are on the page being shown. */
+  onPage: number;
+  /** Whether the cards are split over more than one page. */
+  paged: boolean;
   allSelected: boolean;
+  pageSelected: boolean;
   decks: readonly Deck[];
   onSelectAll: (on: boolean) => void;
+  onSelectPage: (on: boolean) => void;
   onChange: (change: CardBulkChange, done: string) => void;
   onDelete: () => void;
 }) {
@@ -412,20 +427,57 @@ function BulkBar({
   return (
     <div class="panel bulk-bar stack" role="region" aria-label="Selected cards">
       <div class="toolbar">
-        <label class="check">
-          <input
-            type="checkbox"
-            checked={allSelected}
-            onChange={(e) => {
-              onSelectAll(e.currentTarget.checked);
+        {paged ? (
+          <>
+            <label class="check">
+              <input
+                type="checkbox"
+                checked={pageSelected}
+                onChange={(e) => {
+                  onSelectPage(e.currentTarget.checked);
+                }}
+              />
+              Select all on this page ({onPage})
+            </label>
+            {!allSelected && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectAll(true);
+                }}
+              >
+                Select all {matching} cards
+              </button>
+            )}
+          </>
+        ) : (
+          <label class="check">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={(e) => {
+                onSelectAll(e.currentTarget.checked);
+              }}
+            />
+            Select all {matching}
+          </label>
+        )}
+        {count > 0 && (
+          <button
+            type="button"
+            class="ghost"
+            onClick={() => {
+              onSelectAll(false);
             }}
-          />
-          Select all {matching}
-        </label>
+          >
+            Clear selection
+          </button>
+        )}
         <span class="muted" aria-hidden="true">
           ·
         </span>
         <strong>{count} selected</strong>
+        {offPage > 0 && <span class="small muted">({offPage} not on this page)</span>}
       </div>
       <div class="toolbar">
         <span class="small muted bulk-label">Type</span>

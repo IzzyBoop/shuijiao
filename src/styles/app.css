@@ -1331,3 +1331,29 @@ button.version:hover {
 .confirm-all > .small {
   padding-left: 26px; /* checkbox (18px) + gap (8px) */
 }
+
+/* ---------- Pager ---------- */
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.pager-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pager-size select {
+  width: auto;
+}
+
+.pager-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}

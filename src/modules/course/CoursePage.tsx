@@ -4,8 +4,14 @@ import { setPendingImport } from '../../core/import/pending';
 import { href, navigate } from '../../core/router';
 import { Pinyin, Trad } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
+import { Pager, usePaging } from '../../core/ui/Pager';
 import { useAsync } from '../../core/ui/useAsync';
-import { loadCourseDeck, summarizeCourse, type CourseCardStatus } from './course-deck';
+import {
+  loadCourseDeck,
+  summarizeCourse,
+  type CourseCardStatus,
+  type CourseDeckSummary,
+} from './course-deck';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -142,36 +148,45 @@ export function CoursePage() {
         </p>
       </section>
 
-      {summary.decks.map((deck) => {
-        const fresh = deck.cards.filter((c) => c.status === 'new').length;
-        return (
-          <details class="panel course-deck" key={deck.id || 'other'}>
-            <summary>
-              <span class="course-deck-name">{deck.name}</span>{' '}
-              <span class="muted small">
-                {plural(deck.cards.length, 'card')}
-                {compare && fresh > 0 ? ` · ${fresh} new to you` : ''}
-              </span>
-            </summary>
-            <ul class="list card-list">
-              {deck.cards.map(({ card, status }) => (
-                <li key={card.id}>
-                  <div class="grow">
-                    <div class="row">
-                      <Trad text={card.traditional} class="card-row-hanzi" />
-                      <Pinyin text={card.pinyin} />
-                      {compare && (
-                        <span class={STATUS_BADGE[status].class}>{STATUS_BADGE[status].label}</span>
-                      )}
-                    </div>
-                    <div class="muted small truncate">{card.meaning}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </details>
-        );
-      })}
+      {summary.decks.map((deck) => (
+        <CourseDeck key={deck.id || 'other'} deck={deck} compare={compare} />
+      ))}
     </>
+  );
+}
+
+/** One deck of course cards, folded away until opened, a page at a time. */
+function CourseDeck({ deck, compare }: { deck: CourseDeckSummary; compare: boolean }) {
+  const paging = usePaging(deck.cards, []);
+  const fresh = deck.cards.filter((c) => c.status === 'new').length;
+  const topId = `course-deck-${deck.id || 'other'}`;
+  return (
+    <details class="panel course-deck" id={topId}>
+      <summary>
+        <span class="course-deck-name">{deck.name}</span>{' '}
+        <span class="muted small">
+          {plural(deck.cards.length, 'card')}
+          {compare && fresh > 0 ? ` · ${fresh} new to you` : ''}
+        </span>
+      </summary>
+      <div class="stack">
+        <Pager paging={paging} label={`${deck.name} pages`} />
+        <ul class="list card-list">
+          {paging.shown.map(({ card, status }) => (
+            <li key={card.id}>
+              <div class="grow">
+                <div class="row">
+                  <Trad text={card.traditional} class="card-row-hanzi" />
+                  <Pinyin text={card.pinyin} />
+                  {compare && <span class={STATUS_BADGE[status].class}>{STATUS_BADGE[status].label}</span>}
+                </div>
+                <div class="muted small truncate">{card.meaning}</div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <Pager paging={paging} label={`${deck.name} pages`} bottom topId={topId} />
+      </div>
+    </details>
   );
 }

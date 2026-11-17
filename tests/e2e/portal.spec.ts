@@ -596,12 +596,17 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
 
   await page.getByLabel('Choose for each card').check();
   const pairs = page.locator('.dup-pair');
-  await expect(pairs).toHaveCount(20);
-  await expect(page.getByText('Page 1 of 2').first()).toBeVisible();
+  await expect(pairs).toHaveCount(25);
+  await page
+    .getByRole('navigation', { name: 'Duplicate pages', exact: true })
+    .getByRole('combobox')
+    .selectOption('10');
+  await expect(pairs).toHaveCount(10);
+  await expect(page.getByText('Page 1 of 3').first()).toBeVisible();
   await expect(pairs.first()).toContainText('mine 一');
   await expect(pairs.first()).toContainText('theirs 一');
 
-  // Keep the new card for 一 (page 1) and for 金 (page 2); everything else stays old.
+  // Keep the new card for 一 (page 1) and for 金 (page 3); everything else stays old.
   await pairs
     .first()
     .getByRole('button', { name: /Keep new/ })
@@ -610,6 +615,7 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
     'aria-pressed',
     'true',
   );
+  await page.getByRole('button', { name: 'Next →' }).first().click();
   await page.getByRole('button', { name: 'Next →' }).first().click();
   await expect(pairs).toHaveCount(5);
   await pairs
@@ -627,7 +633,9 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
   await page.getByLabel('Search cards').fill('theirs');
   await expect(page.locator('.card-list > li')).toHaveCount(2);
   await page.getByLabel('Search cards').fill('');
-  await expect(page.locator('.card-list > li')).toHaveCount(25);
+  // The page size picked for duplicates (10) applies to every card list.
+  await expect(page.locator('.card-list > li')).toHaveCount(10);
+  await expect(page.getByText('1–10 of 25').first()).toBeVisible();
 });
 
 test('re-importing an edited backup from the same device asks about each edited card', async ({
@@ -869,6 +877,75 @@ test.describe('course cards', () => {
     await expect(page.getByText(/can't be read/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Import these cards' })).toHaveCount(0);
   });
+});
+
+test('card lists are paged, and you can select a page or every card', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const hanzi = [...'一二三四五六七八九十人大小山水火木金土日月中上下口手心女子天'];
+  const file = testInfo.outputPath('many.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [{ id: 'l1', name: 'Lesson 1', createdAt: now, updatedAt: now, deleted: 0 }],
+      cards: hanzi.map((t, i) => ({
+        id: `c${i}`,
+        deckId: 'l1',
+        kind: 'word',
+        traditional: t,
+        simplified: t,
+        pinyin: 'x',
+        meaning: `m${i}`,
+        notes: '',
+        tags: [],
+        createdAt: now + i,
+        updatedAt: now + i,
+        deleted: 0,
+      })),
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported: 30 new cards/)).toBeVisible();
+
+  await page.goto('./#/cards');
+  const pager = page.getByRole('navigation', { name: 'Card pages', exact: true });
+  await expect(pager.getByText('1–30 of 30')).toBeVisible();
+  await pager.getByRole('combobox').selectOption('10');
+  await expect(pager.getByText('1–10 of 30')).toBeVisible();
+  await expect(pager.getByText('Page 1 of 3')).toBeVisible();
+  await expect(page.locator('.card-list > li')).toHaveCount(10);
+  await page
+    .getByRole('navigation', { name: 'Card pages, bottom' })
+    .getByRole('button', { name: 'Next →' })
+    .click();
+  await expect(pager.getByText('11–20 of 30')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Select', exact: true }).click();
+  await page.getByLabel('Select all on this page (10)').check();
+  await expect(page.getByText('10 selected')).toBeVisible();
+  await pager.getByRole('button', { name: 'Next →' }).click();
+  await expect(page.getByText('(10 not on this page)')).toBeVisible();
+  await expect(page.getByLabel('Select all on this page (10)')).not.toBeChecked();
+  await page.getByRole('button', { name: 'Select all 30 cards' }).click();
+  await expect(page.getByText('30 selected')).toBeVisible();
+  await expect(page.getByLabel('Select all on this page (10)')).toBeChecked();
+  await page.getByRole('button', { name: 'Clear selection' }).click();
+  await expect(page.getByText('0 selected')).toBeVisible();
+
+  // The chosen page size is remembered.
+  await page.reload();
+  await expect(pager.getByText('1–10 of 30')).toBeVisible();
+  await pager.getByRole('combobox').selectOption({ label: 'All' });
+  await expect(page.locator('.card-list > li')).toHaveCount(30);
+  await expect(pager.getByText(/Page \d/)).toHaveCount(0);
 });
 
 test('a hostile backup file is rejected', async ({ page }, testInfo) => {
