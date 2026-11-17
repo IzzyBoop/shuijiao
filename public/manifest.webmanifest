@@ -1,7 +1,7 @@
 {
   "name": "水餃 Shuǐjiǎo",
   "short_name": "水餃",
-  "description": "Mandarin flashcards with spaced repetition. Your cards stay on your device.",
+  "description": "Mandarin flashcards with spaced repetition.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

@@ -8,6 +8,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Changed
+
+- The link preview (when you paste the portal's link into a chat) now just says "Mandarin
+  flashcards with spaced repetition."
+
 ## [1.0.0] - 2026-11-17
 
 The first stable release of 水餃 (shuǐjiǎo): flashcards with traditional and simplified characters,
