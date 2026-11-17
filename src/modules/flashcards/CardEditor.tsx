@@ -12,6 +12,7 @@ import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import type { AutoFill } from '../../core/lang/autofill';
 import { requestPersistentStorage } from '../../core/db/persist';
 import { Dialog } from '../../core/ui/Dialog';
+import { InfoTip } from '../../core/ui/InfoTip';
 import { cardListPath } from './return-path';
 
 type CheckedField = 'traditional' | 'simplified' | 'pinyin' | 'meaning';
@@ -492,26 +493,44 @@ export function CardEditor({ params }: RouteProps) {
         <section class="panel stack">
           <div class="row spread">
             <h2>Check each field</h2>
-            <div class="segmented" role="group" aria-label="Card kind">
-              {(['word', 'sentence'] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  aria-pressed={draft.kind === k}
-                  onClick={() => {
-                    setKind(k);
-                  }}
-                >
-                  {k === 'word' ? 'Word' : 'Sentence'}
-                </button>
-              ))}
+            <div class="row">
+              <InfoTip label="What's the difference between a word and a sentence?">
+                <span class="tip-grid">
+                  <span>
+                    <strong>Word</strong> <span class="muted">e.g. 銀行</span>
+                    <span class="tip-list">
+                      <span>Pinyin word by word: yínháng</span>
+                      <span>Characters shown large on flashcards</span>
+                      <span>Dictionary meaning filled in for you</span>
+                    </span>
+                  </span>
+                  <span>
+                    <strong>Sentence</strong> <span class="muted">e.g. 我們去銀行。</span>
+                    <span class="tip-list">
+                      <span>Pinyin as a sentence: Wǒmen qù yínháng.</span>
+                      <span>Shown smaller so it fits on the card</span>
+                      <span>Word-by-word hints; you write the meaning</span>
+                    </span>
+                  </span>
+                </span>
+                <span class="tip-foot">You can filter words or sentences on the Cards page.</span>
+              </InfoTip>
+              <div class="segmented" role="group" aria-label="Card kind">
+                {(['word', 'sentence'] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    aria-pressed={draft.kind === k}
+                    onClick={() => {
+                      setKind(k);
+                    }}
+                  >
+                    {k === 'word' ? 'Word' : 'Sentence'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <p class="small muted">
-            {draft.kind === 'sentence'
-              ? 'Sentence: pinyin is written as a sentence (capital letter, punctuation), the card text is smaller so it fits when studying, and you can filter sentences on the Cards page.'
-              : 'Word: pinyin is written word by word, the characters are shown large when studying, and you can filter words on the Cards page.'}
-          </p>
           {duplicates.length > 0 && (
             <div class="notice warn" role="status">
               <Icon name="alert" />

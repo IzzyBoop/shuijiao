@@ -122,6 +122,35 @@ test('the word / sentence switch changes pinyin style, card size, and the Cards 
   await expect(page.locator('.card-list > li')).toHaveCount(1);
 });
 
+test('an info tooltip explains word vs sentence', async ({ page }) => {
+  await page.goto('./#/add');
+  await page.getByLabel('Word or sentence in Chinese').fill('银行');
+  await page.getByRole('button', { name: 'Fill in details' }).click();
+  await expect(page.locator('#field-traditional')).toHaveValue('銀行', { timeout: 30_000 });
+  const info = page.getByRole('button', { name: /difference between a word and a sentence/ });
+  const tip = page.getByRole('tooltip');
+
+  await info.hover();
+  await expect(tip).toContainText('Pinyin word by word');
+  await expect(tip).toContainText('Pinyin as a sentence');
+  await expect(info).toHaveAttribute('aria-describedby', /.+/);
+  await page.mouse.move(0, 0);
+  await expect(tip).toBeHidden();
+
+  // Keyboard: focus opens it, Escape closes it.
+  await info.focus();
+  await expect(tip).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(tip).toBeHidden();
+
+  // A click (tap on phones) keeps it open until you click elsewhere.
+  await info.click();
+  await page.mouse.move(0, 0);
+  await expect(tip).toBeVisible();
+  await page.getByRole('heading', { name: 'Add a card' }).click();
+  await expect(tip).toBeHidden();
+});
+
 test('a new deck can be created while adding a card', async ({ page }) => {
   await page.goto('./#/add');
   await page.getByLabel('Word or sentence in Chinese').fill('谢谢');

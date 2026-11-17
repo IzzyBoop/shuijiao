@@ -20,6 +20,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   get a capital letter and punctuation), shows sentences smaller on flashcards so they fit, opens the
   word-by-word hints for sentences, and can be used to filter the Cards page. It can also be changed
   in the quick editor.
+- **What's the difference?** An ⓘ button next to the Word / Sentence switch explains how the two
+  differ, with an example of each. Hover, focus, or tap it to open; Escape or tapping elsewhere
+  closes it.
 
 ### Changed
 
