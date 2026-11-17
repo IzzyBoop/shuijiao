@@ -1099,6 +1099,16 @@ test('students can add their own links, safely', async ({ page }) => {
   await expect(page.getByRole('link', { name: /Grammar/ })).toBeVisible();
 });
 
+test('clicking the version number sends a dumpling flying, then it goes away', async ({ page }) => {
+  await page.goto('./#/');
+  await page.locator('footer button.version').click();
+  const dumpling = page.locator('.dumpling-fly');
+  await expect(dumpling).toHaveCount(1);
+  await expect(dumpling).toHaveText('🥟');
+  await expect(dumpling).toHaveAttribute('aria-hidden', 'true');
+  await expect(dumpling).toHaveCount(0, { timeout: 5_000 });
+});
+
 test('unknown routes and hostile hashes show "not found"', async ({ page }) => {
   await page.goto('./#/cards/<img src=x onerror=alert(1)>');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

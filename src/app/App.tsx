@@ -3,6 +3,7 @@ import { FOOTER_NAV, MAIN_NAV, ROUTES } from '../core/registry';
 import { href, matchRoute, usePath } from '../core/router';
 import { Icon } from '../core/ui/Icon';
 import { ThemeToggle } from './ThemeToggle';
+import { VersionEgg } from './VersionEgg';
 
 function isActive(navPath: string, current: string): boolean {
   if (navPath === '/')
@@ -80,7 +81,7 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
       <footer class="footer">
         <div class="footer-inner">
           <span>Your cards are stored only on this device.</span>
-          <span class="version">v{__APP_VERSION__}</span>
+          <VersionEgg version={__APP_VERSION__} />
           <span class="row">
             {FOOTER_NAV.map((item) => (
               <a key={item.path} href={href(item.path)}>

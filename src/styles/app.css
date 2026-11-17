@@ -955,6 +955,100 @@ a > .icon {
   font-variant-numeric: tabular-nums;
 }
 
+/* The version number is a button for the dumpling easter egg, but looks like plain text. */
+button.version {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: 0;
+  cursor: pointer;
+}
+
+button.version:hover {
+  background: none;
+  color: var(--text);
+}
+
+/* ---------- Dumpling easter egg ---------- */
+
+.dumpling-fly {
+  position: fixed;
+  top: 100%;
+  left: 50%;
+  z-index: 1000;
+  font-size: min(45vw, 240px);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  transform: translate(-50%, 0);
+  animation: dumpling-fade 2.6s ease-in-out forwards;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dumpling-fly.to-right {
+    animation: dumpling-fly-right 2.6s forwards;
+  }
+  .dumpling-fly.to-left {
+    animation: dumpling-fly-left 2.6s forwards;
+  }
+}
+
+/* Up from the bottom, a spin in the middle of the screen, then away off the top. */
+@keyframes dumpling-fly-right {
+  0% {
+    transform: translate(-50%, 0) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1.15);
+  }
+  30% {
+    transform: translate(-50%, calc(-50vh - 50%)) rotate(-15deg);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  65% {
+    transform: translate(-50%, calc(-50vh - 50%)) rotate(705deg) scale(1.1);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  100% {
+    transform: translate(calc(-50% + 75vw), calc(-150vh - 100%)) rotate(1080deg) scale(0.5);
+  }
+}
+
+@keyframes dumpling-fly-left {
+  0% {
+    transform: translate(-50%, 0) rotate(0deg);
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1.15);
+  }
+  30% {
+    transform: translate(-50%, calc(-50vh - 50%)) rotate(15deg);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  65% {
+    transform: translate(-50%, calc(-50vh - 50%)) rotate(-705deg) scale(1.1);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6);
+  }
+  100% {
+    transform: translate(calc(-50% - 75vw), calc(-150vh - 100%)) rotate(-1080deg) scale(0.5);
+  }
+}
+
+/* With reduced motion: the dumpling just appears in the middle and fades away. */
+@keyframes dumpling-fade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50vh - 50%));
+  }
+  20%,
+  70% {
+    opacity: 1;
+    transform: translate(-50%, calc(-50vh - 50%));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, calc(-50vh - 50%));
+  }
+}
+
 /* ---------- Dialog ---------- */
 
 .dialog {
