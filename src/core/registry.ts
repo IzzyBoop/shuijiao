@@ -1,5 +1,6 @@
 import type { NavItem, PortalModule, RouteDef } from './modules';
 import { flashcardsModule } from '../modules/flashcards';
+import { courseModule } from '../modules/course';
 import { resourcesModule } from '../modules/resources';
 import { settingsModule } from '../modules/settings';
 import { aboutModule } from '../modules/about';
@@ -10,6 +11,7 @@ import { aboutModule } from '../modules/about';
  */
 export const MODULES: readonly PortalModule[] = [
   flashcardsModule,
+  courseModule,
   resourcesModule,
   settingsModule,
   aboutModule,

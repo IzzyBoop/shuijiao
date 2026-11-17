@@ -727,6 +727,150 @@ test.describe('backup file names', () => {
   });
 });
 
+test('a new student can import a backup straight from the Study page', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const file = testInfo.outputPath('first.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [{ id: 'l1', name: 'Lesson 1', createdAt: now, updatedAt: now, deleted: 0 }],
+      cards: [
+        {
+          id: 'a',
+          deckId: 'l1',
+          kind: 'word',
+          traditional: '謝謝',
+          simplified: '谢谢',
+          pinyin: 'xièxie',
+          meaning: 'thanks',
+          notes: '',
+          tags: [],
+          createdAt: now,
+          updatedAt: now,
+          deleted: 0,
+        },
+      ],
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/');
+  await expect(page.getByRole('heading', { name: 'Welcome! 歡迎!' })).toBeVisible();
+  await page.locator('input[type=file]').setInputFiles(file);
+  await expect(page.getByRole('heading', { name: 'Import a backup' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('heading', { name: 'Welcome! 歡迎!' })).toBeVisible();
+
+  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByText(/Imported: 1 new card\b/)).toBeVisible();
+  await page.getByRole('link', { name: 'Back to Study' }).click();
+  await expect(page.getByText('1 card total')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Welcome! 歡迎!' })).toHaveCount(0);
+});
+
+test.describe('course cards', () => {
+  // Requests the service worker makes can't be faked with page.route.
+  test.use({ serviceWorkers: 'block' });
+  const now = 1_763_287_200_000;
+  const card = (id: string, deckId: string, t: string, kind = 'word') => ({
+    id,
+    deckId,
+    kind,
+    traditional: t,
+    simplified: t,
+    pinyin: 'x',
+    meaning: `meaning of ${t}`,
+    notes: '',
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
+  });
+  const course = {
+    format: 'shuijiao-backup',
+    version: 1,
+    exportedAt: now,
+    decks: [
+      { id: 'l1', name: 'Lesson 1', createdAt: now, updatedAt: now, deleted: 0 },
+      { id: 'l2', name: 'Lesson 2', createdAt: now, updatedAt: now, deleted: 0 },
+    ],
+    cards: [card('a', 'l1', '你'), card('b', 'l1', '我是學生', 'sentence'), card('c', 'l2', '好')],
+    templates: [],
+    reviewStates: [],
+    reviewLogs: [],
+    links: [],
+  };
+
+  test('shows what is in them and imports them through the usual import steps', async ({ page }) => {
+    await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: course }));
+    await page.goto('./#/');
+    await page.getByRole('link', { name: 'Course cards' }).first().click();
+    await expect(page.getByRole('heading', { name: 'Course cards' })).toBeVisible();
+    await expect(page.getByText('2 words and 1 sentence')).toBeVisible();
+    await expect(page.getByText('last updated')).toBeVisible();
+    await page.getByText('Lesson 1').click();
+    await expect(page.getByText('meaning of 我是學生')).toBeVisible();
+    await expect(page.getByText('Lesson 2')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Import these cards' }).click();
+    await expect(page.getByRole('heading', { name: 'Import the course cards' })).toBeVisible();
+    await expect(page.getByText('This creates decks: “Lesson 1” and “Lesson 2”.')).toBeVisible();
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await expect(page.getByText(/Imported: 3 new cards/)).toBeVisible();
+
+    await page.getByRole('link', { name: 'Back to Course cards' }).click();
+    await expect(page.getByText('You already have all of these cards.')).toBeVisible();
+  });
+
+  test('marks which cards are new to a student who already has some', async ({ page }) => {
+    await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: course }));
+    await page.goto('./#/course');
+    await page.getByRole('button', { name: 'Import these cards' }).click();
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await expect(page.getByText(/Imported: 3 new cards/)).toBeVisible();
+
+    const updated = {
+      ...course,
+      exportedAt: now + 86_400_000,
+      cards: [...course.cards, card('d', 'l2', '他')],
+    };
+    await page.unroute('**/course/course-deck.json');
+    await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: updated }));
+    await page.goto('./#/course');
+    await expect(
+      page.getByText(/Compared with your cards: 1 new to you and 3 you already have/),
+    ).toBeVisible();
+    await page.getByText('Lesson 2').click();
+    await expect(page.locator('.course-deck li', { hasText: '他' }).getByText('New to you')).toBeVisible();
+  });
+
+  test('says so when none have been published', async ({ page }) => {
+    await page.route('**/course/course-deck.json', (route) =>
+      route.fulfill({ status: 404, body: 'Not found' }),
+    );
+    await page.goto('./#/course');
+    await expect(page.getByText('There are no course cards yet.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Import these cards' })).toHaveCount(0);
+  });
+
+  test('refuses a course file that fails the backup checks', async ({ page }) => {
+    await page.route('**/course/course-deck.json', (route) =>
+      route.fulfill({
+        json: { ...course, cards: [{ ...card('a', 'l1', '你'), evil: '<img src=x onerror=alert(1)>' }] },
+      }),
+    );
+    await page.goto('./#/course');
+    await expect(page.getByText(/can't be read/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Import these cards' })).toHaveCount(0);
+  });
+});
+
 test('a hostile backup file is rejected', async ({ page }, testInfo) => {
   const file = testInfo.outputPath('evil.json');
   await writeFile(

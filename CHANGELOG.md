@@ -10,6 +10,13 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **Course cards.** A new Course cards button on the Study page shows the cards published for the
+  course: when they were last updated, how many words and sentences there are, each deck, and every
+  card, marked as new to you, already yours, or yours with different details. Import them with the
+  same steps as a backup: choose which decks they go into and what to keep for cards you already
+  have.
+- **Import a backup** right from the Study page when you don't have any cards yet, so starting on a
+  new device takes one step.
 - **"All fields look right"** on the add-card page ticks every filled-in field at once (and
   unticks them all); it tells you which fields still need filling in.
 

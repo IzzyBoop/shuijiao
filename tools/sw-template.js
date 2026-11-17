@@ -6,6 +6,7 @@ const VERSION = __VERSION__;
 const PRECACHE = __PRECACHE__;
 const SHELL_CACHE = 'shell-' + VERSION;
 const DICT_CACHE = 'dict';
+const COURSE_CACHE = 'course';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -21,7 +22,9 @@ self.addEventListener('activate', (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((key) => key !== SHELL_CACHE && key !== DICT_CACHE).map((key) => caches.delete(key)),
+          keys
+            .filter((key) => key !== SHELL_CACHE && key !== DICT_CACHE && key !== COURSE_CACHE)
+            .map((key) => caches.delete(key)),
         ),
       )
       .then(() => self.clients.claim()),
@@ -62,6 +65,24 @@ self.addEventListener('fetch', (event) => {
               return response;
             }),
         ),
+      ),
+    );
+    return;
+  }
+
+  if (url.pathname.endsWith('/course/course-deck.json')) {
+    // The course cards change now and then: always ask the site first, and keep the last
+    // good copy so the Course cards page still works offline.
+    event.respondWith(
+      caches.open(COURSE_CACHE).then((cache) =>
+        fetch(request)
+          .then((response) => {
+            if (response.ok && response.type === 'basic') cache.put(request, response.clone());
+            return response;
+          })
+          .catch(() =>
+            cache.match(request, { ignoreVary: true }).then((cached) => cached || Response.error()),
+          ),
       ),
     );
     return;

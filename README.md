@@ -26,9 +26,10 @@ npm run e2e        # end-to-end tests against the production build
 
 ```
 src/core/       app shell: module registry, router, theme, database, language services, safety helpers
-src/modules/    one folder per feature (flashcards, resources, settings, about)
+src/modules/    one folder per feature (flashcards, course, resources, settings, about)
 src/content/    resources.json: the curated external links shown under "Resources"
-public/         static files copied as-is (theme-init.js, icons, manifest, dictionary index)
+public/         static files copied as-is (theme-init.js, icons, manifest, dictionary index,
+                course/course-deck.json: the course cards)
 tools/          build scripts (dictionary builder, service worker template, output checks)
 tests/          unit tests (Vitest) and end-to-end tests (Playwright)
 ```
@@ -43,6 +44,20 @@ The navigation bar and routes are built from that list.
 ### Editing the Resources links
 
 Edit `src/content/resources.json`. Every link must be `https://`; `npm run build` fails otherwise.
+
+### Updating the course cards
+
+Students see these under **Course cards** on the Study page. To publish a new set, download a
+backup in Settings, then:
+
+```sh
+npm run course -- ~/Downloads/shuijiao-backup-YYYY-MM-DD.json
+npm test
+```
+
+This writes `public/course/course-deck.json` with only the live decks and cards (study progress,
+review history, links, and card types are left out) and lists any card notes, since those are
+published too. Everything in that file is public once it's pushed.
 
 ## Versions and releases
 

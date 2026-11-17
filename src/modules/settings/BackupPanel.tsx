@@ -1,10 +1,7 @@
 import { useState } from 'preact/hooks';
-import { parseBackup } from '../../core/db/backup-schema';
-import { LIMITS } from '../../core/db/model';
 import { store } from '../../core/db/store';
 import { localDateStamp } from '../../core/format';
-import { navigate } from '../../core/router';
-import { setPendingImport } from './pending-import';
+import { ImportBackupButton } from '../../core/import/ImportBackupButton';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 
@@ -48,34 +45,6 @@ export function BackupPanel() {
     }
   };
 
-  const chooseFile = async (input: HTMLInputElement) => {
-    const file = input.files?.[0];
-    input.value = '';
-    setStatus(null);
-    if (!file) return;
-    if (file.size > LIMITS.importBytes) {
-      setStatus({
-        kind: 'error',
-        text: 'That file is larger than 10 MB, so it is not a backup from this portal.',
-      });
-      return;
-    }
-    setBusy(true);
-    try {
-      const result = parseBackup(await file.text());
-      if (!result.ok) {
-        setStatus({ kind: 'error', text: `This file can't be imported. ${result.errors.join(' ')}` });
-        return;
-      }
-      setPendingImport({ backup: result.backup, fileName: file.name.slice(0, 100) });
-      navigate('/import');
-    } catch (err) {
-      setStatus({ kind: 'error', text: errorMessage(err) });
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const last = typeof lastBackup.data === 'number' ? new Date(lastBackup.data).toLocaleDateString() : null;
 
   return (
@@ -94,16 +63,12 @@ export function BackupPanel() {
         <button type="button" class="primary" disabled={busy} onClick={() => void exportNow()}>
           <Icon name="download" /> Download backup
         </button>
-        <label class="button">
-          <Icon name="upload" /> Import a backup…
-          <input
-            type="file"
-            accept=".json,application/json"
-            class="sr-only"
-            disabled={busy}
-            onChange={(e) => void chooseFile(e.currentTarget)}
-          />
-        </label>
+        <ImportBackupButton
+          back={{ path: '/settings', label: 'Settings' }}
+          onError={(text) => {
+            setStatus(text === null ? null : { kind: 'error', text });
+          }}
+        />
       </div>
     </section>
   );

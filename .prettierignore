@@ -2,6 +2,7 @@ coverage/
 dist/
 package-lock.json
 playwright-report/
+public/course/
 public/dict/
 src/core/lang/dict-meta.json
 test-results/

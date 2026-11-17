@@ -21,6 +21,7 @@
     "e2e": "playwright test",
     "dict": "node tools/build-dict.ts",
     "check:resources": "node tools/check-resources.ts",
+    "course": "node tools/make-course-deck.ts",
     "check": "npm run lint && npm run typecheck && npm run format:check && npm test"
   },
   "dependencies": {

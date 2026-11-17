@@ -12,11 +12,11 @@ import {
 import type { Card } from '../../core/db/model';
 import { diffText } from '../../core/diff';
 import { andList } from '../../core/format';
-import { href } from '../../core/router';
+import { href, navigate } from '../../core/router';
 import { Pinyin } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
-import { clearPendingImport, getPendingImport, type PendingImport } from './pending-import';
+import { clearPendingImport, getPendingImport, type PendingImport } from '../../core/import/pending';
 
 const PAGE_SIZE = 20;
 type DuplicateMode = DuplicateChoice | 'choose';
@@ -25,9 +25,9 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 export function ImportPage() {
   const pending = getPendingImport();
-  const [done, setDone] = useState<ImportPreview | null>(null);
+  const [done, setDone] = useState<{ result: ImportPreview; back: PendingImport['back'] } | null>(null);
 
-  if (done) return <ImportDone result={done} />;
+  if (done) return <ImportDone result={done.result} back={done.back} />;
   if (!pending) {
     return (
       <section class="panel stack">
@@ -41,10 +41,17 @@ export function ImportPage() {
       </section>
     );
   }
-  return <ImportFlow pending={pending} onDone={setDone} />;
+  return (
+    <ImportFlow
+      pending={pending}
+      onDone={(result) => {
+        setDone({ result, back: pending.back });
+      }}
+    />
+  );
 }
 
-function ImportDone({ result }: { result: ImportPreview }) {
+function ImportDone({ result, back }: { result: ImportPreview; back: PendingImport['back'] }) {
   const parts = [plural(result.cards.added, 'new card'), `${result.cards.updated} updated`];
   if (result.duplicatesReplaced > 0) parts.push(`${result.duplicatesReplaced} replaced`);
   if (result.duplicatesKeptOld > 0) parts.push(`${plural(result.duplicatesKeptOld, 'duplicate')} skipped`);
@@ -58,8 +65,8 @@ function ImportDone({ result }: { result: ImportPreview }) {
         <a class="button primary" href={href('/cards')}>
           Go to your cards
         </a>
-        <a class="button" href={href('/settings')}>
-          Back to Settings
+        <a class="button" href={href(back.path)}>
+          Back to {back.label}
         </a>
       </div>
     </section>
@@ -67,7 +74,7 @@ function ImportDone({ result }: { result: ImportPreview }) {
 }
 
 function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: ImportPreview) => void }) {
-  const { backup, fileName } = pending;
+  const { backup, label, source, back } = pending;
   const [deckMode, setDeckMode] = useState<ImportDeckMode>('keep');
   const [dupMode, setDupMode] = useState<DuplicateMode>('old');
   const [choices, setChoices] = useState<Record<string, DuplicateChoice>>({});
@@ -107,7 +114,7 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
 
   const cancel = () => {
     clearPendingImport();
-    window.location.hash = '#/settings';
+    navigate(back.path);
   };
 
   const p = preview.data;
@@ -115,8 +122,8 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
   return (
     <>
       <div class="page-head">
-        <h1>Import a backup</h1>
-        <span class="badge truncate">{fileName}</span>
+        <h1>{source === 'course' ? 'Import the course cards' : 'Import a backup'}</h1>
+        <span class="badge truncate">{label}</span>
       </div>
 
       {error && (

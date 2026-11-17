@@ -1,4 +1,6 @@
+import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
+import { ImportBackupButton } from '../../core/import/ImportBackupButton';
 import { andList } from '../../core/format';
 import { href } from '../../core/router';
 import { countQueue } from '../../core/srs/queue';
@@ -19,6 +21,8 @@ export function StudyHome() {
     return { all, perDeck, lastBackup };
   }, []);
 
+  const [importError, setImportError] = useState<string | null>(null);
+
   if (data.error) return <div class="notice error">{data.error}</div>;
   if (!data.data) return <p class="muted">Loading…</p>;
 
@@ -31,9 +35,14 @@ export function StudyHome() {
     <>
       <div class="page-head">
         <h1>Study</h1>
-        <a class="button" href={href('/add')}>
-          <Icon name="plus" /> Add card
-        </a>
+        <div class="row">
+          <a class="button" href={href('/course')}>
+            <Icon name="book" /> Course cards
+          </a>
+          <a class="button" href={href('/add')}>
+            <Icon name="plus" /> Add card
+          </a>
+        </div>
       </div>
 
       {backupOld && (
@@ -54,10 +63,20 @@ export function StudyHome() {
             and the portal fills in the other script, pinyin, and meaning for you to check.
           </p>
           <p>
+            You can also start from the <a href={href('/course')}>course cards</a>, or bring in your cards
+            from another device with a backup file.
+          </p>
+          {importError && (
+            <div class="notice error" role="alert">
+              {importError}
+            </div>
+          )}
+          <div class="row">
             <a class="button primary" href={href('/add')}>
               <Icon name="plus" /> Add your first card
             </a>
-          </p>
+            <ImportBackupButton back={{ path: '/', label: 'Study' }} onError={setImportError} />
+          </div>
         </section>
       ) : (
         <section class="panel">

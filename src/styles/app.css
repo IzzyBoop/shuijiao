@@ -1193,3 +1193,36 @@ a > .icon {
 .flashcard:focus {
   outline: none;
 }
+
+/* ---------- Course cards ---------- */
+
+.badge.warn {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.course-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 40px;
+}
+
+.stat-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.course-deck > summary {
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.course-deck-name {
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.course-deck[open] > summary {
+  margin-bottom: 8px;
+}
