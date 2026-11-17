@@ -8,6 +8,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+The first stable release of 水餃 (shuǐjiǎo): flashcards with traditional and simplified characters,
+pinyin, and audio; spaced-repetition study; the course cards; backups; and a video walkthrough
+under How to.
+
 ### Added
 
 - A message at the top of the page says the portal **works best in Google Chrome** for audio. It
