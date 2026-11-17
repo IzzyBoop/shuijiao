@@ -1357,3 +1357,14 @@ button.version:hover {
   align-items: center;
   gap: 10px;
 }
+
+/* ---------- How to ---------- */
+
+.tutorial-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1744 / 970;
+  background: #000;
+  border-radius: var(--radius-sm);
+}

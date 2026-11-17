@@ -69,7 +69,15 @@ function serviceWorkerPlugin(): Plugin {
     },
     async closeBundle() {
       const files = (await listFiles(outDir))
-        .filter((f) => f !== 'sw.js' && !f.startsWith('dict/') && f !== 'CNAME' && f !== '.nojekyll')
+        // Big files are left out: the dictionary is cached on first use, videos are never cached.
+        .filter(
+          (f) =>
+            f !== 'sw.js' &&
+            !f.startsWith('dict/') &&
+            !f.startsWith('media/') &&
+            f !== 'CNAME' &&
+            f !== '.nojekyll',
+        )
         .sort();
       const hash = createHash('sha256');
       for (const f of files) hash.update(f).update(await readFile(join(outDir, f)));

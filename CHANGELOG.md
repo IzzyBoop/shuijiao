@@ -10,6 +10,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **How to**, a new tab with a video walkthrough of the whole portal: adding cards, the course
+  cards, studying, managing cards and decks, settings, and backups. The video streams from the
+  site and isn't saved for offline use, so it doesn't fill up your device.
 - **Pages for card lists.** The Cards page, each deck on the Course cards page, and the
   side-by-side duplicates on import now show cards a page at a time, with Previous and Next
   buttons and a choice of 10, 25, 50, or 100 cards per page, or all of them. The portal remembers

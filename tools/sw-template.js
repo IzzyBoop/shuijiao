@@ -43,6 +43,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Videos stream straight from the site (with range requests) and are never cached.
+  if (url.pathname.includes('/media/')) return;
+
   if (request.mode === 'navigate') {
     // Single-page app with hash routing: every navigation is the app shell.
     event.respondWith(

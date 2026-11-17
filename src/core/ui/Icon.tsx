@@ -89,6 +89,12 @@ const ICONS = {
       <line x1="10" y1="14" x2="21" y2="3" />
     </>
   ),
+  play: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="10 8 16 12 10 16 10 8" />
+    </>
+  ),
   check: <polyline points="20 6 9 17 4 12" />,
   edit: (
     <>
