@@ -254,7 +254,7 @@ test('pressing Again does not bring the same card straight back', async ({ page 
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
 
@@ -423,7 +423,7 @@ test('backup: export, erase, import restores cards', async ({ page }, testInfo) 
   await page.getByRole('button', { name: 'Erase everything' }).click();
   await expect(page.getByText('All study data on this device was erased.')).toBeVisible();
 
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByText(/Imported: 1 new card\b/)).toBeVisible();
   await page.goto('./#/cards');
@@ -464,7 +464,7 @@ test('an import or an erase can be undone', async ({ page }, testInfo) => {
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
   // Right away, on the results screen.
@@ -520,7 +520,7 @@ test('import lets you keep the original decks or put everything in My cards', as
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await expect(page.getByLabel(/The decks they were in/)).toBeChecked();
   await expect(page.getByText('This creates decks: “Lesson 1” and “Lesson 2”.')).toBeVisible();
 
@@ -575,7 +575,7 @@ test('imports go into your existing deck with the same name, and same-name decks
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await expect(page.getByText('No new decks are created.')).toBeVisible();
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
@@ -660,12 +660,12 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
   };
 
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(await file('mine.json', mine));
+  await page.getByLabel('Import a backup…').setInputFiles(await file('mine.json', mine));
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByText(/Imported: 25 new cards/)).toBeVisible();
 
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(await file('theirs.json', theirs));
+  await page.getByLabel('Import a backup…').setInputFiles(await file('theirs.json', theirs));
   await expect(
     page.getByText(
       '25 cards in this backup are different cards with the same characters and pinyin as yours.',
@@ -766,12 +766,12 @@ test('re-importing an edited backup from the same device asks about each edited 
   };
 
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(await write('before.json', before));
+  await page.getByLabel('Import a backup…').setInputFiles(await write('before.json', before));
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
 
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(await write('after.json', after));
+  await page.getByLabel('Import a backup…').setInputFiles(await write('after.json', after));
   await expect(page.getByText('2 cards in this backup are edited versions of cards you have.')).toBeVisible();
   await page.getByLabel('Choose for each card').check();
   const pairs = page.locator('.dup-pair');
@@ -848,12 +848,12 @@ test('a new student can import a backup straight from the Study page', async ({ 
   );
   await page.goto('./#/');
   await expect(page.getByRole('heading', { name: 'Welcome! 歡迎!' })).toBeVisible();
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await expect(page.getByRole('heading', { name: 'Import a backup' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('heading', { name: 'Welcome! 歡迎!' })).toBeVisible();
 
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByText(/Imported: 1 new card\b/)).toBeVisible();
   await page.getByRole('link', { name: 'Back to Study' }).click();
@@ -990,7 +990,7 @@ test('card lists are paged, and you can select a page or every card', async ({ p
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByText(/Imported: 30 new cards/)).toBeVisible();
 
@@ -1034,7 +1034,7 @@ test('a hostile backup file is rejected', async ({ page }, testInfo) => {
     '{"__proto__":{"isAdmin":true},"format":"shuijiao-backup","version":1,"exportedAt":1,"decks":[],"cards":[],"templates":[],"reviewStates":[],"reviewLogs":[]}',
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await expect(page.getByText(/can't be imported/)).toBeVisible();
   expect(await page.evaluate(() => ({}))).not.toHaveProperty('isAdmin');
 });
@@ -1086,7 +1086,7 @@ test('browse cards by deck, quick-edit, delete with undo, and move in bulk', asy
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByText(/Imported: 3 new cards/)).toBeVisible();
 
@@ -1160,7 +1160,7 @@ test('bulk edit: filter by length, select all, change type and tags, and undo', 
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
 
@@ -1304,6 +1304,65 @@ test('Google Chrome users never see the Chrome message', async ({ page }) => {
   await expect(page.locator('.site-notice')).toHaveCount(0);
 });
 
+test('Settings shows when the last backup was made, and can check a backup file', async ({
+  page,
+}, testInfo) => {
+  await addCard(page, '銀行');
+  await page.goto('./#/settings');
+  await expect(page.getByText('You have not made a backup yet.')).toBeVisible();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download backup' }).click();
+  const file = testInfo.outputPath('check.json.gz');
+  await (await download).saveAs(file);
+  await expect(page.getByText(/Last backup: .* \(today\), 0\.1 MB\./)).toBeVisible();
+
+  await page.getByLabel('Check a backup file…').setInputFiles(file);
+  await expect(
+    page.getByText(/check\.json\.gz is a good backup from .*: 1 card in 1 deck, with 0 answers\./),
+  ).toBeVisible();
+  await expect(page.getByText('Nothing was changed.')).toBeVisible();
+
+  const bad = testInfo.outputPath('notes.json');
+  await writeFile(bad, '{"hello": "world"}');
+  await page.getByLabel('Check a backup file…').setInputFiles(bad);
+  await expect(page.getByText(/notes\.json can't be imported\./)).toBeVisible();
+});
+
+test('the Study page offers to protect your cards from clean-up', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.storage, 'persisted', { value: () => Promise.resolve(false) });
+    Object.defineProperty(navigator.storage, 'persist', { value: () => Promise.resolve(true) });
+  });
+  await addCard(page, '銀行');
+  await page.goto('./#/');
+  await page.getByRole('button', { name: 'Protect my cards' }).click();
+  await expect(
+    page.getByText('Done: your browser will keep your cards even when space runs low.'),
+  ).toBeVisible();
+});
+
+test.describe('on an iPhone', () => {
+  test.use({
+    userAgent:
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1',
+  });
+
+  test('the Study page explains how to keep your cards from being deleted by Safari', async ({ page }) => {
+    await addCard(page, '銀行');
+    await page.goto('./#/');
+    const tip = page.locator('.notice', { hasText: "Safari deletes a website's data" });
+    await expect(tip).toBeVisible();
+    await expect(tip).toContainText('Add to Home Screen');
+    await expect(tip).toContainText('import the backup there');
+    await expect(page.getByRole('button', { name: 'Protect my cards' })).toHaveCount(0);
+    await tip.getByRole('button', { name: 'Hide this tip for a month' }).click();
+    await expect(tip).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+    await expect(tip).toHaveCount(0);
+  });
+});
+
 test('the backup reminder can be hidden for a week', async ({ page }, testInfo) => {
   const now = 1_763_287_200_000;
   const file = testInfo.outputPath('ten.json');
@@ -1335,7 +1394,7 @@ test('the backup reminder can be hidden for a week', async ({ page }, testInfo) 
     }),
   );
   await page.goto('./#/settings');
-  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByText(/Imported: 10 new cards/)).toBeVisible();
 

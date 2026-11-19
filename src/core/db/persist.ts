@@ -11,3 +11,19 @@ export async function requestPersistentStorage(): Promise<boolean> {
     return false;
   }
 }
+
+/** Whether the browser has agreed to keep this site's storage (false if it can't say). */
+export async function isStoragePersisted(): Promise<boolean> {
+  try {
+    return 'storage' in navigator && typeof navigator.storage.persisted === 'function'
+      ? await navigator.storage.persisted()
+      : false;
+  } catch {
+    return false;
+  }
+}
+
+/** Whether this browser lets a site ask to keep its storage at all. */
+export function canPersistStorage(): boolean {
+  return 'storage' in navigator && typeof navigator.storage.persist === 'function';
+}

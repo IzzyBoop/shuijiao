@@ -1,13 +1,14 @@
 import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
 import { ImportBackupButton } from '../../core/import/ImportBackupButton';
-import { backupReminderSnoozed, snoozeBackupReminder } from '../../core/notices';
+import { backupReminderAfterMs, backupReminderSnoozed, snoozeBackupReminder } from '../../core/notices';
 import { andList } from '../../core/format';
 import { href } from '../../core/router';
 import { countQueue } from '../../core/srs/queue';
 import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
 import { loadSession } from './session-data';
+import { StorageTip } from './StorageTip';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -31,7 +32,8 @@ export function StudyHome() {
   const { all, perDeck, lastBackup } = data.data;
   const counts = countQueue(all.queue);
   const backupOld =
-    all.totalCards >= 10 && (typeof lastBackup !== 'number' || Date.now() - lastBackup > 14 * 86_400_000);
+    all.totalCards >= 10 &&
+    (typeof lastBackup !== 'number' || Date.now() - lastBackup > backupReminderAfterMs());
 
   return (
     <>
@@ -68,6 +70,8 @@ export function StudyHome() {
           </button>
         </div>
       )}
+
+      {all.totalCards > 0 && <StorageTip />}
 
       {all.totalCards === 0 ? (
         <section class="panel stack">

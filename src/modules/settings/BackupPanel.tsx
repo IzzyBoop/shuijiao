@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { encodeBackupFile, formatSize } from '../../core/db/backup-file';
+import { encodeBackupFile, formatSize, readBackupFile } from '../../core/db/backup-file';
 import { parseBackup } from '../../core/db/backup-schema';
 import { store } from '../../core/db/store';
 import { localDateStamp } from '../../core/format';
@@ -23,8 +23,19 @@ function downloadBlob(blob: Blob, fileName: string): void {
   }, 1000);
 }
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function daysAgo(time: number, now = Date.now()): string {
+  const days = Math.floor((now - time) / 86_400_000);
+  if (days <= 0) return 'today';
+  return days === 1 ? 'yesterday' : `${days} days ago`;
+}
+
 export function BackupPanel() {
-  const lastBackup = useAsync(() => store.getMeta('lastBackupAt'), []);
+  const lastBackup = useAsync(async () => {
+    const [at, bytes] = await Promise.all([store.getMeta('lastBackupAt'), store.getMeta('lastBackupBytes')]);
+    return { at: typeof at === 'number' ? at : null, bytes: typeof bytes === 'number' ? bytes : null };
+  }, []);
   // `report`: details for a "Report the problem" link, shown after the text.
   const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string; report?: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,10 +62,11 @@ export function BackupPanel() {
         return;
       }
       await store.setMeta('lastBackupAt', Date.now());
+      await store.setMeta('lastBackupBytes', file.blob.size);
       lastBackup.reload();
       setStatus({
         kind: 'ok',
-        text: `Backup downloaded (${cards} cards, ${formatSize(file.blob.size)}).`,
+        text: `Backup downloaded (${plural(cards, 'card')}, ${formatSize(file.blob.size)}).`,
       });
     } catch (err) {
       setStatus({ kind: 'error', text: errorMessage(err) });
@@ -63,14 +75,46 @@ export function BackupPanel() {
     }
   };
 
-  const last = typeof lastBackup.data === 'number' ? new Date(lastBackup.data).toLocaleDateString() : null;
+  const checkFile = async (input: HTMLInputElement) => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    setBusy(true);
+    try {
+      const result = await readBackupFile(file);
+      if (!result.ok) {
+        setStatus({ kind: 'error', text: `${file.name} can't be imported. ${result.errors.join(' ')}` });
+        return;
+      }
+      const b = result.backup;
+      const live = (rows: readonly { deleted: 0 | 1 }[]) => rows.filter((r) => r.deleted === 0).length;
+      const made = new Date(b.exportedAt).toLocaleDateString();
+      setStatus({
+        kind: 'ok',
+        text:
+          `${file.name} is a good backup from ${made}: ${plural(live(b.cards), 'card')} in ` +
+          `${plural(live(b.decks), 'deck')}, with ${plural(b.reviewLogs.length, 'answer')}. ` +
+          'It can be imported. Nothing was changed.',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const last = lastBackup.data?.at ?? null;
+  const lastText =
+    last === null
+      ? 'You have not made a backup yet.'
+      : `Last backup: ${new Date(last).toLocaleDateString()} (${daysAgo(last)})${
+          lastBackup.data?.bytes ? `, ${formatSize(lastBackup.data.bytes)}` : ''
+        }.`;
 
   return (
     <section class="panel stack" id="backup">
       <h2>Backup</h2>
       <p class="muted">
         Your cards live only in this browser. Download a backup now and then, and use it to move your cards to
-        another device. {last ? `Last backup: ${last}.` : 'You have not made a backup yet.'}
+        another device. {lastText}
       </p>
       {status && (
         <div class={`notice ${status.kind}`} role="status">
@@ -93,6 +137,19 @@ export function BackupPanel() {
             setStatus(text === null ? null : { kind: 'error', text });
           }}
         />
+      </div>
+      <div class="stack-tight">
+        <label class="button">
+          <Icon name="check" /> Check a backup file…
+          <input
+            type="file"
+            accept=".json,.gz,application/json,application/gzip,application/x-gzip"
+            class="sr-only"
+            disabled={busy}
+            onChange={(e) => void checkFile(e.currentTarget)}
+          />
+        </label>
+        <p class="small muted">Makes sure a backup file can be imported, without importing it.</p>
       </div>
     </section>
   );

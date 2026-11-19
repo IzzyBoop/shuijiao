@@ -11,6 +11,7 @@ import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import type { AutoFill } from '../../core/lang/autofill';
 import { requestPersistentStorage } from '../../core/db/persist';
+import { isFirefox } from '../../core/notices';
 import { andList } from '../../core/format';
 import { Dialog } from '../../core/ui/Dialog';
 import { InfoTip } from '../../core/ui/InfoTip';
@@ -321,7 +322,9 @@ export function CardEditor({ params }: RouteProps) {
       }
       setPendingDuplicate(null);
       await store.saveCard(card);
-      void requestPersistentStorage();
+      // Most browsers decide quietly; Firefox shows a pop-up, which out of the blue would only
+      // confuse. There, the Study page offers it with an explanation instead.
+      if (!isFirefox()) void requestPersistentStorage();
       if (existing) {
         navigate(cardListPath());
         return;

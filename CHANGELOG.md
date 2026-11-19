@@ -16,8 +16,19 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   the next one. It tells you if you've studied since, because those answers would be lost. When
   erasing on a shared computer, untick "Keep a copy" to remove everything for good.
 
+- **Keeping your cards safe in Safari.** Safari (on iPhone, iPad and Mac) deletes a website's
+  data if it isn't opened for 7 days. The Study page now explains how to move your cards to the
+  Home Screen (or the Dock), where they are kept, and the backup reminder comes after 3 days
+  instead of 14 there.
+- In other browsers, the Study page offers to **protect your cards from clean-up** when your
+  device runs low on space, and says what happened.
+- **Check a backup file** in Settings makes sure a backup can be imported, without importing
+  it. Settings also shows how long ago your last backup was and its size.
+
 ### Changed
 
+- Firefox no longer pops up a storage permission question out of the blue when you save your
+  first card; the Study page asks instead, with an explanation.
 - **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older
   `.json` backups still import as before.
 

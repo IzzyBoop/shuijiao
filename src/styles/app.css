@@ -1414,3 +1414,11 @@ button.version:hover {
   overflow-wrap: anywhere;
   margin: 8px 0 0;
 }
+
+.notice p {
+  margin: 0;
+}
+.notice ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
