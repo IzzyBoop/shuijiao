@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import { FOOTER_NAV, MAIN_NAV, ROUTES } from '../core/registry';
 import { href, matchRoute, usePath } from '../core/router';
 import { Icon } from '../core/ui/Icon';
 import { ThemeToggle } from './ThemeToggle';
 import { VersionEgg } from './VersionEgg';
 import { ChromeNotice } from './ChromeNotice';
+import { UpdateBanner } from './UpdateBanner';
+import { ErrorBoundary } from '../core/ui/ErrorBoundary';
 
 function isActive(navPath: string, current: string): boolean {
   if (navPath === '/')
@@ -12,10 +14,9 @@ function isActive(navPath: string, current: string): boolean {
   return current === navPath || current.startsWith(navPath + '/');
 }
 
-export function App({ updateAvailable }: { updateAvailable: (() => void) | null }) {
+export function App() {
   const path = usePath();
   const match = matchRoute(path, ROUTES);
-  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     document.title = match ? `${match.route.title} · 水餃 Shuǐjiǎo` : 'Not found · 水餃 Shuǐjiǎo';
@@ -69,7 +70,10 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
       <main id="main" tabIndex={-1}>
         <ChromeNotice />
         {match ? (
-          <match.route.component params={match.params} />
+          // A crash on one page leaves the menu working; going to another page tries again.
+          <ErrorBoundary resetKey={path}>
+            <match.route.component params={match.params} />
+          </ErrorBoundary>
         ) : (
           <div class="panel">
             <h1>Page not found</h1>
@@ -94,25 +98,7 @@ export function App({ updateAvailable }: { updateAvailable: (() => void) | null 
         </div>
       </footer>
 
-      {updateAvailable && !dismissed && (
-        <div class="update-banner" role="status">
-          <span>A new version of the portal is ready.</span>
-          <span class="row">
-            <button
-              type="button"
-              class="ghost"
-              onClick={() => {
-                setDismissed(true);
-              }}
-            >
-              Later
-            </button>
-            <button type="button" class="primary" onClick={updateAvailable}>
-              Reload
-            </button>
-          </span>
-        </div>
-      )}
+      <UpdateBanner />
     </div>
   );
 }

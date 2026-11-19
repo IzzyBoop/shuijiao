@@ -1,3 +1,5 @@
+import { setAppStatus } from './app-status';
+
 /**
  * Registers the service worker under Trusted Types. The CSP allows exactly one
  * policy, "sw-url", and it only ever produces the fixed worker URL.
@@ -30,34 +32,100 @@ function scriptUrl(): string {
   return (policy ? policy.createScriptURL(SW_URL) : SW_URL) as string;
 }
 
-export type UpdateListener = (apply: () => void) => void;
+/** Set when the student chose to switch to the new version: its takeover reloads the page. */
+let applying = false;
 
-export async function registerServiceWorker(onUpdate: UpdateListener): Promise<void> {
+/**
+ * Registers the service worker and keeps watch for new versions. Call it before the
+ * app renders, so that even a version that crashes on start can still be updated.
+ */
+export async function registerServiceWorker(): Promise<void> {
   if (!('serviceWorker' in navigator)) return;
-  // On a first visit there is no controller yet; the new worker taking control then is
-  // not an update and must not reload the page.
-  const hadController = navigator.serviceWorker.controller !== null;
+  const sw = navigator.serviceWorker;
+  let controlled = sw.controller !== null;
   try {
-    const reg = await navigator.serviceWorker.register(scriptUrl(), { scope: './' });
+    const reg = await sw.register(scriptUrl(), { scope: './' });
     const offer = (worker: ServiceWorker) => {
-      onUpdate(() => {
-        worker.postMessage('skip-waiting');
+      setAppStatus({
+        update: () => {
+          applying = true;
+          worker.postMessage('skip-waiting');
+        },
       });
     };
-    if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+    if (reg.waiting && sw.controller) offer(reg.waiting);
     reg.addEventListener('updatefound', () => {
       const worker = reg.installing;
       worker?.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && navigator.serviceWorker.controller) offer(worker);
+        if (worker.state === 'installed' && sw.controller) offer(worker);
       });
     });
-    let reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (reloaded || !hadController) return;
-      reloaded = true;
-      window.location.reload();
+    sw.addEventListener('controllerchange', () => {
+      const wasControlled = controlled;
+      controlled = sw.controller !== null;
+      if (applying) {
+        applying = false;
+        window.location.reload();
+      } else if (wasControlled) {
+        // A new version took over from another tab. Its files replaced this tab's, so
+        // this tab must reload before it next needs one.
+        setAppStatus({ update: null, reload: 'other-tab' });
+      }
+      // Otherwise this was the first visit, and the worker has just started: nothing to do.
     });
+    watchForUpdates(reg);
   } catch {
     // Offline support is optional; the portal works without it.
   }
+}
+
+/**
+ * The browser only looks for a new version when the page is opened. An installed app or
+ * a tab left open for days would never notice one, so look again whenever the portal
+ * comes back into view (at most every 10 minutes) and every hour while it is open.
+ */
+function watchForUpdates(reg: ServiceWorkerRegistration): void {
+  let last = Date.now();
+  const check = () => {
+    if (Date.now() - last < 10 * 60_000) return;
+    last = Date.now();
+    reg.update().catch(() => {
+      // Offline, or the site is unreachable: try again next time.
+    });
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') check();
+  });
+  window.setInterval(check, 60 * 60_000);
+}
+
+/**
+ * "Reload" after a crash: switch to the newest version if there is one (a crash may be
+ * fixed by it), otherwise just reload.
+ */
+export async function reloadToLatest(): Promise<void> {
+  const sw = 'serviceWorker' in navigator ? navigator.serviceWorker : null;
+  const reg = await sw?.getRegistration().catch(() => undefined);
+  if (sw?.controller && reg) {
+    await reg.update().catch(() => undefined);
+    const worker = reg.waiting ?? reg.installing;
+    if (worker) {
+      if (worker.state !== 'installed') {
+        await new Promise<void>((resolve) => {
+          worker.addEventListener('statechange', () => {
+            if (worker.state === 'installed') resolve();
+          });
+          window.setTimeout(resolve, 10_000);
+        });
+      }
+      applying = true;
+      worker.postMessage('skip-waiting');
+      // If the switch doesn't happen (the worker failed to install), reload anyway.
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 5_000);
+      return;
+    }
+  }
+  window.location.reload();
 }

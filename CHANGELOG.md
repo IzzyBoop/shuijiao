@@ -34,6 +34,14 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   and its study history were deleted.
 - **Words that are written the same but read differently aren't treated as duplicates** any
   more: 行 háng and 行 xíng are both kept.
+- **Updates arrive reliably.** The portal now checks for a new version whenever you come back
+  to it (and every hour while it's open), so an installed app or a tab left open for days
+  still gets updates. "Reload" on the update message always works now; before, it could do
+  nothing in a tab opened on your first visit.
+- **A tab left open during an update asks you to reload** instead of quietly failing: when the
+  portal is updated in another tab, or a part of the page can't be loaded any more.
+- **If a page crashes, you see what to do** instead of a blank page: reload (which also gets the
+  newest version) or report the problem. The menu keeps working, so you can go to another page.
 - **A card is only ever rated once.** Tapping a rating twice quickly, or holding a number key
   down, could save the same answer twice and make your review counts too high.
 

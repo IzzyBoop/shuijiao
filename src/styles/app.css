@@ -1408,3 +1408,9 @@ button.version:hover {
 .breakdown-title {
   margin-bottom: 4px;
 }
+
+.crash-details {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0 0;
+}

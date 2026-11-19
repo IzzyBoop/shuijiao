@@ -1399,6 +1399,77 @@ test('the answer side breaks a word into its characters, with meanings', async (
   await expect(breakdown).toHaveCount(0);
 });
 
+test('a page that crashes shows a way out, and the rest of the portal keeps working', async ({ page }) => {
+  await addCard(page, '你好');
+  // Damage a card behind the portal's back, as a bug or a broken browser profile might.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('shuijiao');
+        open.onerror = () => {
+          reject(new Error('open failed'));
+        };
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction('cards', 'readwrite');
+          const cards = tx.objectStore('cards');
+          const all = cards.getAll();
+          all.onsuccess = () => {
+            for (const card of all.result as Record<string, unknown>[]) cards.put({ ...card, tags: null });
+          };
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+        };
+      }),
+  );
+  await page.goto('./#/cards');
+  await page.getByLabel('Search cards').fill('hello'); // searching reads every card's tags
+  await expect(page.getByRole('heading', { name: 'Something went wrong' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reload the portal' })).toBeVisible();
+  const report = page.getByRole('link', { name: /Report the problem/ });
+  await expect(report).toHaveAttribute('href', /^https:\/\/docs\.google\.com\/forms\/.*entry\.2015925771=/);
+  await expect(report).toHaveAttribute('target', '_blank');
+  // The menu still works, and other pages are fine.
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Something went wrong' })).toBeHidden();
+});
+
+test('a newer version upgrading the database in another tab asks this tab to reload', async ({ page }) => {
+  await page.goto('./#/');
+  await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(async () => (await indexedDB.databases()).some((d) => d.name === 'shuijiao')))
+    .toBe(true);
+  // What a future version does when it opens the database: ask for a higher version.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open('shuijiao', 10_000);
+        open.onerror = () => {
+          reject(new Error('upgrade failed'));
+        };
+        open.onsuccess = () => {
+          open.result.close();
+          resolve();
+        };
+      }),
+  );
+  await expect(
+    page.getByText('The portal was updated in another tab. Reload this tab to keep going.'),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
+});
+
+test('a part of the page that can no longer be loaded asks for a reload', async ({ page }) => {
+  await page.goto('./#/');
+  await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event('vite:preloadError')));
+  await expect(page.getByText('The portal was updated. Reload to keep going.')).toBeVisible();
+});
+
 test('unknown routes and hostile hashes show "not found"', async ({ page }) => {
   await page.goto('./#/cards/<img src=x onerror=alert(1)>');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

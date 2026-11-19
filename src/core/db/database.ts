@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Table } from 'dexie';
+import { getAppStatus, setAppStatus } from '../app-status';
 import type { Backup } from './backup-schema';
 import type { Card, Deck, ReviewLog, ReviewState, StudentLink, Template } from './model';
 import { builtinTemplates, defaultDeck } from './defaults';
@@ -50,6 +51,22 @@ export class PortalDB extends Dexie {
     // v3: a copy of everything from just before the last import or erase, for Undo.
     this.version(3).stores({
       undo: 'id',
+    });
+    // A newer version of the portal, open in another tab, is upgrading the database. Dexie
+    // closes this tab's connection so the upgrade can go ahead; this tab's code is now
+    // out of date and must reload.
+    this.on('versionchange', (event) => {
+      if (event.newVersion !== null && event.newVersion > event.oldVersion) {
+        setAppStatus({ reload: 'other-tab' });
+      }
+    });
+    // This tab is the newer one, and an older tab that doesn't use Dexie's close-on-upgrade
+    // is holding the database open.
+    this.on('blocked', () => {
+      setAppStatus({ blocked: true });
+    });
+    this.on('ready', () => {
+      if (getAppStatus().blocked) setAppStatus({ blocked: false });
     });
     this.on('populate', (tx) => {
       const now = Date.now();
