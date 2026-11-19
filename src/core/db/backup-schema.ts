@@ -13,7 +13,8 @@ import { safeHttpsUrl } from '../safe/url';
 export const BACKUP_FORMAT = 'shuijiao-backup';
 export const BACKUP_VERSION = 1;
 
-const MAX_TIME = 4_102_444_800_000; // year 2100
+/** The latest time a backup accepts: the start of the year 2100. */
+export const MAX_TIME = 4_102_444_800_000;
 
 const id = v.pipe(v.string(), v.regex(ID_PATTERN, 'Invalid id.'));
 const time = v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(MAX_TIME));

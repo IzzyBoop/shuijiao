@@ -4,8 +4,10 @@ import {
   emptyState,
   formatInterval,
   initScheduler,
+  MAX_INTERVAL_DAYS,
   previewDue,
 } from '../../src/core/srs/scheduler';
+import { MAX_TIME } from '../../src/core/db/backup-schema';
 import { buildQueue, requeue, separateSameCard, startOfStudyDay } from '../../src/core/srs/queue';
 import { builtinTemplates, DEFAULT_DECK_ID } from '../../src/core/db/defaults';
 import type { QueueItem } from '../../src/core/srs/queue';
@@ -47,6 +49,19 @@ describe('scheduler', () => {
     expect(state.lastReview).toBe(NOW);
     expect(log.rating).toBe(3);
     expect(log.state).toBe(0);
+  });
+
+  it('never schedules a card so far ahead that its backup could not be imported', () => {
+    // A card answered "Easy" every time it comes up, for decades.
+    let state = emptyState('c1', 'tpl-reading', NOW);
+    let now = NOW;
+    for (let i = 0; i < 40; i++) {
+      state = applyReview(state, 4, now).state;
+      now = state.due;
+    }
+    expect(state.due - (state.lastReview ?? 0)).toBeLessThanOrEqual(MAX_INTERVAL_DAYS * 86_400_000);
+    // Holds until about 2050; if this fails then, raise MAX_TIME in backup-schema.ts.
+    expect(Date.now() + MAX_INTERVAL_DAYS * 86_400_000).toBeLessThan(MAX_TIME);
   });
 
   it('formats intervals', () => {

@@ -1,6 +1,12 @@
 import { DefaultScheduler, type Grade } from 'ts-fsrs';
 import { newId, stateKey, type ReviewLog, type ReviewState } from '../db/model';
 
+/**
+ * The longest gap between reviews: 50 years, far more than anyone needs, and short enough
+ * that a due date always stays inside what a backup accepts (before the year 2100).
+ */
+export const MAX_INTERVAL_DAYS = 18_250;
+
 /** FSRS-7 with learning steps (1m, 10m) and fuzzed intervals, targeting 90% recall. */
 const OPTIONS = {
   version: 'FSRS-7',
@@ -9,7 +15,7 @@ const OPTIONS = {
   learningSteps: ['1m', '10m'],
   relearningSteps: ['10m'],
   enableFuzz: true,
-  maximumInterval: 36_500,
+  maximumInterval: MAX_INTERVAL_DAYS,
 } as const;
 
 type Scheduler = Awaited<ReturnType<typeof DefaultScheduler<'FSRS-7'>>>;
