@@ -135,14 +135,14 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
         </p>
         {hasCards && !ahead && (
           <p class="muted">
-            Want to study anyway? Your cards come up ahead of schedule, the ones due soonest first, and your
+            Want to study ahead? Your cards come up before they're due, the ones due soonest first, and your
             answers count as usual. Nothing is reset.
           </p>
         )}
         <div class="row">
           {hasCards && !ahead && (
             <a class="button primary" href={href(aheadPath)}>
-              Study anyway
+              Study ahead
             </a>
           )}
           <a class={hasCards && !ahead ? 'button' : 'button primary'} href={href('/')}>

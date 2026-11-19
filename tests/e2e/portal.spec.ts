@@ -324,7 +324,7 @@ test('with nothing due, a session can be studied anyway', async ({ page }) => {
   // Nothing is due now: the home page says so and offers a session all the same.
   await page.goto('./#/');
   await expect(page.getByText('All done for today')).toBeVisible();
-  await page.getByRole('link', { name: 'Study anyway' }).click();
+  await page.getByRole('link', { name: 'Study ahead' }).click();
   await expect(page.getByText('Studying ahead')).toBeVisible();
   await expect(page.locator('.flashcard')).toContainText('你好');
   await page.keyboard.press('Space');
@@ -334,7 +334,7 @@ test('with nothing due, a session can be studied anyway', async ({ page }) => {
   // The ordinary session has nothing, and offers the same.
   await page.goto('./#/review');
   await expect(page.getByRole('heading', { name: /Nothing to study/ })).toBeVisible();
-  await page.getByRole('link', { name: 'Study anyway' }).click();
+  await page.getByRole('link', { name: 'Study ahead' }).click();
   await expect(page.locator('.flashcard')).toContainText('你好');
 });
 
@@ -1278,6 +1278,16 @@ test('the How to tab shows the walkthrough video, which is never cached offline'
   expect(head.status()).toBeLessThan(300);
   const sw = await (await page.request.get('./sw.js')).text();
   expect(sw).not.toContain('"./media/');
+});
+
+test('the How to page has a quick start, and jumps to each part of the video', async ({ page }) => {
+  await page.goto('./#/how-to');
+  await expect(page.getByRole('heading', { name: 'Quick start' })).toBeVisible();
+  await expect(page.getByText('Back up now and then.')).toBeVisible();
+  await page.getByRole('button', { name: /Backups/ }).click();
+  await expect
+    .poll(() => page.locator('video.tutorial-video').evaluate((v: HTMLVideoElement) => v.currentTime))
+    .toBe(1235);
 });
 
 test('the "works best in Chrome" message can be closed for good', async ({ page }) => {

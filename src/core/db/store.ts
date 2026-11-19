@@ -365,7 +365,7 @@ export class LocalStudyStore implements StudyStore {
   }
   async saveTemplate(template: Template) {
     const existing = await this.db.templates.get(template.id);
-    if (existing?.builtin) throw new Error('Built-in templates cannot be changed.');
+    if (existing?.builtin) throw new Error("Built-in card types can't be changed.");
     await this.db.templates.put({ ...template, builtin: false, updatedAt: Date.now() });
   }
   async deleteTemplate(id: string) {

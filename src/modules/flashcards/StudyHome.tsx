@@ -129,7 +129,7 @@ export function StudyHome() {
                 </a>
               ) : (
                 <a class="button" href={href('/study-ahead')}>
-                  <Icon name="study" /> Study anyway
+                  <Icon name="study" /> Study ahead
                 </a>
               )}
             </div>
@@ -156,7 +156,7 @@ export function StudyHome() {
                       Cards
                     </a>
                     <a class="button" href={href(`/browse/${deck.id}`)}>
-                      Flip
+                      Flip through
                     </a>
                     {/* With nothing due, the session page offers to study ahead. */}
                     <a class="button" href={href(`/review/${deck.id}`)}>

@@ -10,6 +10,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **How to** now starts with a short **quick start** in writing, and the video has a list of
+  its parts: click one to jump straight to it.
 - **Report a problem or suggest an idea** from the About page. The form opens in a new tab with
   the portal's version filled in; nothing about your cards is sent.
 - **Undo an import or an erase.** Before every import, and before "Erase all study data", the
@@ -48,6 +50,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   progress once, instead of once for every deck.
 - **Updates download less.** A new version now only downloads the files that changed, instead
   of the whole portal again (about 1.5 MB each time).
+- The same things now have the same names everywhere: **Study ahead** (it was "Study anyway"
+  on its buttons), **Flip through** (the deck buttons said "Flip"), and **card types** (an error
+  message said "templates").
 - Firefox no longer pops up a storage permission question out of the blue when you save your
   first card; the Study page asks instead, with an explanation.
 - **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older

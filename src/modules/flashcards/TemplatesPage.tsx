@@ -7,6 +7,9 @@ import { updateStudyPrefs, useStudyPrefs } from '../../core/study-prefs';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 
+/** The column headings, also read out for each choice by screen readers. */
+const SIDE_LABELS = { front: 'Front', back: 'Back', none: 'Hidden' } as const;
+
 const describe = (fields: readonly CardField[]) => andList(fields.map((f) => FIELD_LABELS[f]));
 
 function TemplateBuilder({ onSaved }: { onSaved: () => void }) {
@@ -78,7 +81,7 @@ function TemplateBuilder({ onSaved }: { onSaved: () => void }) {
                   <input
                     type="radio"
                     name={`side-${f}`}
-                    aria-label={`${FIELD_LABELS[f]}: ${s}`}
+                    aria-label={`${FIELD_LABELS[f]}: ${SIDE_LABELS[s]}`}
                     checked={side[f] === s}
                     onChange={() => {
                       setSide((prev) => ({ ...prev, [f]: s }));
