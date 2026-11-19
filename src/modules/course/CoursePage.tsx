@@ -8,6 +8,7 @@ import { Icon } from '../../core/ui/Icon';
 import { Pager, usePaging } from '../../core/ui/Pager';
 import { useAsync } from '../../core/ui/useAsync';
 import {
+  COURSE_SEEN_KEY,
   loadCourseDeck,
   summarizeCourse,
   type CourseCardStatus,
@@ -26,6 +27,7 @@ export function CoursePage() {
   const data = useAsync(async () => {
     const load = await loadCourseDeck();
     if (load.kind !== 'ok') return { load, summary: null, myCount: 0 };
+    await store.setMeta(COURSE_SEEN_KEY, load.backup.exportedAt); // for the banner on the Study page
     const [mine, duplicates] = await Promise.all([
       store.listCards(),
       store.findImportDuplicates(load.backup),

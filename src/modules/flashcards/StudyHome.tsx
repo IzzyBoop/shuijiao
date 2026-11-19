@@ -10,6 +10,7 @@ import { useAsync } from '../../core/ui/useAsync';
 import { loadOverview } from './session-data';
 import { StorageTip } from './StorageTip';
 import { ProgressSection } from './ProgressSection';
+import { CourseBanner } from '../course/CourseBanner';
 import { LoadError } from '../../core/ui/LoadError';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -76,6 +77,7 @@ export function StudyHome() {
       )}
 
       {all.totalCards > 0 && <StorageTip />}
+      {all.totalCards > 0 && <CourseBanner />}
 
       {all.totalCards === 0 ? (
         <section class="panel stack">

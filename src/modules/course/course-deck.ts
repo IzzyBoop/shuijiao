@@ -5,6 +5,9 @@ import type { ImportDuplicate } from '../../core/db/store';
 /** The course cards, published with the site (see tools/make-course-deck.ts). */
 export const COURSE_DECK_URL = 'course/course-deck.json';
 
+/** Meta key: the version (exportedAt) of the course cards the student has seen. */
+export const COURSE_SEEN_KEY = 'courseSeenAt';
+
 export type CourseLoad =
   { kind: 'ok'; backup: Backup } | { kind: 'none' } | { kind: 'error'; message: string };
 

@@ -915,6 +915,36 @@ test.describe('course cards', () => {
     links: [],
   };
 
+  test('the Study page says when the course cards change, until you look', async ({ page }) => {
+    await addCard(page, '銀行'); // a card of your own (none of the course cards)
+    await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: course }));
+    await page.goto('./#/');
+    const banner = page.locator('.notice', { hasText: 'The course cards' });
+    await expect(banner).toContainText("The course cards have 3 cards you don't have yet.");
+    await banner.getByRole('link', { name: 'See the course cards' }).click();
+    await expect(page.getByRole('button', { name: 'Import these cards' })).toBeVisible(); // loaded
+    await page.goto('./#/');
+    await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+    await expect(banner).toHaveCount(0);
+
+    // A new version with one more card: the banner is back, and closing it hides it for good.
+    const updated = {
+      ...course,
+      exportedAt: now + 86_400_000,
+      cards: [...course.cards, card('d', 'l2', '書')],
+    };
+    await page.unroute('**/course/course-deck.json');
+    await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: updated }));
+    await page.reload();
+    await expect(banner).toContainText('updated on');
+    await expect(banner).toContainText("4 cards you don't have yet");
+    await banner.getByRole('button', { name: 'Hide until the course cards change again' }).click();
+    await expect(banner).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+    await expect(page.locator('section.panel').first()).toBeVisible();
+    await expect(banner).toHaveCount(0);
+  });
   test('shows what is in them and imports them through the usual import steps', async ({ page }) => {
     await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: course }));
     await page.goto('./#/');
