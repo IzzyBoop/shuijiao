@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-19
+
 ### Fixed
 
 - A deck made in the **Add a card** popup while studying now shows up in the deck list the next
