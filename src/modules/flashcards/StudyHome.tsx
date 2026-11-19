@@ -7,7 +7,7 @@ import { href } from '../../core/router';
 import { countQueue } from '../../core/srs/queue';
 import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
-import { loadSession } from './session-data';
+import { loadOverview } from './session-data';
 import { StorageTip } from './StorageTip';
 import { LoadError } from '../../core/ui/LoadError';
 
@@ -16,10 +16,12 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 export function StudyHome() {
   const data = useAsync(async () => {
     const decks = await store.listDecks();
-    const all = await loadSession(undefined);
-    const perDeck = await Promise.all(
-      decks.map(async (d) => ({ deck: d, session: await loadSession(d.id) })),
-    );
+    const overview = await loadOverview(decks.map((d) => d.id));
+    const all = overview.all;
+    const perDeck = decks.flatMap((deck) => {
+      const session = overview.perDeck.get(deck.id);
+      return session ? [{ deck, session }] : [];
+    });
     const lastBackup = await store.getMeta('lastBackupAt');
     return { all, perDeck, lastBackup };
   }, []);

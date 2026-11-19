@@ -44,6 +44,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 - **The first answer of a session shows up straight away.** The dictionary for the word-by-word
   meanings now loads in the background while you look at the first card, instead of after you
   turn it over.
+- **The Study page opens faster** when you have several decks: it reads your cards and
+  progress once, instead of once for every deck.
 - **Updates download less.** A new version now only downloads the files that changed, instead
   of the whole portal again (about 1.5 MB each time).
 - Firefox no longer pops up a storage permission question out of the blue when you save your

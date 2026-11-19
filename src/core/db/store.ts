@@ -172,7 +172,16 @@ export interface StudyStore {
    * different cards with the same characters and pinyin.
    */
   findImportDuplicates(backup: Backup): Promise<ImportDuplicate[]>;
-  previewImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
+  /**
+   * Works out what an import would change, without writing anything. `knownDuplicates`
+   * (from findImportDuplicates for the same backup) saves finding them again each time an
+   * option changes.
+   */
+  previewImport(
+    backup: Backup,
+    options?: ImportOptions,
+    knownDuplicates?: readonly ImportDuplicate[],
+  ): Promise<ImportPreview>;
   /** Applies an import, first keeping a copy of everything so it can be undone. */
   applyImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
   /** Erases everything. Unless `keepCopy` is false, a copy is kept so it can be undone. */
@@ -560,7 +569,11 @@ export class LocalStudyStore implements StudyStore {
     return out;
   }
 
-  private async plan(backup: Backup, { deckMode, duplicates }: ImportOptions) {
+  private async plan(
+    backup: Backup,
+    { deckMode, duplicates }: ImportOptions,
+    knownDuplicates?: readonly ImportDuplicate[],
+  ) {
     const builtinIds = new Set(builtinTemplates(0).map((t) => t.id));
 
     // Duplicates. Nothing of yours is ever deleted, and your study progress is always kept.
@@ -578,7 +591,8 @@ export class LocalStudyStore implements StudyStore {
     let replaced = 0;
     let keptOld = 0;
     const now = Date.now();
-    for (const { incoming, existing, sameCard } of await this.findImportDuplicates(backup)) {
+    const found = knownDuplicates ?? (await this.findImportDuplicates(backup));
+    for (const { incoming, existing, sameCard } of found) {
       const choice = duplicates?.choices?.[incoming.id] ?? duplicates?.default ?? 'old';
       if (choice === 'old') {
         keptOld++;
@@ -711,8 +725,12 @@ export class LocalStudyStore implements StudyStore {
     return { counts, toWrite };
   }
 
-  async previewImport(backup: Backup, options: ImportOptions = DEFAULT_IMPORT) {
-    return (await this.plan(backup, options)).preview;
+  async previewImport(
+    backup: Backup,
+    options: ImportOptions = DEFAULT_IMPORT,
+    knownDuplicates?: readonly ImportDuplicate[],
+  ) {
+    return (await this.plan(backup, options, knownDuplicates)).preview;
   }
 
   /** Every table, for transactions that copy or replace all of the student's data. */

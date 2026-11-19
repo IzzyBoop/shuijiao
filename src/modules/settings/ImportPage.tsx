@@ -130,7 +130,11 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
     }),
     [deckMode, dupMode, choices],
   );
-  const preview = useAsync(() => store.previewImport(backup, options), [backup, options]);
+  // Reuses the duplicates found above, so changing an option doesn't search all your cards again.
+  const preview = useAsync(
+    () => store.previewImport(backup, options, duplicates.data),
+    [backup, options, duplicates.data],
+  );
 
   const localDeckName = (id: string) => decks.data?.find((d) => d.id === id)?.name ?? 'Unknown deck';
   const fileDeckNames = useMemo(() => new Map(backup.decks.map((d) => [d.id, d.name])), [backup]);

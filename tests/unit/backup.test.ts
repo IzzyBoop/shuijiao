@@ -681,6 +681,17 @@ describe('LocalStudyStore import duplicates', () => {
     ]);
   });
 
+  it('the preview is the same when it is given the duplicates found earlier', async () => {
+    const { store, file } = await setup();
+    const known = await store.findImportDuplicates(file);
+    for (const choice of ['old', 'new'] as const) {
+      const options = { deckMode: 'keep' as const, duplicates: { default: choice } };
+      expect(await store.previewImport(file, options, known)).toEqual(
+        await store.previewImport(file, options),
+      );
+    }
+  });
+
   it('per card: individual choices override the default', async () => {
     const { store, file } = await setup();
     await store.applyImport(file, {
