@@ -8,6 +8,7 @@ import type { Card } from '../../core/db/model';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardFaces } from './CardFace';
 import { EditCardDialog } from './EditCardDialog';
+import { LoadError } from '../../core/ui/LoadError';
 
 function shuffled<T>(list: readonly T[]): T[] {
   // Sort by random keys: simple, unbiased enough for flashcards, no index juggling.
@@ -78,7 +79,7 @@ export function BrowsePage({ params }: RouteProps) {
     }
   });
 
-  if (data.error) return <div class="notice error">{data.error}</div>;
+  if (data.error) return <LoadError error={data.error} retry={data.reload} />;
   if (!data.data || !template) return <p class="muted">Loading…</p>;
 
   return (

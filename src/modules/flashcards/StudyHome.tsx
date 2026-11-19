@@ -9,6 +9,7 @@ import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
 import { loadSession } from './session-data';
 import { StorageTip } from './StorageTip';
+import { LoadError } from '../../core/ui/LoadError';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -26,7 +27,7 @@ export function StudyHome() {
   const [importError, setImportError] = useState<string | null>(null);
   const [backupSnoozed, setBackupSnoozed] = useState(() => backupReminderSnoozed());
 
-  if (data.error) return <div class="notice error">{data.error}</div>;
+  if (data.error) return <LoadError error={data.error} retry={data.reload} />;
   if (!data.data) return <p class="muted">Loading…</p>;
 
   const { all, perDeck, lastBackup } = data.data;

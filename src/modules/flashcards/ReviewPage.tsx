@@ -13,6 +13,7 @@ import { useKeydown } from '../../core/ui/useKeydown';
 import { CardFaces } from './CardFace';
 import { EditCardDialog } from './EditCardDialog';
 import { loadSession } from './session-data';
+import { LoadError } from '../../core/ui/LoadError';
 
 /** Cards due again within this window come back in the same session. */
 const RELEARN_WINDOW = 20 * 60_000;
@@ -116,7 +117,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
     }
   });
 
-  if (session.error) return <div class="notice error">{session.error}</div>;
+  if (session.error) return <LoadError error={session.error} retry={session.reload} />;
   if (!queue) return <p class="muted">Loading…</p>;
 
   if (!item) {

@@ -69,6 +69,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   portal is updated in another tab, or a part of the page can't be loaded any more.
 - **If a page crashes, you see what to do** instead of a blank page: reload (which also gets the
   newest version) or report the problem. The menu keeps working, so you can go to another page.
+- **Clearer messages when your cards can't be loaded** (for example in a private window, or when
+  the browser blocks site data): what may have happened, **Try again**, and a way to report it,
+  instead of a bare error.
 - **A card is only ever rated once.** Tapping a rating twice quickly, or holding a number key
   down, could save the same answer twice and make your review counts too high.
 

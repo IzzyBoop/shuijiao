@@ -1541,6 +1541,23 @@ test('a page that crashes shows a way out, and the rest of the portal keeps work
   await expect(page.getByRole('heading', { name: 'Something went wrong' })).toBeHidden();
 });
 
+test('when the browser blocks storage, the Study page says what to do', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'indexedDB', {
+      get() {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      },
+    });
+  });
+  await page.goto('./#/');
+  await expect(page.getByRole('heading', { name: "Couldn't load your cards" })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Report the problem/ })).toHaveAttribute(
+    'href',
+    /docs\.google\.com\/forms/,
+  );
+});
+
 test('a newer version upgrading the database in another tab asks this tab to reload', async ({ page }) => {
   await page.goto('./#/');
   await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();

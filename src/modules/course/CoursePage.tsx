@@ -1,3 +1,4 @@
+import { LoadError } from '../../core/ui/LoadError';
 import { store } from '../../core/db/store';
 import { andList } from '../../core/format';
 import { setPendingImport } from '../../core/import/pending';
@@ -43,7 +44,7 @@ export function CoursePage() {
     </div>
   );
 
-  if (data.error) return <div class="notice error">{data.error}</div>;
+  if (data.error) return <LoadError error={data.error} retry={data.reload} what="the course cards" />;
   if (!data.data) {
     return (
       <>
