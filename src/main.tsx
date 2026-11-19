@@ -3,6 +3,7 @@ import './styles/app.css';
 import { App } from './app/App';
 import { initTheme } from './app/ThemeToggle';
 import { setAppStatus } from './core/app-status';
+import { store } from './core/db/store';
 import { initStudyPrefs } from './core/study-prefs';
 import { registerServiceWorker } from './core/sw-register';
 import { ErrorBoundary } from './core/ui/ErrorBoundary';
@@ -27,4 +28,19 @@ if (!framed && mount) {
     </ErrorBoundary>,
     mount,
   );
+  // Tidy up cards deleted long ago, once a day, when the page has settled.
+  window.setTimeout(() => {
+    void tidyUp();
+  }, 5_000);
+}
+
+async function tidyUp() {
+  try {
+    const last = await store.getMeta('lastTidyAt');
+    if (typeof last === 'number' && Date.now() - last < 86_400_000) return;
+    await store.compactDeleted();
+    await store.setMeta('lastTidyAt', Date.now());
+  } catch {
+    // Not important: it will try again next time.
+  }
 }

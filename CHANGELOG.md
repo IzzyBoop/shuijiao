@@ -37,6 +37,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   card over. It now loads then, and the build checks that it stays that way.
 - **Screen readers read just the answer** when a card is turned over, not the whole
   word-by-word table as well. The table is still there to explore.
+- **Deleted cards are tidied up.** 30 days after you delete a card, its study history is
+  removed, so backups stay smaller. Deleted cards also no longer count toward the card limit.
 - Firefox no longer pops up a storage permission question out of the blue when you save your
   first card; the Study page asks instead, with an explanation.
 - **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older

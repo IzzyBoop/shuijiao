@@ -308,6 +308,91 @@ describe('LocalStudyStore import duplicates: reading and rewording', () => {
   });
 });
 
+describe('LocalStudyStore tidying up deleted cards', () => {
+  const DAY = 86_400_000;
+  const NOW = 1_800_000_000_000;
+  let db: PortalDB;
+  let store: LocalStudyStore;
+  beforeEach(() => {
+    db = new PortalDB(`test-${crypto.randomUUID()}`);
+    store = new LocalStudyStore(db);
+  });
+
+  const history = async (cardId: string) => {
+    await db.reviewStates.put({
+      key: `${cardId}|tpl-reading`,
+      cardId,
+      templateId: 'tpl-reading',
+      due: 1,
+      stability: 1,
+      stabilityFast: 1,
+      difficulty: 5,
+      scheduledDays: 1,
+      learningStep: 0,
+      reps: 1,
+      lapses: 0,
+      state: 2,
+      scheduleStatus: 'review',
+      lastReview: 1,
+      updatedAt: 1,
+    });
+    await db.reviewLogs.put({
+      id: `log-${cardId}`,
+      cardId,
+      templateId: 'tpl-reading',
+      rating: 3,
+      state: 2,
+      due: 1,
+      stability: 1,
+      stabilityFast: 1,
+      difficulty: 5,
+      scheduledDays: 1,
+      learningStep: 0,
+      review: 1,
+    });
+  };
+
+  it('strips cards deleted over 30 days ago, keeping a marker; recent ones stay whole', async () => {
+    await db.cards.bulkPut([
+      card({ id: 'old', deleted: 1, updatedAt: NOW - 31 * DAY }),
+      card({ id: 'recent', deleted: 1, updatedAt: NOW - 2 * DAY }),
+      card({ id: 'live', updatedAt: NOW - 400 * DAY }),
+    ]);
+    for (const id of ['old', 'recent', 'live']) await history(id);
+
+    expect(await store.compactDeleted(NOW)).toBe(1);
+    const old = await db.cards.get('old');
+    expect(old).toMatchObject({
+      deleted: 1,
+      traditional: '',
+      meaning: '',
+      tags: [],
+      updatedAt: NOW - 31 * DAY,
+    });
+    expect((await db.cards.get('recent'))?.meaning).toBe('bank');
+    expect((await db.cards.get('live'))?.meaning).toBe('bank');
+    expect((await db.reviewStates.toArray()).map((r) => r.cardId).sort()).toEqual(['live', 'recent']);
+    expect((await db.reviewLogs.toArray()).map((r) => r.cardId).sort()).toEqual(['live', 'recent']);
+    // Nothing more to do the second time.
+    expect(await store.compactDeleted(NOW)).toBe(0);
+    // The marker still makes a valid backup.
+    expect(parseBackup(JSON.stringify(await store.exportBackup())).ok).toBe(true);
+  });
+
+  it('an older backup still holding the card does not bring it back', async () => {
+    await db.cards.put(card({ id: 'gone', deleted: 1, updatedAt: NOW - 40 * DAY }));
+    await store.compactDeleted(NOW);
+    await store.applyImport(backup({ cards: [card({ id: 'gone', updatedAt: NOW - 50 * DAY })] }));
+    expect(await store.countCards()).toBe(0);
+    expect((await db.cards.get('gone'))?.deleted).toBe(1);
+  });
+
+  it('deleted cards do not count toward the card limit', async () => {
+    await db.cards.bulkPut([card({ id: 'a', deleted: 1 }), card({ id: 'b' })]);
+    expect(await store.countCards()).toBe(1);
+  });
+});
+
 describe('LocalStudyStore undo', () => {
   let store: LocalStudyStore;
   beforeEach(() => {

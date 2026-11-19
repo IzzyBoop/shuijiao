@@ -148,6 +148,11 @@ export interface StudyStore {
   /** Puts earlier versions of cards back (Undo for updateCards). */
   restoreCardVersions(cards: readonly Card[]): Promise<void>;
   countCards(): Promise<number>;
+  /**
+   * Cards deleted more than 30 days ago lose their text, study progress and review
+   * history; a small marker stays. Returns how many cards were tidied up.
+   */
+  compactDeleted(now?: number): Promise<number>;
 
   listTemplates(): Promise<Template[]>;
   saveTemplate(template: Template): Promise<void>;
@@ -185,6 +190,10 @@ export interface StudyStore {
 }
 
 const live = <T extends { deleted: 0 | 1 }>(rows: T[]): T[] => rows.filter((r) => r.deleted === 0);
+
+/** How long a deleted card is kept whole (with its progress) before it is tidied up. */
+export const DELETED_KEPT_MS = 30 * 86_400_000;
+const isStripped = (c: Card) => c.traditional === '' && c.simplified === '';
 
 export class LocalStudyStore implements StudyStore {
   constructor(private readonly db: PortalDB) {}
@@ -247,7 +256,7 @@ export class LocalStudyStore implements StudyStore {
     return [...byId.values()];
   }
   async saveCard(card: Card) {
-    if (!(await this.db.cards.get(card.id)) && (await this.db.cards.count()) >= LIMITS.cards) {
+    if (!(await this.db.cards.get(card.id)) && (await this.countCards()) >= LIMITS.cards) {
       throw new Error(`You have reached the limit of ${LIMITS.cards} cards.`);
     }
     await this.db.cards.put({ ...card, updatedAt: Date.now() });
@@ -308,6 +317,36 @@ export class LocalStudyStore implements StudyStore {
   }
   async countCards() {
     return await this.db.cards.filter((c) => c.deleted === 0).count();
+  }
+
+  async compactDeleted(now = Date.now()) {
+    const db = this.db;
+    const before = now - DELETED_KEPT_MS;
+    return db.transaction('rw', db.cards, db.reviewStates, db.reviewLogs, async () => {
+      const old = await db.cards
+        .where('updatedAt')
+        .below(before)
+        .filter((c) => c.deleted === 1 && !isStripped(c))
+        .toArray();
+      if (old.length === 0) return 0;
+      const ids = old.map((c) => c.id);
+      // The marker keeps its id and deletion time (updatedAt), so an older backup that
+      // still has the card can't bring it back on import.
+      await db.cards.bulkPut(
+        old.map((c) => ({
+          ...c,
+          traditional: '',
+          simplified: '',
+          pinyin: '',
+          meaning: '',
+          notes: '',
+          tags: [],
+        })),
+      );
+      await db.reviewStates.where('cardId').anyOf(ids).delete();
+      await db.reviewLogs.where('cardId').anyOf(ids).delete();
+      return old.length;
+    });
   }
 
   async listTemplates() {
@@ -619,7 +658,8 @@ export class LocalStudyStore implements StudyStore {
       throw new Error(`Import would exceed the limit of ${LIMITS.links} links.`);
     }
 
-    const total = (await this.db.cards.count()) + cards.counts.added;
+    // Deleted cards don't count (the file's own deleted ones, if any, do: close enough).
+    const total = (await this.countCards()) + cards.counts.added;
     if (total > LIMITS.cards) throw new Error(`Import would exceed the limit of ${LIMITS.cards} cards.`);
 
     const orphans = orphansBefore - (cardRows.length + stateRows.length + logRows.length);
