@@ -16,7 +16,7 @@ Requires Node 24+ and [gitleaks](https://github.com/gitleaks/gitleaks) for the c
 npm ci             # install exact locked versions (install scripts are disabled)
 npm run dev        # local dev server at http://127.0.0.1:5173
 npm run check      # lint + typecheck + format check + unit tests
-npm run build      # production build into dist/, then scans it for leaked paths/emails
+npm run build      # production build into dist/, then checks it for leaked paths/emails and bundle size
 npm run preview    # serve dist/ at http://127.0.0.1:4173
 npx playwright install chromium   # once, for end-to-end tests
 npm run e2e        # end-to-end tests against the production build

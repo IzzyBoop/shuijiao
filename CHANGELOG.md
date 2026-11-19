@@ -32,6 +32,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   iPad, where every browser uses the same voices.
 - The portal now says your cards are stored "in this browser" everywhere (the footer said "on
   this device", but another browser on the same device can't see them).
+- **The portal starts faster.** Since 1.1.0 every page load downloaded the code for the
+  word-by-word meanings (about 140 KB compressed), even though it's only needed once you turn a
+  card over. It now loads then, and the build checks that it stays that way.
 - Firefox no longer pops up a storage permission question out of the blue when you save your
   first card; the Study page asks instead, with an explanation.
 - **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older

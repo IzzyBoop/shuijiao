@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Card } from '../../core/db/model';
-import { breakdown, type Breakdown } from '../../core/lang/breakdown';
+import type { Breakdown } from '../../core/lang/breakdown';
 import { useStudyPrefs } from '../../core/study-prefs';
 import { Pinyin, Trad } from '../../core/ui/chinese';
+
+// Loaded on first use, with pinyin-pro and the dictionary reader, so they stay out of
+// the main bundle that every page load needs (tools/check-dist.mjs checks this).
+const loadBreakdown = () => import('../../core/lang/breakdown');
 
 /**
  * The meaning of each word (in a sentence) or each character (in a word), shown under
@@ -16,12 +20,13 @@ export function CardBreakdown({ card }: { card: Card }) {
     setResult(null);
     if (!showBreakdown) return;
     let alive = true;
-    breakdown(card)
+    loadBreakdown()
+      .then((m) => m.breakdown(card))
       .then((r) => {
         if (alive) setResult(r);
       })
       .catch(() => {
-        // Offline before the dictionary was ever downloaded: just leave it out.
+        // Offline before the dictionary (or this code) was ever downloaded: just leave it out.
       });
     return () => {
       alive = false;

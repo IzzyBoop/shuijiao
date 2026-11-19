@@ -1,8 +1,10 @@
-// Scans the production build for leaked personal data and CSP regressions.
+// Scans the production build for leaked personal data, CSP regressions, and a startup
+// bundle that has grown too big.
 // Fails the build (exit 1) on any finding.
 import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
+import { gzipSync } from 'node:zlib';
 
 const DIST = 'dist';
 const problems = [];
@@ -41,9 +43,37 @@ for (const m of html.matchAll(/<script\b([^>]*)>/gi)) {
 if (/<style\b/i.test(html) || /\sstyle\s*=/i.test(html))
   problems.push('index.html: inline style (blocked by CSP)');
 
+// The code every page load needs (the entry script and what it preloads) stays small:
+// the heavy language libraries load only when a feature needs them (auto-fill, the
+// word-by-word meanings). v1.1.0 accidentally pulled pinyin-pro back in.
+const ENTRY_BUDGET_GZIP = 120 * 1024;
+const HEAVY_LIBRARIES = [
+  { name: 'pinyin-pro', markers: ['numToSymbol', 'toneType'] },
+  { name: 'opencc-js', markers: ['normalizationChain'] },
+];
+const startup = [
+  ...[...html.matchAll(/<script\b[^>]*\btype="module"[^>]*\bsrc="\.\/([^"]+)"/gi)].map((m) => m[1]),
+  ...[...html.matchAll(/<link\b[^>]*\brel="modulepreload"[^>]*\bhref="\.\/([^"]+)"/gi)].map((m) => m[1]),
+];
+if (startup.length === 0) problems.push('index.html: no module entry script found');
+let startupGzip = 0;
+for (const rel of startup) {
+  const code = await readFile(join(DIST, rel));
+  startupGzip += gzipSync(code).length;
+  const text = code.toString('utf8');
+  for (const { name, markers } of HEAVY_LIBRARIES) {
+    if (markers.some((m) => text.includes(m)))
+      problems.push(`${rel}: ${name} is in the startup bundle; import it lazily`);
+  }
+}
+const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
+if (startupGzip > ENTRY_BUDGET_GZIP) {
+  problems.push(`startup bundle is ${kb(startupGzip)} gzipped, over the ${kb(ENTRY_BUDGET_GZIP)} budget`);
+}
+
 if (problems.length) {
-  console.error('check-dist: build output failed the leak/CSP check:');
+  console.error('check-dist: the build output failed its checks:');
   for (const p of problems) console.error('  - ' + p);
   process.exit(1);
 }
-console.log(`check-dist: ${files.length} files clean.`);
+console.log(`check-dist: ${files.length} files clean; startup bundle ${kb(startupGzip)} gzipped.`);
