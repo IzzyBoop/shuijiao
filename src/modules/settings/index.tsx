@@ -342,8 +342,8 @@ function StoragePanel() {
       setConfirmText('');
       setMessage(
         keepCopy
-          ? 'All study data on this device was erased. You can still undo this below.'
-          : 'All study data on this device was erased.',
+          ? 'All study data in this browser was erased. You can still undo this below.'
+          : 'All study data in this browser was erased.',
       );
       setUndoRefresh((n) => n + 1);
       info.reload();
@@ -354,7 +354,7 @@ function StoragePanel() {
 
   return (
     <section class="panel stack">
-      <h2>Storage on this device</h2>
+      <h2>Storage in this browser</h2>
       {info.data && (
         <p class="muted">
           {info.data.cards} cards · {(info.data.used / 1e6).toFixed(1)} MB used ·{' '}
@@ -386,7 +386,7 @@ function StoragePanel() {
         <summary>Erase all study data</summary>
         <div class="stack mt">
           <p class="small">
-            This deletes every card, deck, and review on this device. Download a backup first. Type{' '}
+            This deletes every card, deck, and review in this browser. Download a backup first. Type{' '}
             <strong>ERASE</strong> to confirm.
           </p>
           <label class="check small">

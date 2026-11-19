@@ -27,6 +27,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Changed
 
+- The "works best in Google Chrome" message now says that your cards stay in the browser you
+  made them in, and how to take them along with a backup. It no longer appears on iPhone and
+  iPad, where every browser uses the same voices.
+- The portal now says your cards are stored "in this browser" everywhere (the footer said "on
+  this device", but another browser on the same device can't see them).
 - Firefox no longer pops up a storage permission question out of the blue when you save your
   first card; the Study page asks instead, with an explanation.
 - **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older

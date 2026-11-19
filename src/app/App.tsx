@@ -86,7 +86,7 @@ export function App() {
 
       <footer class="footer">
         <div class="footer-inner">
-          <span>Your cards are stored only on this device.</span>
+          <span>Your cards are stored only in this browser.</span>
           <VersionEgg version={__APP_VERSION__} />
           <span class="row">
             {FOOTER_NAV.map((item) => (

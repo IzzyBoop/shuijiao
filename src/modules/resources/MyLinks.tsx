@@ -78,7 +78,7 @@ export function MyLinks() {
       <div>
         <h2 id="my-links-heading">My links</h2>
         <p class="muted small">
-          Your own useful sites. Only you can see these: they're saved on this device and included in your
+          Your own useful sites. Only you can see these: they're saved in this browser and included in your
           backups.
         </p>
       </div>

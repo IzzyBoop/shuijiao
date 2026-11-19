@@ -421,7 +421,7 @@ test('backup: export, erase, import restores cards', async ({ page }, testInfo) 
   await page.getByText('Erase all study data').click();
   await page.getByLabel('Type ERASE to confirm').fill('ERASE');
   await page.getByRole('button', { name: 'Erase everything' }).click();
-  await expect(page.getByText('All study data on this device was erased.')).toBeVisible();
+  await expect(page.getByText('All study data in this browser was erased.')).toBeVisible();
 
   await page.getByLabel('Import a backup…').setInputFiles(file);
   await page.getByRole('button', { name: 'Import', exact: true }).click();
@@ -1293,6 +1293,32 @@ test('the "works best in Chrome" message can be closed for good', async ({ page 
   await expect(notice).toHaveCount(0);
 });
 
+test('the Chrome message says how to take your cards along', async ({ page }) => {
+  await page.goto('./#/');
+  const notice = page.locator('.site-notice');
+  await expect(notice).toContainText('Your cards stay in the browser you made them in');
+  await notice.getByRole('link', { name: 'download a backup' }).click();
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByText('Your cards are stored only in this browser.')).toBeVisible();
+});
+
+test.describe('on an iPad', () => {
+  // iPads report themselves as a Mac with a touch screen.
+  test.use({
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15',
+  });
+
+  test('there is no Chrome message: every browser there has the same voices', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'maxTouchPoints', { value: 5 });
+    });
+    await page.goto('./#/');
+    await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+    await expect(page.locator('.site-notice')).toHaveCount(0);
+  });
+});
+
 test('Google Chrome users never see the Chrome message', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'userAgentData', {
@@ -1399,7 +1425,7 @@ test('the backup reminder can be hidden for a week', async ({ page }, testInfo) 
   await expect(page.getByText(/Imported: 10 new cards/)).toBeVisible();
 
   await page.goto('./#/');
-  const reminder = page.locator('.notice', { hasText: 'Download a backup' });
+  const reminder = page.locator('.notice', { hasText: "so you don't lose them" });
   await expect(reminder).toBeVisible();
   await reminder.getByRole('button', { name: 'Hide this reminder for a week' }).click();
   await expect(reminder).toHaveCount(0);
