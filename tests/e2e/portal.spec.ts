@@ -667,7 +667,9 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
   await page.goto('./#/settings');
   await page.locator('input[type=file]').setInputFiles(await file('theirs.json', theirs));
   await expect(
-    page.getByText('25 cards in this backup are different cards with the same characters as yours.'),
+    page.getByText(
+      '25 cards in this backup are different cards with the same characters and pinyin as yours.',
+    ),
   ).toBeVisible();
   await expect(page.getByLabel(/Keep old/)).toBeChecked();
 
@@ -700,11 +702,11 @@ test('duplicates on import: keep old, keep new, or choose card by card', async (
     .getByRole('button', { name: /Keep new/ })
     .click();
   await expect(page.getByText('Keeping 23 old · 2 new')).toBeVisible();
-  await expect(page.getByText(/Duplicates: 23 kept as you have them, 2 replaced/)).toBeVisible();
+  await expect(page.getByText(/Duplicates: 23 kept as you have them, 2 updated/)).toBeVisible();
 
   await page.getByRole('button', { name: 'Import', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
-  await expect(page.getByText(/2 replaced/)).toBeVisible();
+  await expect(page.getByText(/2 cards of yours updated/)).toBeVisible();
 
   await page.goto('./#/cards');
   await page.getByLabel('Search cards').fill('theirs');

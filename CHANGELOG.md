@@ -28,6 +28,12 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   it. Any backup the portal makes can now be imported, and the portal checks each backup as it
   downloads it and tells you straight away if something is wrong, with a link to report the
   problem.
+- **"Keep new" on import no longer deletes your cards.** When a backup or the course cards have
+  a different card for a word you already have, "Keep new" now gives your card the new wording
+  (pinyin, meaning, notes, tags) and keeps its deck and your study progress. Before, your card
+  and its study history were deleted.
+- **Words that are written the same but read differently aren't treated as duplicates** any
+  more: 行 háng and 行 xíng are both kept.
 - **A card is only ever rated once.** Tapping a rating twice quickly, or holding a number key
   down, could save the same answer twice and make your review counts too high.
 

@@ -65,6 +65,24 @@ export const CARD_DIFFERENCE_FIELDS = [
 ] as const;
 export type CardDifference = (typeof CARD_DIFFERENCE_FIELDS)[number];
 
+/** Pinyin compared loosely: case, spaces, apostrophes and hyphens don't matter. */
+const pinyinKey = (p: string): string =>
+  p
+    .normalize('NFC')
+    .toLocaleLowerCase()
+    .replace(/[\s'’-]/g, '');
+
+/**
+ * Two different cards are duplicates when they share characters and have the same
+ * reading. 行 háng and 行 xíng are different words. A card without pinyin matches on
+ * its characters alone.
+ */
+function sameReading(a: Card, b: Card): boolean {
+  const pa = pinyinKey(a.pinyin);
+  const pb = pinyinKey(b.pinyin);
+  return pa === '' || pb === '' || pa === pb;
+}
+
 /** The fields in which two cards differ (ignoring ids and timestamps). */
 export function cardDifferences(a: Card, b: Card): CardDifference[] {
   const value = (c: Card, f: CardDifference): string =>
@@ -94,7 +112,7 @@ export interface ImportPreview {
   links: MergeCounts;
   /** Imported duplicates skipped in favour of the cards you already have. */
   duplicatesKeptOld: number;
-  /** Imported duplicates that replace the cards you already have. */
+  /** Your cards that take the wording of a duplicate in the backup (keeping their progress). */
   duplicatesReplaced: number;
   /** Records dropped because they point at something that doesn't exist. */
   orphans: number;
@@ -144,7 +162,10 @@ export interface StudyStore {
   deleteLink(id: string): Promise<void>;
 
   exportBackup(): Promise<Backup>;
-  /** Imported cards with the same characters as cards you already have (but a different id). */
+  /**
+   * Imported cards that match cards you already have: edited copies of the same card, or
+   * different cards with the same characters and pinyin.
+   */
   findImportDuplicates(backup: Backup): Promise<ImportDuplicate[]>;
   previewImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
   /** Applies an import, first keeping a copy of everything so it can be undone. */
@@ -487,7 +508,9 @@ export class LocalStudyStore implements StudyStore {
       }
       const matches = new Map<string, Card>();
       for (const text of [incoming.traditional, incoming.simplified]) {
-        for (const card of byText.get(text) ?? []) matches.set(card.id, card);
+        for (const card of byText.get(text) ?? []) {
+          if (sameReading(card, incoming)) matches.set(card.id, card);
+        }
       }
       const existing = [...matches.values()];
       const first = existing[0];
@@ -501,29 +524,48 @@ export class LocalStudyStore implements StudyStore {
   private async plan(backup: Backup, { deckMode, duplicates }: ImportOptions) {
     const builtinIds = new Set(builtinTemplates(0).map((t) => t.id));
 
-    // Duplicates:
+    // Duplicates. Nothing of yours is ever deleted, and your study progress is always kept.
     // - "old" skips the imported card. For a different card with the same characters its
     //   study progress is skipped too; for an edited copy of the same card, progress from
     //   the file still merges as usual (the card itself is unchanged).
-    // - "new" imports it. A different card replaces (deletes) the matching cards you had;
-    //   an edited copy overwrites yours even if it is older, keeping the same card id.
+    // - "new" takes the backup's wording. An edited copy overwrites yours even if it is
+    //   older, keeping the same card id. For a different card, your matching cards are
+    //   updated in place with its wording (keeping their id, deck and progress), and the
+    //   imported card itself, with its progress, is skipped.
     const skip = new Set<string>();
     const skipWithProgress = new Set<string>();
-    const retire = new Set<string>();
     const force = new Map<string, number>();
+    const reworded = new Map<string, Card>();
     let replaced = 0;
+    let keptOld = 0;
+    const now = Date.now();
     for (const { incoming, existing, sameCard } of await this.findImportDuplicates(backup)) {
       const choice = duplicates?.choices?.[incoming.id] ?? duplicates?.default ?? 'old';
       if (choice === 'old') {
+        keptOld++;
         skip.add(incoming.id);
         if (!sameCard) skipWithProgress.add(incoming.id);
-      } else {
+      } else if (sameCard) {
         replaced++;
-        if (sameCard) {
-          const mine = existing[0]?.updatedAt ?? 0;
-          force.set(incoming.id, Math.max(Date.now(), mine + 1));
-        } else {
-          for (const card of existing) retire.add(card.id);
+        const mine = existing[0]?.updatedAt ?? 0;
+        force.set(incoming.id, Math.max(now, mine + 1));
+      } else {
+        skip.add(incoming.id);
+        skipWithProgress.add(incoming.id);
+        for (const card of existing) {
+          if (!reworded.has(card.id)) replaced++;
+          const { kind, traditional, simplified, pinyin, meaning, notes, tags } = incoming;
+          reworded.set(card.id, {
+            ...card,
+            kind,
+            traditional,
+            simplified,
+            pinyin,
+            meaning,
+            notes,
+            tags: [...tags],
+            updatedAt: Math.max(now, card.updatedAt + 1),
+          });
         }
       }
     }
@@ -577,7 +619,6 @@ export class LocalStudyStore implements StudyStore {
       throw new Error(`Import would exceed the limit of ${LIMITS.links} links.`);
     }
 
-    for (const card of cardRows) retire.delete(card.id);
     const total = (await this.db.cards.count()) + cards.counts.added;
     if (total > LIMITS.cards) throw new Error(`Import would exceed the limit of ${LIMITS.cards} cards.`);
 
@@ -586,11 +627,10 @@ export class LocalStudyStore implements StudyStore {
       writes: {
         decks: decks.deckRows,
         templates: templates.toWrite,
-        cards: cards.toWrite,
+        cards: [...cards.toWrite, ...reworded.values()],
         reviewStates: reviewStates.toWrite,
         reviewLogs: newLogs,
         links: links.toWrite,
-        retireCardIds: [...retire],
       },
       preview: {
         decksCreated: decks.created,
@@ -600,7 +640,7 @@ export class LocalStudyStore implements StudyStore {
         reviewStates: reviewStates.counts,
         reviewLogs: { added: newLogs.length, updated: 0, skipped: logRows.length - newLogs.length },
         links: links.counts,
-        duplicatesKeptOld: skip.size,
+        duplicatesKeptOld: keptOld,
         duplicatesReplaced: replaced,
         orphans,
       } satisfies ImportPreview,
@@ -661,9 +701,6 @@ export class LocalStudyStore implements StudyStore {
       await db.decks.bulkPut(writes.decks);
       await db.templates.bulkPut(writes.templates);
       await db.cards.bulkPut(writes.cards);
-      if (writes.retireCardIds.length > 0) {
-        await db.cards.where('id').anyOf(writes.retireCardIds).modify({ deleted: 1, updatedAt: Date.now() });
-      }
       await db.reviewStates.bulkPut(writes.reviewStates);
       await db.reviewLogs.bulkAdd(writes.reviewLogs);
       return preview;

@@ -81,7 +81,8 @@ function ImportDone({ result, back }: { result: ImportPreview; back: PendingImpo
     );
   }
   const parts = [plural(result.cards.added, 'new card'), `${result.cards.updated} updated`];
-  if (result.duplicatesReplaced > 0) parts.push(`${result.duplicatesReplaced} replaced`);
+  if (result.duplicatesReplaced > 0)
+    parts.push(`${plural(result.duplicatesReplaced, 'card')} of yours updated`);
   if (result.duplicatesKeptOld > 0) parts.push(`${plural(result.duplicatesKeptOld, 'duplicate')} skipped`);
   return (
     <section class="panel stack">
@@ -241,7 +242,10 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
                 }}
               />
               <span>
-                Keep new <span class="muted small">(use the backup’s version of these cards)</span>
+                Keep new{' '}
+                <span class="muted small">
+                  (use the backup’s wording for these cards; your study progress is kept)
+                </span>
               </span>
             </label>
             <label class="check">
@@ -258,8 +262,7 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
           </fieldset>
           {dupMode === 'new' && (
             <p class="small muted">
-              Edited copies of your own cards are updated and keep their study progress. Where a different
-              card has the same characters, yours is replaced and its study history is deleted.
+              Your cards take the backup’s wording and keep their deck and study progress. Nothing is deleted.
             </p>
           )}
           {dupMode === 'choose' && (
@@ -277,7 +280,10 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
       <section class="panel stack">
         <h2>{dups.length > 0 ? '3. Import' : '2. Import'}</h2>
         {p ? <ImportSummary preview={p} /> : <p class="muted">Working out what will change…</p>}
-        <p class="small muted">Where the same card changed in both places, the newer copy is kept.</p>
+        <p class="small muted">
+          Study progress is combined: where a card was studied in both places, the more recent progress is
+          kept.
+        </p>
         <div class="row">
           <button type="button" class="primary" disabled={busy || !p} onClick={() => void run()}>
             Import
@@ -327,8 +333,8 @@ function ImportSummary({ preview }: { preview: ImportPreview }) {
       </table>
       {(preview.duplicatesKeptOld > 0 || preview.duplicatesReplaced > 0) && (
         <p class="small">
-          Duplicates: {preview.duplicatesKeptOld} kept as you have them, {preview.duplicatesReplaced} replaced
-          by the backup’s version.
+          Duplicates: {preview.duplicatesKeptOld} kept as you have them, {preview.duplicatesReplaced} updated
+          with the backup’s wording (keeping your study progress).
         </p>
       )}
       {preview.orphans > 0 && (
@@ -360,7 +366,7 @@ function describeDuplicates(dups: readonly ImportDuplicate[]): string {
   const otherPart = (lead: boolean) =>
     `${lead ? plural(other, 'card') + ' in this backup' : other} ${
       other === 1 ? 'is a different card' : 'are different cards'
-    } with the same characters as yours`;
+    } with the same characters and pinyin as yours`;
   if (edited > 0 && other > 0) return `${editedPart(true)}, and ${otherPart(false)}.`;
   return edited > 0 ? `${editedPart(true)}.` : `${otherPart(true)}.`;
 }
@@ -555,7 +561,7 @@ function DuplicateChooser({
             <li key={incoming.id} class="dup-pair" aria-label={`Duplicate: ${incoming.traditional}`}>
               <p class="dup-summary small">
                 <strong>
-                  {sameCard ? 'Edited copy of the same card' : 'Different card, same characters'}
+                  {sameCard ? 'Edited copy of the same card' : 'Different card, same characters and pinyin'}
                 </strong>
                 {' · '}
                 {differences.length > 0

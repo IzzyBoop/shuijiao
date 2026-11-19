@@ -226,6 +226,88 @@ describe('LocalStudyStore import', () => {
   });
 });
 
+describe('LocalStudyStore import duplicates: reading and rewording', () => {
+  let store: LocalStudyStore;
+  beforeEach(() => {
+    store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+  });
+
+  const progress = (cardId: string, reps: number) => ({
+    key: `${cardId}|tpl-reading`,
+    cardId,
+    templateId: 'tpl-reading',
+    due: 2,
+    stability: 3,
+    stabilityFast: 3,
+    difficulty: 5,
+    scheduledDays: 3,
+    learningStep: 0,
+    reps,
+    lapses: 0,
+    state: 2 as const,
+    scheduleStatus: 'review' as const,
+    lastReview: 1,
+    updatedAt: 1,
+  });
+
+  it('the same characters with a different reading are different words, not duplicates', async () => {
+    await store.saveCard(card({ id: 'hang', traditional: '行', simplified: '行', pinyin: 'háng' }));
+    const incoming = backup({
+      cards: [card({ id: 'xing', traditional: '行', simplified: '行', pinyin: 'xíng', meaning: 'to walk' })],
+    });
+    expect(await store.findImportDuplicates(incoming)).toEqual([]);
+    await store.applyImport(incoming, { deckMode: 'keep', duplicates: { default: 'new' } });
+    expect((await store.listCards()).map((c) => c.id).sort()).toEqual(['hang', 'xing']);
+  });
+
+  it('compares pinyin loosely, and a card without pinyin matches on its characters', async () => {
+    await store.saveCard(card({ id: 'mine', pinyin: 'Yín háng' }));
+    expect(
+      await store.findImportDuplicates(backup({ cards: [card({ id: 'a', pinyin: 'yínháng' })] })),
+    ).toHaveLength(1);
+    expect(await store.findImportDuplicates(backup({ cards: [card({ id: 'b', pinyin: '' })] }))).toHaveLength(
+      1,
+    );
+  });
+
+  it('"Keep new" rewords your card in place: same card, same deck, your progress kept', async () => {
+    const deck = { id: 'deck-mine', name: 'Mine', createdAt: 1, updatedAt: 1, deleted: 0 as const };
+    await store.saveDeck(deck);
+    await store.saveCard(card({ id: 'mine', deckId: 'deck-mine', meaning: 'bank', tags: ['old'] }));
+    await store.recordReview(progress('mine', 7), {
+      id: 'log-mine',
+      cardId: 'mine',
+      templateId: 'tpl-reading',
+      rating: 3,
+      state: 2,
+      due: 1,
+      stability: 1,
+      stabilityFast: 1,
+      difficulty: 5,
+      scheduledDays: 1,
+      learningStep: 0,
+      review: 1,
+    });
+    const incoming = backup({
+      cards: [card({ id: 'theirs', meaning: 'bank; financial institution', notes: 'L3', tags: ['course'] })],
+      reviewStates: [progress('theirs', 99)],
+    });
+    const result = await store.applyImport(incoming, { deckMode: 'keep', duplicates: { default: 'new' } });
+    expect(result.duplicatesReplaced).toBe(1);
+
+    const cards = await store.listCards();
+    expect(cards.map((c) => c.id)).toEqual(['mine']);
+    expect(cards[0]).toMatchObject({
+      deckId: 'deck-mine',
+      meaning: 'bank; financial institution',
+      notes: 'L3',
+      tags: ['course'],
+    });
+    const states = await store.listReviewStates(['tpl-reading']);
+    expect(states.map((s) => [s.cardId, s.reps])).toEqual([['mine', 7]]);
+  });
+});
+
 describe('LocalStudyStore undo', () => {
   let store: LocalStudyStore;
   beforeEach(() => {
@@ -252,44 +334,21 @@ describe('LocalStudyStore undo', () => {
     await expect(store.undoLast()).rejects.toThrow('nothing to undo');
   });
 
-  it('undoes an import that replaced a card, bringing back the card and its progress', async () => {
-    await store.saveCard(card({ id: 'mine', traditional: '行', simplified: '行', pinyin: 'háng' }));
-    await store.recordReview(
-      {
-        key: 'mine|tpl-reading',
-        cardId: 'mine',
-        templateId: 'tpl-reading',
-        due: 2,
-        stability: 3,
-        stabilityFast: 3,
-        difficulty: 5,
-        scheduledDays: 3,
-        learningStep: 0,
-        reps: 4,
-        lapses: 0,
-        state: 2,
-        scheduleStatus: 'review',
-        lastReview: 1,
-        updatedAt: 1,
-      },
-      reviewOf('mine', 1),
-    );
+  it('undoes an import that reworded a card, bringing back your wording', async () => {
+    await store.saveCard(card({ id: 'mine', meaning: 'bank (mine)' }));
     await store.setMeta('lastBackupAt', 123);
-    const incoming = backup({
-      cards: [card({ id: 'theirs', traditional: '行', simplified: '行', pinyin: 'xíng' })],
-    });
+    const incoming = backup({ cards: [card({ id: 'theirs', meaning: 'bank (theirs)' })] });
     await store.applyImport(incoming, {
       deckMode: 'keep',
       duplicates: { default: 'new' },
       undoLabel: 'course.json',
     });
-    expect((await store.listCards()).map((c) => c.id)).toEqual(['theirs']);
+    expect((await store.getCard('mine'))?.meaning).toBe('bank (theirs)');
 
     const undo = await store.getUndo();
     expect(undo).toMatchObject({ kind: 'import', label: 'course.json', reviewsSince: 0 });
     await store.undoLast();
-    expect((await store.listCards()).map((c) => c.id)).toEqual(['mine']);
-    expect((await store.listReviewStates(['tpl-reading']))[0]?.reps).toBe(4);
+    expect((await store.getCard('mine'))?.meaning).toBe('bank (mine)');
     expect(await store.getMeta('lastBackupAt')).toBe(123);
     expect(await store.getUndo()).toBeNull();
   });
@@ -527,11 +586,14 @@ describe('LocalStudyStore import duplicates', () => {
     expect((await store.listCards()).map((c) => c.meaning).sort()).toEqual(['bank (mine)', 'hello']);
   });
 
-  it('keep new: imports the duplicate and deletes the card you had', async () => {
+  it("keep new: your card takes the duplicate's wording; nothing is deleted", async () => {
     const { store, file } = await setup();
     const result = await store.applyImport(file, { deckMode: 'keep', duplicates: { default: 'new' } });
     expect(result.duplicatesReplaced).toBe(1);
-    expect((await store.listCards()).map((c) => c.meaning).sort()).toEqual(['bank (theirs)', 'hello']);
+    expect((await store.listCards()).map((c) => [c.id, c.meaning]).sort()).toEqual([
+      ['mine', 'bank (theirs)'],
+      ['other', 'hello'],
+    ]);
   });
 
   it('per card: individual choices override the default', async () => {
@@ -540,7 +602,10 @@ describe('LocalStudyStore import duplicates', () => {
       deckMode: 'keep',
       duplicates: { default: 'old', choices: { theirs: 'new' } },
     });
-    expect((await store.listCards()).map((c) => c.id).sort()).toEqual(['other', 'theirs']);
+    expect((await store.listCards()).map((c) => [c.id, c.meaning]).sort()).toEqual([
+      ['mine', 'bank (theirs)'],
+      ['other', 'hello'],
+    ]);
   });
 
   it('skipping a duplicate also drops its study progress from the file', async () => {
