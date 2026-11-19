@@ -1697,6 +1697,26 @@ test('a word from the word-by-word meanings can be added as a card without leavi
   await expect(page.getByLabel('Notes')).toHaveValue('From: 我是學生');
 });
 
+test('a word whose tone changes in the sentence (不 bù → bú) is still recognised as yours', async ({
+  page,
+}) => {
+  await addCard(page, '不');
+  // 不累 isn't a dictionary word, so 不 is shown on its own, read bú before lèi.
+  await addCard(page, '我不累', "I'm not tired");
+  await page.goto('./#/browse');
+  const card = page.locator('.flashcard');
+  await expect(card).toBeVisible();
+  if (!((await card.textContent()) ?? '').includes('我不累')) {
+    await page.getByRole('button', { name: 'Next card' }).click();
+  }
+  await expect(card).toContainText('我不累');
+  await page.keyboard.press('Space');
+  const words = page.getByRole('region', { name: 'Word by word' });
+  await expect(words.getByRole('row', { name: /不/ })).toContainText('bú');
+  await expect(words.getByRole('img', { name: 'You have 不 as a card' })).toBeVisible();
+  await expect(words.getByRole('button', { name: 'Add 不 as a card' })).toHaveCount(0);
+});
+
 test('the Add a card popup can make a new deck, or hand the card over to the full editor', async ({
   page,
 }) => {

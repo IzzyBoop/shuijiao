@@ -1,4 +1,5 @@
 import { PortalDB, type UndoInfo } from './database';
+import { sameReading } from '../lang/reading';
 import { BACKUP_FORMAT, BACKUP_VERSION, type Backup } from './backup-schema';
 import { builtinTemplates, DEFAULT_DECK_ID, defaultDeck } from './defaults';
 import {
@@ -65,27 +66,12 @@ export const CARD_DIFFERENCE_FIELDS = [
 ] as const;
 export type CardDifference = (typeof CARD_DIFFERENCE_FIELDS)[number];
 
-/** Pinyin compared loosely: case, spaces, apostrophes and hyphens don't matter. */
-const pinyinKey = (p: string): string =>
-  p
-    .normalize('NFC')
-    .toLocaleLowerCase()
-    .replace(/[\s'’-]/g, '');
-
 /**
- * Two different cards are duplicates when they share characters and have the same
- * reading. 行 háng and 行 xíng are different words. A card without pinyin matches on
- * its characters alone.
+ * Two different cards are duplicates when they share characters and are the same word:
+ * 行 háng and 行 xíng are not, 不 bù and 不 bú are (see core/lang/reading.ts).
  */
-function sameReading(a: Card, b: Card): boolean {
-  return samePinyin(a.pinyin, b.pinyin);
-}
-
-/** Two readings are the same word's, comparing loosely (an empty one matches anything). */
-export function samePinyin(a: string, b: string): boolean {
-  const pa = pinyinKey(a);
-  const pb = pinyinKey(b);
-  return pa === '' || pb === '' || pa === pb;
+function sameWord(a: Card, b: Card): boolean {
+  return sameReading(a.pinyin, b.pinyin, a.traditional || a.simplified);
 }
 
 /** The fields in which two cards differ (ignoring ids and timestamps). */
@@ -571,7 +557,7 @@ export class LocalStudyStore implements StudyStore {
       const matches = new Map<string, Card>();
       for (const text of [incoming.traditional, incoming.simplified]) {
         for (const card of byText.get(text) ?? []) {
-          if (sameReading(card, incoming)) matches.set(card.id, card);
+          if (sameWord(card, incoming)) matches.set(card.id, card);
         }
       }
       const existing = [...matches.values()];

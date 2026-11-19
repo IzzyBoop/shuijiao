@@ -260,6 +260,21 @@ describe('LocalStudyStore import duplicates: reading and rewording', () => {
     expect((await store.listCards()).map((c) => c.id).sort()).toEqual(['hang', 'xing']);
   });
 
+  it('tone changes (不 bù / bú) and neutral tones are still the same word', async () => {
+    await store.saveCard(card({ id: 'bu', traditional: '不', simplified: '不', pinyin: 'bù' }));
+    await store.saveCard(card({ id: 'xx', traditional: '謝謝', simplified: '谢谢', pinyin: 'xièxie' }));
+    const incoming = backup({
+      cards: [
+        card({ id: 'bu2', traditional: '不', simplified: '不', pinyin: 'bú' }),
+        card({ id: 'xx2', traditional: '謝謝', simplified: '谢谢', pinyin: 'xiè xiè' }),
+      ],
+    });
+    expect((await store.findImportDuplicates(incoming)).map((d) => d.existing.map((c) => c.id))).toEqual([
+      ['bu'],
+      ['xx'],
+    ]);
+  });
+
   it('compares pinyin loosely, and a card without pinyin matches on its characters', async () => {
     await store.saveCard(card({ id: 'mine', pinyin: 'Yín háng' }));
     expect(

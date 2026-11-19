@@ -2,7 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import type { Card } from '../../core/db/model';
 import type { Breakdown } from '../../core/lang/breakdown';
 import type { WordGloss } from '../../core/lang/autofill';
-import { samePinyin, store } from '../../core/db/store';
+import { store } from '../../core/db/store';
+import { sameReading } from '../../core/lang/reading';
 import { Icon } from '../../core/ui/Icon';
 import { useStudyPrefs } from '../../core/study-prefs';
 import { Pinyin, Trad } from '../../core/ui/chinese';
@@ -71,7 +72,7 @@ export function CardBreakdown({
     void Promise.all(
       result.parts.map(async (p) => {
         const cards = await store.findDuplicates(p.traditional, p.simplified);
-        return cards.some((c) => samePinyin(c.pinyin, p.pinyin));
+        return cards.some((c) => sameReading(c.pinyin, p.pinyin, p.traditional));
       }),
     ).then((has) => {
       if (alive) setOwned(new Set(has.flatMap((yes, i) => (yes ? [i] : []))));

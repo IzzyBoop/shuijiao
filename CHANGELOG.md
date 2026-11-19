@@ -84,6 +84,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   a different card for a word you already have, "Keep new" now gives your card the new wording
   (pinyin, meaning, notes, tags) and keeps its deck and your study progress. Before, your card
   and its study history were deleted.
+- **Tone changes don't make a word look new.** 不 (bù / bú), 一 (yī / yí / yì), 七 and 八
+  change tone with the next syllable, and neutral tones (xièxie / xièxiè) vary; the portal now
+  knows these are the same word, in the word-by-word meanings, on import, and in the course
+  cards. Spacing and style don't matter either ("nǐhǎo", "nǐ hǎo", "ni3 hao3").
 - **Words that are written the same but read differently aren't treated as duplicates** any
   more: 行 háng and 行 xíng are both kept.
 - **Updates arrive reliably.** The portal now checks for a new version whenever you come back
