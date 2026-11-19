@@ -202,6 +202,26 @@ test('review a card with spaced repetition', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
 });
 
+test('a quick second press or a held-down key never rates a card twice', async ({ page }) => {
+  await addCard(page, '你好');
+  await page.goto('./#/review');
+  await expect(page.locator('.flashcard .face-traditional')).toBeVisible();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: /Good/ })).toBeVisible();
+  // A held-down key only repeats: it rates nothing.
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '3', repeat: true }));
+  });
+  await expect(page.getByRole('button', { name: /Good/ })).toBeVisible();
+  // Two presses in the same moment, before the first rating is saved: only one counts.
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '3' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '3' }));
+  });
+  await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
+  await expect(page.getByText('You reviewed 1 card.')).toBeVisible();
+});
+
 test('pressing Again does not bring the same card straight back', async ({ page }, testInfo) => {
   const now = 1_763_287_200_000;
   const chars = ['一', '二', '三', '四', '五', '六'];

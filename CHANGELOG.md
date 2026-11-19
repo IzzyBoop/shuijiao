@@ -20,6 +20,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   it. Any backup the portal makes can now be imported, and the portal checks each backup as it
   downloads it and tells you straight away if something is wrong, with a link to report the
   problem.
+- **A card is only ever rated once.** Tapping a rating twice quickly, or holding a number key
+  down, could save the same answer twice and make your review counts too high.
 
 ## [1.1.0] - 2026-11-17
 

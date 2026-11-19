@@ -41,6 +41,9 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  // The card whose rating is being saved. A second press before the next card shows up
+  // (a double tap, a quick second key) must not rate the same card again.
+  const grading = useRef<QueueItem | null>(null);
 
   useEffect(() => {
     if (session.data) setQueue(session.data.queue);
@@ -70,13 +73,15 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
   }, [item, shown, editing]);
 
   const grade = async (g: Grade) => {
-    if (!item) return;
+    if (!item || grading.current === item) return;
+    grading.current = item;
     const now = Date.now();
     const before = item.state ?? emptyState(item.card.id, item.template.id, now);
     const { state, log } = applyReview(before, g, now);
     try {
       await store.recordReview(state, log);
     } catch (err) {
+      grading.current = null; // not saved: rating it again is allowed
       setSaveError(errorMessage(err));
       return;
     }
@@ -94,6 +99,8 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
   useKeydown((e) => {
     // While the edit popup is open, keys belong to it (no accidental ratings).
     if (editing) return;
+    // A held-down key repeats; only the first press counts (no rating by holding "3").
+    if (e.repeat) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (!item) return;
     if (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey) {
