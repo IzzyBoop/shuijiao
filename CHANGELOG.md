@@ -72,6 +72,7 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 - **Clearer messages when your cards can't be loaded** (for example in a private window, or when
   the browser blocks site data): what may have happened, **Try again**, and a way to report it,
   instead of a bare error.
+- Course cards: "Please look at question 3." (it said "lookat").
 - **A card is only ever rated once.** Tapping a rating twice quickly, or holding a number key
   down, could save the same answer twice and make your review counts too high.
 
