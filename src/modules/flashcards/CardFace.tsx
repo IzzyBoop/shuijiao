@@ -1,6 +1,7 @@
 import type { Card, CardField } from '../../core/db/model';
 import { AudioButton, Pinyin, Simp, Trad } from '../../core/ui/chinese';
 import { CardBreakdown, useWarmBreakdown } from './CardBreakdown';
+import type { WordGloss } from '../../core/lang/autofill';
 
 /** Sentences (and very long words) use a smaller size that wraps, so they fit on the card. */
 const isLong = (card: Card) => card.kind === 'sentence' || [...card.traditional].length > 6;
@@ -81,11 +82,16 @@ export function CardFaces({
   front,
   back,
   shown,
+  onAdd,
+  refresh,
 }: {
   card: Card;
   front: readonly CardField[];
   back: readonly CardField[];
   shown: boolean;
+  /** "+ Add" on the word-by-word meanings (see CardBreakdown). */
+  onAdd?: (part: WordGloss) => void;
+  refresh?: number;
 }) {
   useWarmBreakdown();
   return (
@@ -102,7 +108,7 @@ export function CardFaces({
           </>
         )}
       </div>
-      {shown && <CardBreakdown card={card} />}
+      {shown && <CardBreakdown card={card} onAdd={onAdd} refresh={refresh} />}
     </>
   );
 }

@@ -1669,6 +1669,34 @@ test('screen readers hear the front and the answer, but not the whole word-by-wo
   }
 });
 
+test('a word from the word-by-word meanings can be added as a card without leaving the session', async ({
+  page,
+}) => {
+  await addCard(page, '我是學生', 'I am a student');
+  await page.goto('./#/review');
+  await expect(page.locator('.flashcard')).toContainText('我是學生');
+  await page.keyboard.press('Space');
+  const words = page.getByRole('region', { name: 'Word by word' });
+  await words.getByRole('button', { name: 'Add 學生 as a card' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Add a card' });
+  await expect(dialog.getByLabel('Traditional')).toHaveValue('學生');
+  await expect(dialog.getByLabel('Pinyin')).toHaveValue('xuéshēng');
+  await expect(dialog.getByLabel('Meaning')).toHaveValue(/student/);
+  await dialog.getByRole('button', { name: /Save/ }).click();
+  await expect(dialog).toBeHidden();
+
+  // Still on the same card, answer showing; the word is now marked as yours.
+  await expect(page.locator('.flashcard')).toContainText('我是學生');
+  await expect(words.getByRole('img', { name: 'You have 學生 as a card' })).toBeVisible();
+  await expect(words.getByRole('button', { name: 'Add 學生 as a card' })).toHaveCount(0);
+
+  await page.goto('./#/cards');
+  await expect(page.locator('.card-list > li', { hasText: '學生' }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'Edit 學生' }).click();
+  await expect(page.getByLabel('Notes')).toHaveValue('From: 我是學生');
+});
+
 test('a page that crashes shows a way out, and the rest of the portal keeps working', async ({ page }) => {
   await addCard(page, '你好');
   // Damage a card behind the portal's back, as a bug or a broken browser profile might.

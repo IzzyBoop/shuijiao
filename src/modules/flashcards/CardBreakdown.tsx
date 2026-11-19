@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { Card } from '../../core/db/model';
 import type { Breakdown } from '../../core/lang/breakdown';
+import type { WordGloss } from '../../core/lang/autofill';
+import { samePinyin, store } from '../../core/db/store';
+import { Icon } from '../../core/ui/Icon';
 import { useStudyPrefs } from '../../core/study-prefs';
 import { Pinyin, Trad } from '../../core/ui/chinese';
 
@@ -46,9 +49,37 @@ export function useWarmBreakdown(): void {
  * The meaning of each word (in a sentence) or each character (in a word), shown under
  * the answer. Appears once the dictionary has loaded; if it can't load, nothing shows.
  */
-export function CardBreakdown({ card }: { card: Card }) {
+export function CardBreakdown({
+  card,
+  onAdd,
+  refresh = 0,
+}: {
+  card: Card;
+  /** Offers "+ Add" on each word the student doesn't have as a card yet. */
+  onAdd?: ((part: WordGloss) => void) | undefined;
+  /** Change it after a card is added, to look again at which words are theirs. */
+  refresh?: number | undefined;
+}) {
   const { showBreakdown } = useStudyPrefs();
   const [result, setResult] = useState<Breakdown | null>(null);
+  const [owned, setOwned] = useState<ReadonlySet<number>>(new Set());
+
+  // Which words already have a card of their own (same characters and reading).
+  useEffect(() => {
+    if (!result || !onAdd) return;
+    let alive = true;
+    void Promise.all(
+      result.parts.map(async (p) => {
+        const cards = await store.findDuplicates(p.traditional, p.simplified);
+        return cards.some((c) => samePinyin(c.pinyin, p.pinyin));
+      }),
+    ).then((has) => {
+      if (alive) setOwned(new Set(has.flatMap((yes, i) => (yes ? [i] : []))));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [result, refresh, Boolean(onAdd)]);
 
   useEffect(() => {
     setResult(null);
@@ -84,6 +115,27 @@ export function CardBreakdown({ card }: { card: Card }) {
                 <Pinyin text={p.pinyin} />
               </td>
               <td>{p.gloss}</td>
+              {onAdd && (
+                <td class="breakdown-add">
+                  {owned.has(i) ? (
+                    <span class="breakdown-yours" title="You have this card">
+                      <Icon name="check" label={`You have ${p.traditional} as a card`} />
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      class="ghost icon-only"
+                      aria-label={`Add ${p.traditional} as a card`}
+                      title="Add as a card"
+                      onClick={() => {
+                        onAdd(p);
+                      }}
+                    >
+                      <Icon name="plus" />
+                    </button>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -11,7 +11,8 @@ import { getStudyPrefs } from '../../core/study-prefs';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardFaces } from './CardFace';
-import { EditCardDialog } from './EditCardDialog';
+import { AddCardDialog, EditCardDialog } from './EditCardDialog';
+import type { WordGloss } from '../../core/lang/autofill';
 import { loadSession } from './session-data';
 import { LoadError } from '../../core/ui/LoadError';
 
@@ -49,6 +50,9 @@ function ReviewSession({
   const [done, setDone] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  // A word from the word-by-word meanings being added as a card (a popup, like editing).
+  const [adding, setAdding] = useState<WordGloss | null>(null);
+  const [added, setAdded] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   // The card whose rating is being saved. A second press before the next card shows up
   // (a double tap, a quick second key) must not rate the same card again.
@@ -78,8 +82,8 @@ function ReviewSession({
   // clicked keeps focus, and the key-up of Space would "click" whatever button is in
   // that spot next (e.g. rate a card Again that you only meant to reveal).
   useEffect(() => {
-    if (!editing) cardRef.current?.focus({ preventScroll: true });
-  }, [item, shown, editing]);
+    if (!editing && !adding) cardRef.current?.focus({ preventScroll: true });
+  }, [item, shown, editing, adding]);
 
   const grade = async (g: Grade) => {
     if (!item || grading.current === item) return;
@@ -107,7 +111,7 @@ function ReviewSession({
 
   useKeydown((e) => {
     // While the edit popup is open, keys belong to it (no accidental ratings).
-    if (editing) return;
+    if (editing || adding) return;
     // A held-down key repeats; only the first press counts (no rating by holding "3").
     if (e.repeat) return;
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -192,7 +196,14 @@ function ReviewSession({
       </div>
       {saveError && <div class="notice error">Could not save your answer: {saveError}</div>}
       <div class="flashcard" tabIndex={-1} ref={cardRef}>
-        <CardFaces card={item.card} front={item.template.front} back={item.template.back} shown={shown} />
+        <CardFaces
+          card={item.card}
+          front={item.template.front}
+          back={item.template.back}
+          shown={shown}
+          onAdd={setAdding}
+          refresh={added}
+        />
       </div>
       {!shown ? (
         <div class="grade-bar" key="show">
@@ -218,6 +229,16 @@ function ReviewSession({
           ))}
         </div>
       )}
+      <AddCardDialog
+        part={adding}
+        from={item.card}
+        onClose={() => {
+          setAdding(null);
+        }}
+        onSaved={() => {
+          setAdded((n) => n + 1);
+        }}
+      />
       <EditCardDialog
         card={editing ? item.card : null}
         onClose={() => {

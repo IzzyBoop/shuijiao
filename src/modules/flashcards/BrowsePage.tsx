@@ -8,7 +8,8 @@ import type { Card } from '../../core/db/model';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardFaces } from './CardFace';
 import { hasTagSlug, tagForSlug } from '../../core/tags';
-import { EditCardDialog } from './EditCardDialog';
+import { AddCardDialog, EditCardDialog } from './EditCardDialog';
+import type { WordGloss } from '../../core/lang/autofill';
 import { LoadError } from '../../core/ui/LoadError';
 
 function shuffled<T>(list: readonly T[]): T[] {
@@ -37,6 +38,8 @@ export function BrowsePage({ params }: RouteProps) {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState<WordGloss | null>(null);
+  const [added, setAdded] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const [templateId, setTemplateId] = useState('tpl-reading');
 
@@ -56,12 +59,12 @@ export function BrowsePage({ params }: RouteProps) {
   // Keep focus on the card so Space flips once (a focused Flip button would also be
   // "clicked" by the key-up and flip it straight back).
   useEffect(() => {
-    if (!editing) cardRef.current?.focus({ preventScroll: true });
-  }, [index, flipped, editing]);
+    if (!editing && !adding) cardRef.current?.focus({ preventScroll: true });
+  }, [index, flipped, editing, adding]);
 
   useKeydown((e) => {
     // While the edit popup is open, keys belong to it.
-    if (editing) return;
+    if (editing || adding) return;
     if (
       e.target instanceof HTMLSelectElement ||
       e.target instanceof HTMLInputElement ||
@@ -137,7 +140,14 @@ export function BrowsePage({ params }: RouteProps) {
         <>
           <div class="flashcard" tabIndex={-1} ref={cardRef}>
             {/* Like study mode: the front stays put and the back appears underneath. */}
-            <CardFaces card={card} front={template.front} back={template.back} shown={flipped} />
+            <CardFaces
+              card={card}
+              front={template.front}
+              back={template.back}
+              shown={flipped}
+              onAdd={setAdding}
+              refresh={added}
+            />
           </div>
           <div class="flip-controls mt">
             <button
@@ -172,6 +182,18 @@ export function BrowsePage({ params }: RouteProps) {
             Card {index + 1} of {order.length} · ← → to move · E to edit
           </p>
         </>
+      )}
+      {card && (
+        <AddCardDialog
+          part={adding}
+          from={card}
+          onClose={() => {
+            setAdding(null);
+          }}
+          onSaved={() => {
+            setAdded((n) => n + 1);
+          }}
+        />
       )}
       <EditCardDialog
         card={editing && card ? card : null}

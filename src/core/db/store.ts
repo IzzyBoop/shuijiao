@@ -78,8 +78,13 @@ const pinyinKey = (p: string): string =>
  * its characters alone.
  */
 function sameReading(a: Card, b: Card): boolean {
-  const pa = pinyinKey(a.pinyin);
-  const pb = pinyinKey(b.pinyin);
+  return samePinyin(a.pinyin, b.pinyin);
+}
+
+/** Two readings are the same word's, comparing loosely (an empty one matches anything). */
+export function samePinyin(a: string, b: string): boolean {
+  const pa = pinyinKey(a);
+  const pb = pinyinKey(b);
   return pa === '' || pb === '' || pa === pb;
 }
 

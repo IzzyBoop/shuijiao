@@ -1743,3 +1743,21 @@ button.version:hover {
 .h-100 {
   height: 100%;
 }
+
+.breakdown .gloss-table td:nth-child(3) {
+  overflow-wrap: anywhere;
+}
+.gloss-table td.breakdown-add {
+  width: 1%;
+  padding: 2px 0 2px 4px;
+  text-align: right;
+  vertical-align: middle;
+}
+.breakdown-add button {
+  padding: 4px;
+}
+.breakdown-yours {
+  display: inline-flex;
+  padding: 4px;
+  color: var(--ok);
+}
