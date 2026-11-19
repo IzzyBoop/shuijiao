@@ -39,6 +39,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   word-by-word table as well. The table is still there to explore.
 - **Deleted cards are tidied up.** 30 days after you delete a card, its study history is
   removed, so backups stay smaller. Deleted cards also no longer count toward the card limit.
+- **Updates download less.** A new version now only downloads the files that changed, instead
+  of the whole portal again (about 1.5 MB each time).
 - Firefox no longer pops up a storage permission question out of the blue when you save your
   first card; the Study page asks instead, with an explanation.
 - **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older

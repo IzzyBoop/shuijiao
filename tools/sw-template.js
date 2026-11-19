@@ -8,12 +8,33 @@ const SHELL_CACHE = 'shell-' + VERSION;
 const DICT_CACHE = 'dict';
 const COURSE_CACHE = 'course';
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(SHELL_CACHE)
-      .then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: 'reload' })))),
+// Files in assets/ have their content's hash in their name: the same name means the
+// same file. Take those from the previous version's cache instead of downloading them
+// again, so an update only downloads what changed. Everything else (the page, the
+// manifest, icons) is fetched fresh. If any file fails, the install fails and is
+// retried later, so a version is never half-cached.
+async function precache() {
+  const cache = await caches.open(SHELL_CACHE);
+  const previous = (await caches.keys()).filter((key) => key.startsWith('shell-') && key !== SHELL_CACHE);
+  const fromPrevious = async (url) => {
+    for (const key of previous) {
+      const hit = await caches.match(url, { cacheName: key, ignoreVary: true });
+      if (hit) return hit;
+    }
+    return undefined;
+  };
+  await Promise.all(
+    PRECACHE.map(async (url) => {
+      const kept = url.startsWith('./assets/') ? await fromPrevious(url) : undefined;
+      const response = kept || (await fetch(new Request(url, { cache: 'reload' })));
+      if (!response.ok) throw new Error('Could not download ' + url);
+      await cache.put(url, response);
+    }),
   );
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(precache());
 });
 
 self.addEventListener('activate', (event) => {
