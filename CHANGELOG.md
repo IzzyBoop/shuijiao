@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-19
+
 ### Fixed
 
 - **Course cards:** "Please read the text." (it said "reas"), a comma in 我是學生，你呢？, and a
