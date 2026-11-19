@@ -7,6 +7,18 @@ export const COURSE_DECK_URL = 'course/course-deck.json';
 
 /** Meta key: the version (exportedAt) of the course cards the student has seen. */
 export const COURSE_SEEN_KEY = 'courseSeenAt';
+/** Meta key: how many of those course cards the student didn't have when they looked. */
+export const COURSE_MISSING_KEY = 'courseSeenMissing';
+
+/** Remembers that the student has seen this version of the course cards, and what they lacked. */
+export async function markCourseSeen(
+  store: { setMeta(key: string, value: number): Promise<void> },
+  updatedAt: number,
+  missing: number,
+): Promise<void> {
+  await store.setMeta(COURSE_SEEN_KEY, updatedAt);
+  await store.setMeta(COURSE_MISSING_KEY, missing);
+}
 
 export type CourseLoad =
   { kind: 'ok'; backup: Backup } | { kind: 'none' } | { kind: 'error'; message: string };

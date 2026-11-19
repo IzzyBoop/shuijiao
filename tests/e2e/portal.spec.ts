@@ -915,6 +915,46 @@ test.describe('course cards', () => {
     links: [],
   };
 
+  test('the course banner comes back when you lose course cards, e.g. by restoring an older backup', async ({
+    page,
+  }) => {
+    await addCard(page, '銀行');
+    await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: course }));
+    // Take every course card.
+    await page.goto('./#/course');
+    await page.getByRole('button', { name: 'Import these cards' }).click();
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+    await page.goto('./#/');
+    await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+    const banner = page.locator('.notice', { hasText: 'The course cards' });
+    await expect(page.locator('.stat')).toBeVisible();
+    await expect(banner).toHaveCount(0);
+
+    // One of them disappears, as when an older backup is restored.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          const open = indexedDB.open('shuijiao');
+          open.onsuccess = () => {
+            const db = open.result;
+            const tx = db.transaction('cards', 'readwrite');
+            const get = tx.objectStore('cards').get('a');
+            get.onsuccess = () => {
+              tx.objectStore('cards').put({ ...(get.result as object), deleted: 1 });
+            };
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+          };
+        }),
+    );
+    await page.reload();
+    await expect(banner).toContainText("The course cards have 1 card you don't have yet.");
+    await expect(banner).not.toContainText('updated on');
+  });
+
   test('the Study page says when the course cards change, until you look', async ({ page }) => {
     await addCard(page, '銀行'); // a card of your own (none of the course cards)
     await page.route('**/course/course-deck.json', (route) => route.fulfill({ json: course }));

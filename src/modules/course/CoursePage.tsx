@@ -8,8 +8,8 @@ import { Icon } from '../../core/ui/Icon';
 import { Pager, usePaging } from '../../core/ui/Pager';
 import { useAsync } from '../../core/ui/useAsync';
 import {
-  COURSE_SEEN_KEY,
   loadCourseDeck,
+  markCourseSeen,
   summarizeCourse,
   type CourseCardStatus,
   type CourseDeckSummary,
@@ -27,12 +27,13 @@ export function CoursePage() {
   const data = useAsync(async () => {
     const load = await loadCourseDeck();
     if (load.kind !== 'ok') return { load, summary: null, myCount: 0 };
-    await store.setMeta(COURSE_SEEN_KEY, load.backup.exportedAt); // for the banner on the Study page
     const [mine, duplicates] = await Promise.all([
       store.listCards(),
       store.findImportDuplicates(load.backup),
     ]);
-    return { load, summary: summarizeCourse(load.backup, mine, duplicates), myCount: mine.length };
+    const summary = summarizeCourse(load.backup, mine, duplicates);
+    await markCourseSeen(store, load.backup.exportedAt, summary.counts.new); // for the Study page's banner
+    return { load, summary, myCount: mine.length };
   }, []);
 
   const head = (canImport: (() => void) | null) => (
