@@ -85,3 +85,33 @@ describe('service worker install', () => {
     await expect(installing).rejects.toThrow('Could not download ./assets/index-NEW.js');
   });
 });
+
+describe('service worker kill switch', () => {
+  it('takes over at once, deletes every cache, unregisters, and never reloads pages', async () => {
+    const listeners: Record<string, (event: unknown) => void> = {};
+    const calls: string[] = [];
+    const self = {
+      addEventListener: (type: string, listener: (event: unknown) => void) => {
+        listeners[type] = listener;
+      },
+      skipWaiting: () => calls.push('skipWaiting'),
+      registration: { unregister: () => Promise.resolve(calls.push('unregister')) },
+      clients: { matchAll: () => Promise.reject(new Error('must not touch pages')) },
+    };
+    const caches = {
+      keys: () => Promise.resolve(['shell-1', 'dict', 'course']),
+      delete: (key: string) => Promise.resolve(calls.push(`delete ${key}`)),
+    };
+    runInNewContext(readFileSync('tools/sw-kill-switch.js', 'utf8'), { self, caches });
+    listeners.install?.({});
+    let done: Promise<unknown> = Promise.resolve();
+    listeners.activate?.({
+      waitUntil: (p: Promise<unknown>) => {
+        done = p;
+      },
+    });
+    await done;
+    expect(calls).toEqual(['skipWaiting', 'delete shell-1', 'delete dict', 'delete course', 'unregister']);
+    expect(Object.keys(listeners).sort()).toEqual(['activate', 'install']);
+  });
+});

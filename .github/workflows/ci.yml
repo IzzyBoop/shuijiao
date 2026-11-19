@@ -1,10 +1,19 @@
 name: CI and deploy
 
+# Every push and pull request is checked. Students only get a new version when a release
+# tag (v1.2.0, made by tools/release.sh) is pushed, or when it is deployed by hand from the
+# Actions tab ("Run workflow"), which can also ship the service-worker kill switch.
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      kill_switch:
+        description: 'Emergency: replace the service worker with tools/sw-kill-switch.js (see SECURITY.md)'
+        type: boolean
+        default: false
 
 # Least privilege: nothing by default; each job asks for what it needs.
 permissions: {}
@@ -71,14 +80,18 @@ jobs:
           path: test-results/
           retention-days: 7
 
+      - name: Swap in the service-worker kill switch
+        if: github.event_name == 'workflow_dispatch' && inputs.kill_switch
+        run: cp tools/sw-kill-switch.js dist/sw.js
+
       - name: Upload site for GitHub Pages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event_name == 'workflow_dispatch'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event_name == 'workflow_dispatch'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 10

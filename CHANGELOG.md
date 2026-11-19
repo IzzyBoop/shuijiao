@@ -10,6 +10,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **Report a problem or suggest an idea** from the About page. The form opens in a new tab with
+  the portal's version filled in; nothing about your cards is sent.
 - **Undo an import or an erase.** Before every import, and before "Erase all study data", the
   portal keeps a copy of everything in your browser. Right after an import, **Undo this import**
   puts everything back; later, Settings → Storage has **Undo the last import** (or erase) until

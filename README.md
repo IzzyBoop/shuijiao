@@ -77,7 +77,13 @@ Versions follow [Semantic Versioning](https://semver.org/): `0.1.0-beta.1`, `0.1
    every check, build, and end-to-end test, then creates a `chore(release)` commit and an
    annotated tag `v0.1.0-beta.2`. If anything fails, it puts the files back. It never pushes.
 
-3. Publish with `git push --follow-tags`.
+3. Publish with `git push --follow-tags`. Pushing the tag is what deploys the new version to
+   students: CI checks everything again and then publishes it to GitHub Pages.
+
+Pushing or merging to `main` without a tag only runs the checks, so changes can collect on
+`main` and go out together in the next release. To deploy `main` by hand (or, in an emergency,
+the service-worker kill switch; see [SECURITY.md](SECURITY.md)), use **Actions → CI and deploy →
+Run workflow**.
 
 A production build fails if the version in `package.json` has no changelog entry.
 

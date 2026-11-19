@@ -83,7 +83,7 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['public/**/*.js', 'tools/sw-template.js'],
+    files: ['public/**/*.js', 'tools/sw-template.js', 'tools/sw-kill-switch.js'],
     languageOptions: {
       globals: {
         ...globals.browser,

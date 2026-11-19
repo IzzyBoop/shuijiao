@@ -1,5 +1,6 @@
 import type { PortalModule } from '../../core/modules';
 import { ExternalLink } from '../../core/ui/ExternalLink';
+import { reportProblemUrl } from '../../core/report';
 import dictionaryInfo from '../../core/lang/dict-meta.json';
 import { WhatsNew } from './WhatsNew';
 
@@ -23,6 +24,17 @@ function AboutPage() {
           cards to another device.
         </p>
         <p>Pronunciation uses your device's built-in speech voices, so audio is generated on your device.</p>
+      </section>
+
+      <section class="panel stack">
+        <h2>Something not working?</h2>
+        <p>
+          Tell the developer what happened. The form opens in a new tab with the portal's version filled in;
+          nothing about your cards is sent.
+        </p>
+        <p>
+          <ExternalLink url={reportProblemUrl()}>Report a problem or suggest an idea</ExternalLink>
+        </p>
       </section>
 
       <WhatsNew />

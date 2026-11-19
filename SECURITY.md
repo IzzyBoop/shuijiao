@@ -43,12 +43,16 @@ These come from GitHub Pages not allowing custom HTTP headers:
 
 ## Service worker kill switch
 
-If a bad service worker is ever deployed, publish a `sw.js` that unregisters itself:
+If a bad service worker is ever deployed (for example, one that keeps serving a broken version),
+replace it with [`tools/sw-kill-switch.js`](tools/sw-kill-switch.js), which deletes the portal's
+caches and unregisters itself. Study data in IndexedDB is not touched.
 
-```js
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', async () => {
-  for (const key of await caches.keys()) await caches.delete(key);
-  await self.registration.unregister();
-});
-```
+1. On GitHub: **Actions → CI and deploy → Run workflow**, tick **Emergency: replace the service
+   worker…**, and run it on `main`. It builds and tests the site as usual, then deploys it with
+   the kill switch as `sw.js`.
+2. Students pick it up on their next visit (browsers always check `sw.js` for changes). Open tabs
+   show "The portal was updated in another tab. Reload this tab to keep going."
+3. Once a fixed version is ready, release it as usual; it brings the service worker back.
+
+`tests/unit/sw.test.ts` checks that the kill switch does exactly this and never reloads pages
+(the portal registers `sw.js` on every visit, so that would loop).
