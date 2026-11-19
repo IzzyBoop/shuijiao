@@ -4,6 +4,8 @@ import type { WordGloss } from '../../core/lang/autofill';
 import { Dialog } from '../../core/ui/Dialog';
 import { useAsync } from '../../core/ui/useAsync';
 import { CardEditForm } from './CardEditForm';
+import { setPendingDraft } from './pending-draft';
+import { navigate } from '../../core/router';
 
 /** Edits a card in a popup over a study or flip-through session, without leaving it. */
 export function EditCardDialog({
@@ -80,6 +82,12 @@ export function AddCardDialog({
           onSaved={(saved) => {
             onSaved(saved);
             onClose();
+          }}
+          onOpenFullEditor={(draft) => {
+            const { kind, deckId, traditional, simplified, pinyin, meaning, notes, tags } = draft;
+            setPendingDraft({ kind, deckId, traditional, simplified, pinyin, meaning, notes, tags });
+            onClose();
+            navigate('/add');
           }}
         />
       )}

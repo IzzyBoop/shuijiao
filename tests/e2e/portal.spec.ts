@@ -1697,6 +1697,42 @@ test('a word from the word-by-word meanings can be added as a card without leavi
   await expect(page.getByLabel('Notes')).toHaveValue('From: 我是學生');
 });
 
+test('the Add a card popup can make a new deck, or hand the card over to the full editor', async ({
+  page,
+}) => {
+  await addCard(page, '我是學生', 'I am a student');
+  await page.goto('./#/review');
+  await expect(page.locator('.flashcard')).toContainText('我是學生');
+  await page.keyboard.press('Space');
+  const words = page.getByRole('region', { name: 'Word by word' });
+
+  // A new deck, straight from the deck list.
+  await words.getByRole('button', { name: 'Add 學生 as a card' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Add a card' });
+  await dialog.getByLabel('Deck').selectOption({ label: '＋ New deck…' });
+  await dialog.getByLabel('New deck').fill('Vocabulary');
+  await dialog.getByLabel('New deck').press('Enter');
+  await expect(dialog.getByLabel('Deck')).toHaveValue(/.+/);
+  await expect(dialog.getByLabel('Deck').locator('option:checked')).toHaveText('Vocabulary');
+  await dialog.getByRole('button', { name: /Save/ }).click();
+  await expect(dialog).toBeHidden();
+
+  // The full editor, with the card as it was in the popup.
+  await words.getByRole('button', { name: 'Add 是 as a card' }).click();
+  await dialog.getByLabel('Meaning').fill('to be');
+  await dialog.getByRole('button', { name: 'Open full editor' }).click();
+  await expect(page.getByRole('heading', { name: 'Add a card' })).toBeVisible();
+  await expect(page.locator('#field-traditional')).toHaveValue('是');
+  await expect(page.locator('#field-meaning')).toHaveValue('to be');
+  await page.getByText('All fields look right').click();
+  await page.getByRole('button', { name: 'Save card' }).click();
+
+  await page.goto('./#/cards');
+  await expect(page.getByRole('link', { name: /Vocabulary/ })).toBeVisible();
+  await expect(page.locator('.card-list > li', { hasText: '學生' }).first()).toContainText('Vocabulary');
+  await expect(page.locator('.card-list > li', { hasText: 'to be' })).toHaveCount(1);
+});
+
 test('a page that crashes shows a way out, and the rest of the portal keeps working', async ({ page }) => {
   await addCard(page, '你好');
   // Damage a card behind the portal's back, as a bug or a broken browser profile might.

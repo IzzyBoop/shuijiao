@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useId, useRef, useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
-import { LIMITS, type Card, type CardKind, type Deck } from '../../core/db/model';
+import { deckNameKey, LIMITS, newId, type Card, type CardKind, type Deck } from '../../core/db/model';
 import { cleanTags, cleanText } from '../../core/safe/text';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage } from '../../core/ui/useAsync';
@@ -15,6 +15,9 @@ const EDIT_FIELDS = [
 
 type EditKey = (typeof EDIT_FIELDS)[number]['key'];
 
+/** The deck dropdown's last option, which opens a name box instead of choosing a deck. */
+const NEW_DECK = ':new-deck'; // deck ids never contain ":" (ID_PATTERN)
+
 /**
  * The quick card editor shared by the Cards list, Study, and Flip through.
  * Enter saves, Escape cancels. `onSaved` receives the card as saved.
@@ -25,6 +28,7 @@ export function CardEditForm({
   onCancel,
   onSaved,
   footer,
+  onOpenFullEditor,
 }: {
   card: Card;
   decks: readonly Deck[];
@@ -32,7 +36,44 @@ export function CardEditForm({
   onSaved: (card: Card) => void;
   /** Shown at the start of the button row (e.g. a link to the full editor). */
   footer?: ComponentChildren;
+  /** Offers "Open full editor", handing over the card as it is in the form (not saved). */
+  onOpenFullEditor?: (draft: Card) => void;
 }) {
+  // Decks made here are added straight away, before the caller's list catches up.
+  const [created, setCreated] = useState<Deck[]>([]);
+  const deckList = [...decks, ...created.filter((c) => !decks.some((d) => d.id === c.id))].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  /** The name being typed for a new deck; null when the deck dropdown is showing. */
+  const [newDeck, setNewDeck] = useState<string | null>(null);
+  const newDeckInput = useRef<HTMLInputElement>(null);
+  const newDeckId = useId();
+  useEffect(() => {
+    if (newDeck !== null) newDeckInput.current?.focus();
+  }, [newDeck === null]);
+
+  /** Creates the deck and picks it (or picks an existing deck with that name). */
+  const createDeck = async () => {
+    const name = cleanText(newDeck ?? '', LIMITS.deckName);
+    if (!name) return;
+    const same = deckList.find((d) => deckNameKey(d.name) === deckNameKey(name));
+    if (same) {
+      setDeckId(same.id);
+      setNewDeck(null);
+      return;
+    }
+    const now = Date.now();
+    const deck: Deck = { id: newId(), name, createdAt: now, updatedAt: now, deleted: 0 };
+    try {
+      await store.saveDeck(deck);
+      setCreated((c) => [...c, deck]);
+      setDeckId(deck.id);
+      setNewDeck(null);
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
   const [values, setValues] = useState<Record<EditKey, string>>({
     traditional: card.traditional,
     simplified: card.simplified,
@@ -146,24 +187,95 @@ export function CardEditForm({
             <option value="sentence">Sentence</option>
           </select>
         </label>
-        <label class="field">
-          <span class="field-label">Deck</span>
-          <select
-            value={deckId}
-            onChange={(e) => {
-              setDeckId(e.currentTarget.value);
-            }}
-          >
-            {decks.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {newDeck === null ? (
+          <label class="field">
+            <span class="field-label">Deck</span>
+            <select
+              value={deckId}
+              onChange={(e) => {
+                const value = e.currentTarget.value;
+                if (value === NEW_DECK) {
+                  e.currentTarget.value = deckId; // stay on the current deck until one is created
+                  setNewDeck('');
+                } else {
+                  setDeckId(value);
+                }
+              }}
+            >
+              {deckList.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+              <option value={NEW_DECK}>＋ New deck…</option>
+            </select>
+          </label>
+        ) : (
+          <div class="field">
+            <label class="field-label" for={newDeckId}>
+              New deck
+            </label>
+            <div class="row">
+              <input
+                id={newDeckId}
+                type="text"
+                class="grow"
+                placeholder="e.g. Lesson 4"
+                maxLength={LIMITS.deckName}
+                value={newDeck}
+                ref={newDeckInput}
+                onInput={(e) => {
+                  setNewDeck(e.currentTarget.value);
+                }}
+                onKeyDown={(e) => {
+                  // Enter creates the deck (not the card); Escape closes just this.
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void createDeck();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setNewDeck(null);
+                  }
+                }}
+              />
+              <button type="button" disabled={!newDeck.trim()} onClick={() => void createDeck()}>
+                Create
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewDeck(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       <div class="row spread mt">
-        <span>{footer}</span>
+        <span class="row">
+          {footer}
+          {onOpenFullEditor && (
+            <button
+              type="button"
+              class="ghost"
+              onClick={() => {
+                onOpenFullEditor({
+                  ...card,
+                  ...values,
+                  notes,
+                  tags: cleanTags(tags),
+                  deckId,
+                  kind,
+                });
+              }}
+            >
+              Open full editor
+            </button>
+          )}
+        </span>
         <div class="row">
           <button type="button" onClick={onCancel}>
             Cancel <span class="kbd">Esc</span>

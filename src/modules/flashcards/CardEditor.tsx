@@ -16,6 +16,7 @@ import { andList } from '../../core/format';
 import { Dialog } from '../../core/ui/Dialog';
 import { InfoTip } from '../../core/ui/InfoTip';
 import { cardListPath } from './return-path';
+import { takePendingDraft } from './pending-draft';
 
 type CheckedField = 'traditional' | 'simplified' | 'pinyin' | 'meaning';
 const CHECKED: readonly CheckedField[] = ['traditional', 'simplified', 'pinyin', 'meaning'];
@@ -147,12 +148,24 @@ export function CardEditor({ params }: RouteProps) {
     if (newDeckOpen) newDeckInput.current?.focus();
   }, [newDeckOpen]);
   const deckName = (id: string) => deckList.find((d) => d.id === id)?.name ?? 'Unknown deck';
-  const [input, setInput] = useState('');
-  const [draft, setDraft] = useState<Draft>(presetDeck ? { ...EMPTY, deckId: presetDeck } : EMPTY);
+  // A card handed over from a quick "Add a card" popup: start with it, waiting to be checked.
+  const [handedOver] = useState(() => (editingId ? null : takePendingDraft()));
+  const [input, setInput] = useState(handedOver?.traditional ?? '');
+  const [draft, setDraft] = useState<Draft>(
+    handedOver
+      ? { ...handedOver, tags: handedOver.tags.join(', ') }
+      : presetDeck
+        ? { ...EMPTY, deckId: presetDeck }
+        : EMPTY,
+  );
   const [fill, setFill] = useState<AutoFill | null>(null);
-  const [origin, setOrigin] = useState<Partial<Record<CheckedField, Origin>>>({});
+  const [origin, setOrigin] = useState<Partial<Record<CheckedField, Origin>>>(
+    handedOver ? { traditional: 'auto', simplified: 'auto', pinyin: 'auto', meaning: 'auto' } : {},
+  );
   const [confirmed, setConfirmed] = useState<Set<CheckedField>>(new Set());
-  const [phase, setPhase] = useState<'input' | 'loading' | 'review'>(editingId ? 'loading' : 'input');
+  const [phase, setPhase] = useState<'input' | 'loading' | 'review'>(
+    editingId ? 'loading' : handedOver ? 'review' : 'input',
+  );
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<Card[]>([]);

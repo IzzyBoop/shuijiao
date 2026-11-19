@@ -12,7 +12,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 - **Add a word as a card while you study.** In the word-by-word meanings, press **+** next to a
   word to add it as a card, filled in from the dictionary, without leaving your session. Words
-  you already have are ticked.
+  you already have are ticked. The popup can make a **new deck**, or **open the full editor**
+  (with auto-fill and audio) to finish the card there.
+- The quick card editor (on the Cards page and while studying) can make a **new deck** from its
+  deck list.
 - **Study by tag.** The Study page lists your tags (like your decks), so you can study or flip
   through just the cards tagged, say, "quiz Friday" or "measure words".
 - **The Study page tells you when the course cards change**: how many are new to you, and how
