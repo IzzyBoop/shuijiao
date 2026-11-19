@@ -8,6 +8,7 @@ import { countQueue } from '../../core/srs/queue';
 import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
 import { loadOverview } from './session-data';
+import { tagSlug } from '../../core/tags';
 import { StorageTip } from './StorageTip';
 import { ProgressSection } from './ProgressSection';
 import { CourseBanner } from '../course/CourseBanner';
@@ -25,7 +26,8 @@ export function StudyHome() {
       return session ? [{ deck, session }] : [];
     });
     const lastBackup = await store.getMeta('lastBackupAt');
-    return { all, perDeck, lastBackup, decks };
+    const perTag = [...overview.perTag].map(([tag, session]) => ({ tag, session }));
+    return { all, perDeck, perTag, lastBackup, decks };
   }, []);
 
   const [importError, setImportError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export function StudyHome() {
   if (data.error) return <LoadError error={data.error} retry={data.reload} />;
   if (!data.data) return <p class="muted">Loading…</p>;
 
-  const { all, perDeck, lastBackup, decks } = data.data;
+  const { all, perDeck, perTag, lastBackup, decks } = data.data;
   const counts = countQueue(all.queue);
   const backupOld =
     all.totalCards >= 10 &&
@@ -163,6 +165,40 @@ export function StudyHome() {
                     </a>
                     {/* With nothing due, the session page offers to study ahead. */}
                     <a class="button" href={href(`/review/${deck.id}`)}>
+                      Study
+                    </a>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {perTag.length > 0 && (
+        <section class="panel">
+          <h2>Tags</h2>
+          <p class="muted small">
+            Study just the cards with one tag. Add tags to cards when you add or edit them, or several at once
+            on the <a href={href('/cards')}>Cards</a> page.
+          </p>
+          <ul class="list">
+            {perTag.map(({ tag, session }) => {
+              const c = countQueue(session.queue);
+              const slug = tagSlug(tag);
+              return (
+                <li key={tag} class="deck-row">
+                  <div class="grow">
+                    <div class="truncate">#{tag}</div>
+                    <div class="muted small">
+                      {c.due} due · {c.fresh} new · {plural(session.totalCards, 'card')}
+                    </div>
+                  </div>
+                  <div class="row">
+                    <a class="button" href={href(`/browse/tag/${slug}`)} aria-label={`Flip through #${tag}`}>
+                      Flip through
+                    </a>
+                    <a class="button" href={href(`/review/tag/${slug}`)} aria-label={`Study #${tag}`}>
                       Study
                     </a>
                   </div>

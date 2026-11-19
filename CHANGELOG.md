@@ -10,6 +10,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **Study by tag.** The Study page lists your tags (like your decks), so you can study or flip
+  through just the cards tagged, say, "quiz Friday" or "measure words".
 - **The Study page tells you when the course cards change**: how many are new to you, and how
   many differ from yours. It goes away once you've looked at them (or closed it), until the
   next update, or until you're missing more of them than before (for example after restoring

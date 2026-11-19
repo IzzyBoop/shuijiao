@@ -243,6 +243,62 @@ test('the Study page shows your progress below the decks', async ({ page }) => {
   await expect(progress).toContainText('None so far');
 });
 
+test('you can study or flip through just the cards with one tag', async ({ page }, testInfo) => {
+  const now = 1_763_287_200_000;
+  const tagged = (id: string, t: string, tags: string[]) => ({
+    id,
+    deckId: 'default-deck',
+    kind: 'word',
+    traditional: t,
+    simplified: t,
+    pinyin: 'x',
+    meaning: `meaning of ${t}`,
+    notes: '',
+    tags,
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
+  });
+  const file = testInfo.outputPath('tagged.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [],
+      cards: [tagged('a', '一', ['quiz Friday']), tagged('b', '二', ['量詞']), tagged('c', '三', [])],
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.getByLabel('Import a backup…').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+
+  await page.goto('./#/');
+  const tags = page.locator('section.panel', { has: page.getByRole('heading', { name: 'Tags' }) });
+  await expect(tags).toContainText('#quiz Friday');
+  await expect(tags).toContainText('#量詞');
+
+  await tags.getByRole('link', { name: 'Study #quiz Friday' }).click();
+  await expect(page.locator('.flashcard')).toContainText('一');
+  await expect(page.getByText(/^1 left/)).toBeVisible();
+  await page.reload(); // the tag is in the address, so it survives a reload
+  await expect(page.getByText(/^1 left/)).toBeVisible();
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: /Good/ }).click();
+  await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
+
+  await page.goto('./#/');
+  await tags.getByRole('link', { name: 'Flip through #量詞' }).click();
+  await expect(page.getByRole('heading', { name: 'Flip through: #量詞' })).toBeVisible();
+  await expect(page.locator('.flashcard')).toContainText('二');
+});
+
 test('pressing Again does not bring the same card straight back', async ({ page }, testInfo) => {
   const now = 1_763_287_200_000;
   const chars = ['一', '二', '三', '四', '五', '六'];

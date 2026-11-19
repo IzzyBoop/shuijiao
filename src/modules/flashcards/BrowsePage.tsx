@@ -7,6 +7,7 @@ import { useAsync } from '../../core/ui/useAsync';
 import type { Card } from '../../core/db/model';
 import { useKeydown } from '../../core/ui/useKeydown';
 import { CardFaces } from './CardFace';
+import { hasTagSlug, tagForSlug } from '../../core/tags';
 import { EditCardDialog } from './EditCardDialog';
 import { LoadError } from '../../core/ui/LoadError';
 
@@ -22,14 +23,16 @@ function shuffled<T>(list: readonly T[]): T[] {
 /** Free flip-through of a deck. Does not affect scheduling. */
 export function BrowsePage({ params }: RouteProps) {
   const deckId = params.deckId;
-  const data = useAsync(
-    async () => ({
-      cards: await store.listCards(deckId),
+  const tagSlug = params.tag;
+  const data = useAsync(async () => {
+    const all = await store.listCards(deckId);
+    return {
+      cards: tagSlug ? all.filter((c) => hasTagSlug(c.tags, tagSlug)) : all,
       templates: await store.listTemplates(),
       deck: deckId ? (await store.listDecks()).find((d) => d.id === deckId) : undefined,
-    }),
-    [deckId],
-  );
+      tag: tagSlug ? tagForSlug(all, tagSlug) : undefined,
+    };
+  }, [deckId, tagSlug]);
   const [order, setOrder] = useState<Card[]>([]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -85,7 +88,10 @@ export function BrowsePage({ params }: RouteProps) {
   return (
     <>
       <div class="page-head">
-        <h1>Flip through{data.data.deck ? `: ${data.data.deck.name}` : ''}</h1>
+        <h1>
+          Flip through
+          {data.data.deck ? `: ${data.data.deck.name}` : data.data.tag ? `: #${data.data.tag}` : ''}
+        </h1>
         <div class="row">
           <select
             aria-label="Card type"

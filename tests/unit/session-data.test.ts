@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { store } from '../../src/core/db/store';
 import type { Card } from '../../src/core/db/model';
 import { loadOverview, loadSession, type SessionData } from '../../src/modules/flashcards/session-data';
+import { tagSlug } from '../../src/core/tags';
 
 const NOW = 1_800_000_000_000;
 const card = (id: string, deckId: string, i: number): Card => ({
@@ -70,6 +71,19 @@ describe('the Study page overview', () => {
       expect(overview.perDeck.get(deck)?.totalCards).toBe((await loadSession(deck, {}, NOW)).totalCards);
     }
     expect(overview.all.totalCards).toBe(30);
+
+    // Tags: every card is tagged "all", every third also "third".
+    for (let i = 0; i < 30; i++) {
+      const c = card(`c${i}`, i % 3 === 0 ? 'deck-a' : 'deck-b', i);
+      await store.saveCard({ ...c, tags: i % 3 === 0 ? ['all', 'third'] : ['all'] });
+    }
+    const tagged = await loadOverview(['deck-a', 'deck-b'], NOW);
+    expect([...tagged.perTag.keys()]).toEqual(['all', 'third']);
+    expect(tagged.perTag.get('third')?.totalCards).toBe(10);
+    expect(ids(tagged.perTag.get('third'))).toEqual(
+      ids(await loadSession(undefined, { tag: tagSlug('third') }, NOW)),
+    );
+    expect(ids(tagged.perTag.get('all'))).toEqual(ids(tagged.all));
     expect(overview.perDeck.get('deck-a')?.totalCards).toBe(10);
   });
 });

@@ -25,16 +25,25 @@ function say(text: string) {
 
 /** The ordinary session: what is due, and today's new cards. */
 export function ReviewPage({ params }: RouteProps) {
-  return <ReviewSession deckId={params.deckId} ahead={false} />;
+  return <ReviewSession deckId={params.deckId} tag={params.tag} ahead={false} />;
 }
 
 /** A session the student asked for although nothing is due: cards come up ahead of schedule. */
 export function StudyAheadPage({ params }: RouteProps) {
-  return <ReviewSession deckId={params.deckId} ahead />;
+  return <ReviewSession deckId={params.deckId} tag={params.tag} ahead />;
 }
 
-function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: boolean }) {
-  const session = useAsync(() => loadSession(deckId, { ahead }), [deckId, ahead]);
+function ReviewSession({
+  deckId,
+  tag,
+  ahead,
+}: {
+  deckId: string | undefined;
+  /** A tag's slug (core/tags.ts): only cards with that tag. */
+  tag: string | undefined;
+  ahead: boolean;
+}) {
+  const session = useAsync(() => loadSession(deckId, { ahead, tag }), [deckId, tag, ahead]);
   const [queue, setQueue] = useState<QueueItem[] | null>(null);
   const [shown, setShown] = useState(false);
   const [done, setDone] = useState(0);
@@ -121,7 +130,7 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
   if (!queue) return <p class="muted">Loading…</p>;
 
   if (!item) {
-    const aheadPath = deckId ? `/study-ahead/${deckId}` : '/study-ahead';
+    const aheadPath = tag ? `/study-ahead/tag/${tag}` : deckId ? `/study-ahead/${deckId}` : '/study-ahead';
     const hasCards = (session.data?.totalCards ?? 0) > 0;
     return (
       <section class="panel stack">
