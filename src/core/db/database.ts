@@ -36,6 +36,8 @@ export class PortalDB extends Dexie {
   constructor(name = 'shuijiao') {
     super(name);
     // Schema changes: add a new this.version(n) block with an upgrade(); never edit old ones.
+    // Then add its stores to SHIPPED in tests/unit/upgrade.test.ts, which checks that
+    // databases made by every earlier version still upgrade with nothing lost.
     this.version(1).stores({
       decks: 'id, updatedAt',
       cards: 'id, deckId, updatedAt, simplified, traditional, *tags',
