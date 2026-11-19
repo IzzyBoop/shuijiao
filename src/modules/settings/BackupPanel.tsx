@@ -4,6 +4,8 @@ import { parseBackup } from '../../core/db/backup-schema';
 import { store } from '../../core/db/store';
 import { localDateStamp } from '../../core/format';
 import { ImportBackupButton } from '../../core/import/ImportBackupButton';
+import { reportProblemUrl } from '../../core/report';
+import { ExternalLink } from '../../core/ui/ExternalLink';
 import { Icon } from '../../core/ui/Icon';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 
@@ -23,7 +25,8 @@ function downloadBlob(blob: Blob, fileName: string): void {
 
 export function BackupPanel() {
   const lastBackup = useAsync(() => store.getMeta('lastBackupAt'), []);
-  const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  // `report`: details for a "Report the problem" link, shown after the text.
+  const [status, setStatus] = useState<{ kind: 'ok' | 'error'; text: string; report?: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const exportNow = async () => {
@@ -39,11 +42,11 @@ export function BackupPanel() {
       downloadBlob(file.blob, `shuijiao-backup-${localDateStamp()}${file.extension}`);
       const cards = backup.cards.filter((c) => !c.deleted).length;
       if (!check.ok) {
+        const problem = check.errors.join(' ');
         setStatus({
           kind: 'error',
-          text:
-            `Your backup was downloaded, but this portal may not be able to import it: ${check.errors.join(' ')} ` +
-            'Keep the file, and let your teacher know.',
+          text: `Your backup was downloaded, but this portal may not be able to import it: ${problem} Keep the file safe, and please`,
+          report: `A backup failed its own check when it was downloaded.\n${problem}`,
         });
         return;
       }
@@ -72,6 +75,12 @@ export function BackupPanel() {
       {status && (
         <div class={`notice ${status.kind}`} role="status">
           {status.text}
+          {status.report !== undefined && (
+            <>
+              {' '}
+              <ExternalLink url={reportProblemUrl(status.report)}>report the problem</ExternalLink>.
+            </>
+          )}
         </div>
       )}
       <div class="row">

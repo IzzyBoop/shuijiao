@@ -18,7 +18,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 - **Big backups can be imported again.** Import used to refuse files over 10 MB, which a year of
   daily study can reach, so a student's own backup could be turned away just when they needed
   it. Any backup the portal makes can now be imported, and the portal checks each backup as it
-  downloads it and tells you straight away if something is wrong.
+  downloads it and tells you straight away if something is wrong, with a link to report the
+  problem.
 
 ## [1.1.0] - 2026-11-17
 
