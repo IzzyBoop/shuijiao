@@ -29,6 +29,7 @@ export function CardEditForm({
   onSaved,
   footer,
   onOpenFullEditor,
+  onDeckCreated,
 }: {
   card: Card;
   decks: readonly Deck[];
@@ -38,6 +39,8 @@ export function CardEditForm({
   footer?: ComponentChildren;
   /** Offers "Open full editor", handing over the card as it is in the form (not saved). */
   onOpenFullEditor?: (draft: Card) => void;
+  /** A deck was made here: the page should reload its list of decks. */
+  onDeckCreated?: (deck: Deck) => void;
 }) {
   // Decks made here are added straight away, before the caller's list catches up.
   const [created, setCreated] = useState<Deck[]>([]);
@@ -67,6 +70,7 @@ export function CardEditForm({
     try {
       await store.saveDeck(deck);
       setCreated((c) => [...c, deck]);
+      onDeckCreated?.(deck);
       setDeckId(deck.id);
       setNewDeck(null);
     } catch (err) {

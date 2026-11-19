@@ -318,6 +318,7 @@ export function CardsPage({ params }: RouteProps) {
                     setEditingId(null);
                     data.reload();
                   }}
+                  onDeckCreated={data.reload}
                 />
               ) : (
                 <li key={c.id} class={selected.has(c.id) ? 'selected' : undefined}>
@@ -575,11 +576,13 @@ function QuickEdit({
   decks,
   onCancel,
   onSaved,
+  onDeckCreated,
 }: {
   card: Card;
   decks: readonly Deck[];
   onCancel: () => void;
   onSaved: () => void;
+  onDeckCreated: () => void;
 }) {
   return (
     <li class="quick-edit">
@@ -588,6 +591,7 @@ function QuickEdit({
         decks={decks}
         onCancel={onCancel}
         onSaved={onSaved}
+        onDeckCreated={onDeckCreated}
         footer={
           <a href={href(`/cards/${card.id}`)} class="small">
             Open full editor (auto-fill, audio)

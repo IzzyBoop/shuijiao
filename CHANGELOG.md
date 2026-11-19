@@ -8,6 +8,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Fixed
+
+- A deck made in the **Add a card** popup while studying now shows up in the deck list the next
+  time you add or edit a card (it was missing until you left the session).
+
 ## [1.2.1] - 2026-11-19
 
 ### Fixed

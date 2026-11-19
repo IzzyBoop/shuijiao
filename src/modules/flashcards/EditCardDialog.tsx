@@ -18,7 +18,8 @@ export function EditCardDialog({
   onClose: () => void;
   onSaved: (card: Card) => void;
 }) {
-  const decks = useAsync(() => store.listDecks(), []);
+  // Read again each time it opens: decks may have been made or renamed since.
+  const decks = useAsync(() => store.listDecks(), [card?.id]);
   return (
     <Dialog open={card !== null} title="Edit card" onClose={onClose} wide>
       {card && decks.data && (
@@ -31,6 +32,7 @@ export function EditCardDialog({
             onSaved(updated);
             onClose();
           }}
+          onDeckCreated={decks.reload}
         />
       )}
     </Dialog>
@@ -55,7 +57,8 @@ export function AddCardDialog({
   onClose: () => void;
   onSaved: (card: Card) => void;
 }) {
-  const decks = useAsync(() => store.listDecks(), []);
+  // Read again each time it opens (part changes): decks may have been made since.
+  const decks = useAsync(() => store.listDecks(), [part]);
   const now = Date.now();
   const card: Card | null = part && {
     id: newId(),
@@ -83,6 +86,7 @@ export function AddCardDialog({
             onSaved(saved);
             onClose();
           }}
+          onDeckCreated={decks.reload}
           onOpenFullEditor={(draft) => {
             const { kind, deckId, traditional, simplified, pinyin, meaning, notes, tags } = draft;
             setPendingDraft({ kind, deckId, traditional, simplified, pinyin, meaning, notes, tags });

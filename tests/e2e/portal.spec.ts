@@ -1698,6 +1698,32 @@ test('a word from the word-by-word meanings can be added as a card without leavi
   await expect(page.getByLabel('Notes')).toHaveValue('From: 我是學生');
 });
 
+test('a deck made in the Add a card popup is offered next time, and in the Edit popup', async ({ page }) => {
+  await addCard(page, '我是學生', 'I am a student');
+  await page.goto('./#/review');
+  await expect(page.locator('.flashcard')).toContainText('我是學生');
+  await page.keyboard.press('Space');
+  const words = page.getByRole('region', { name: 'Word by word' });
+  const dialog = page.getByRole('dialog', { name: 'Add a card' });
+
+  await words.getByRole('button', { name: 'Add 學生 as a card' }).click();
+  await dialog.getByLabel('Deck').selectOption({ label: '＋ New deck…' });
+  await dialog.getByLabel('New deck').fill('Vocabulary');
+  await dialog.getByLabel('New deck').press('Enter');
+  await dialog.getByRole('button', { name: /Save/ }).click();
+  await expect(dialog).toBeHidden();
+
+  // The next word from the same card: the new deck is in the list.
+  await words.getByRole('button', { name: 'Add 是 as a card' }).click();
+  await expect(dialog.getByLabel('Deck').locator('option', { hasText: 'Vocabulary' })).toHaveCount(1);
+  await dialog.getByRole('button', { name: /Cancel/ }).click();
+
+  // And in the Edit popup.
+  await page.keyboard.press('e');
+  const edit = page.getByRole('dialog', { name: 'Edit card' });
+  await expect(edit.getByLabel('Deck').locator('option', { hasText: 'Vocabulary' })).toHaveCount(1);
+});
+
 test('a word whose tone changes in the sentence (不 bù → bú) is still recognised as yours', async ({
   page,
 }) => {
