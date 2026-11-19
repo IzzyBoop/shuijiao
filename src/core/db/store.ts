@@ -161,6 +161,9 @@ export interface StudyStore {
   listReviewStates(templateIds: readonly string[]): Promise<ReviewState[]>;
   recordReview(state: ReviewState, log: ReviewLog): Promise<void>;
   countReviewsSince(time: number, newOnly: boolean): Promise<number>;
+  /** When every review happened (from the index, so it stays quick with many reviews). */
+  listReviewTimes(): Promise<number[]>;
+  listReviewLogsSince(time: number): Promise<ReviewLog[]>;
 
   listLinks(): Promise<StudentLink[]>;
   saveLink(link: StudentLink): Promise<void>;
@@ -385,6 +388,12 @@ export class LocalStudyStore implements StudyStore {
       await this.db.reviewStates.put(state);
       await this.db.reviewLogs.add(log);
     });
+  }
+  async listReviewTimes() {
+    return (await this.db.reviewLogs.orderBy('review').keys()) as number[];
+  }
+  async listReviewLogsSince(time: number) {
+    return this.db.reviewLogs.where('review').aboveOrEqual(time).toArray();
   }
   async countReviewsSince(time: number, newOnly: boolean) {
     const q = this.db.reviewLogs.where('review').aboveOrEqual(time);

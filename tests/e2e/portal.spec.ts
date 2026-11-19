@@ -222,6 +222,27 @@ test('a quick second press or a held-down key never rates a card twice', async (
   await expect(page.getByText('You reviewed 1 card.')).toBeVisible();
 });
 
+test('the Study page shows your progress below the decks', async ({ page }) => {
+  await addCard(page, '銀行');
+  await page.goto('./#/');
+  const progress = page.locator('section.progress');
+  await expect(progress).toContainText("Your progress shows up here once you've studied a few cards.");
+
+  await page.getByRole('link', { name: 'Study now' }).click();
+  await expect(page.locator('.flashcard')).toContainText('銀行');
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: /Good/ }).click();
+  await expect(page.getByRole('heading', { name: /Session complete/ })).toBeVisible();
+
+  await page.goto('./#/');
+  await expect(progress.getByRole('heading', { name: 'Progress' })).toBeVisible();
+  await expect(progress.locator('.stat-tile').first()).toContainText('1day in a row');
+  await expect(progress.getByRole('img', { name: /you studied on 1 day\./ })).toBeVisible();
+  await expect(progress.getByRole('img', { name: /^Cards due: Today/ })).toBeVisible();
+  await expect(progress).toContainText('Good or Easy, of 1 answer');
+  await expect(progress).toContainText('None so far');
+});
+
 test('pressing Again does not bring the same card straight back', async ({ page }, testInfo) => {
   const now = 1_763_287_200_000;
   const chars = ['一', '二', '三', '四', '五', '六'];

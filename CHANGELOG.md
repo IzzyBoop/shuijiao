@@ -10,6 +10,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **Your progress, on the Study page** below your decks: how many days in a row you've studied,
+  a calendar of your study days, how many cards come due each day this week, how well you
+  remember each deck, and the cards you keep forgetting (with a link to edit each one).
 - **How to** now starts with a short **quick start** in writing, and the video has a list of
   its parts: click one to jump straight to it.
 - **Report a problem or suggest an idea** from the About page. The form opens in a new tab with

@@ -1454,3 +1454,292 @@ button.version:hover {
   min-width: 3.2em;
   display: inline-block;
 }
+
+/* Progress (Study page) */
+.progress h3 {
+  margin: 8px 0 0;
+  font-size: 1rem;
+}
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.stat-tile {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.stat-tile-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.stat-tile-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Calendar of study days: one hue, light to dark (busier days are darker). */
+.heatmap {
+  --cell: 12px;
+  --cell-gap: 3px;
+  display: grid;
+  gap: 4px;
+  justify-content: start;
+}
+.heat-months {
+  display: grid;
+  grid-template-columns: repeat(17, var(--cell));
+  column-gap: var(--cell-gap);
+  margin-left: calc(2.4em + 6px);
+  font-size: 0.7rem;
+  color: var(--muted);
+  white-space: nowrap;
+  height: 1.2em;
+}
+.heat-body {
+  display: flex;
+  gap: 6px;
+}
+.heat-weekdays {
+  display: grid;
+  grid-template-rows: repeat(7, var(--cell));
+  row-gap: var(--cell-gap);
+  width: 2.4em;
+  font-size: 0.7rem;
+  line-height: var(--cell);
+  color: var(--muted);
+}
+.heat-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, var(--cell));
+  grid-auto-columns: var(--cell);
+  gap: var(--cell-gap);
+}
+.heat-cell {
+  display: inline-block;
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 2px;
+  background: var(--surface-2);
+}
+.heat-1 {
+  background: color-mix(in srgb, var(--accent) 30%, var(--surface-2));
+}
+.heat-2 {
+  background: color-mix(in srgb, var(--accent) 55%, var(--surface-2));
+}
+.heat-3 {
+  background: color-mix(in srgb, var(--accent) 78%, var(--surface-2));
+}
+.heat-4 {
+  background: var(--accent);
+}
+.heat-future {
+  background: transparent;
+}
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: calc(2.4em + 6px);
+}
+.heat-legend .heat-cell {
+  width: 10px;
+  height: 10px;
+}
+
+/* Reviews coming up: one thin bar per day. */
+.forecast {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 420px;
+}
+.forecast-day {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+.forecast-plot {
+  height: 72px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 1px solid var(--border);
+}
+.forecast-bar {
+  width: 16px;
+  border-radius: 4px 4px 0 0;
+}
+.forecast-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-fill {
+  display: block;
+  background: var(--accent);
+}
+.accuracy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.accuracy-list li {
+  display: grid;
+  gap: 4px;
+}
+.accuracy-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bar-track {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.bar-track .bar-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+.trouble-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Bar lengths in 5% steps (inline styles aren't used; see ProgressSection). */
+.w-0 {
+  width: 0%;
+}
+.w-5 {
+  width: 5%;
+}
+.w-10 {
+  width: 10%;
+}
+.w-15 {
+  width: 15%;
+}
+.w-20 {
+  width: 20%;
+}
+.w-25 {
+  width: 25%;
+}
+.w-30 {
+  width: 30%;
+}
+.w-35 {
+  width: 35%;
+}
+.w-40 {
+  width: 40%;
+}
+.w-45 {
+  width: 45%;
+}
+.w-50 {
+  width: 50%;
+}
+.w-55 {
+  width: 55%;
+}
+.w-60 {
+  width: 60%;
+}
+.w-65 {
+  width: 65%;
+}
+.w-70 {
+  width: 70%;
+}
+.w-75 {
+  width: 75%;
+}
+.w-80 {
+  width: 80%;
+}
+.w-85 {
+  width: 85%;
+}
+.w-90 {
+  width: 90%;
+}
+.w-95 {
+  width: 95%;
+}
+.w-100 {
+  width: 100%;
+}
+.h-0 {
+  height: 0%;
+}
+.h-5 {
+  height: 5%;
+}
+.h-10 {
+  height: 10%;
+}
+.h-15 {
+  height: 15%;
+}
+.h-20 {
+  height: 20%;
+}
+.h-25 {
+  height: 25%;
+}
+.h-30 {
+  height: 30%;
+}
+.h-35 {
+  height: 35%;
+}
+.h-40 {
+  height: 40%;
+}
+.h-45 {
+  height: 45%;
+}
+.h-50 {
+  height: 50%;
+}
+.h-55 {
+  height: 55%;
+}
+.h-60 {
+  height: 60%;
+}
+.h-65 {
+  height: 65%;
+}
+.h-70 {
+  height: 70%;
+}
+.h-75 {
+  height: 75%;
+}
+.h-80 {
+  height: 80%;
+}
+.h-85 {
+  height: 85%;
+}
+.h-90 {
+  height: 90%;
+}
+.h-95 {
+  height: 95%;
+}
+.h-100 {
+  height: 100%;
+}

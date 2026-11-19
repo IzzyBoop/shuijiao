@@ -9,6 +9,7 @@ import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
 import { loadOverview } from './session-data';
 import { StorageTip } from './StorageTip';
+import { ProgressSection } from './ProgressSection';
 import { LoadError } from '../../core/ui/LoadError';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -23,7 +24,7 @@ export function StudyHome() {
       return session ? [{ deck, session }] : [];
     });
     const lastBackup = await store.getMeta('lastBackupAt');
-    return { all, perDeck, lastBackup };
+    return { all, perDeck, lastBackup, decks };
   }, []);
 
   const [importError, setImportError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function StudyHome() {
   if (data.error) return <LoadError error={data.error} retry={data.reload} />;
   if (!data.data) return <p class="muted">Loading…</p>;
 
-  const { all, perDeck, lastBackup } = data.data;
+  const { all, perDeck, lastBackup, decks } = data.data;
   const counts = countQueue(all.queue);
   const backupOld =
     all.totalCards >= 10 &&
@@ -169,6 +170,8 @@ export function StudyHome() {
           </ul>
         </section>
       )}
+
+      {all.totalCards > 0 && <ProgressSection decks={decks} />}
 
       <p class="small muted">
         Studying: {andList(all.templates.map((t) => t.name))} ·{' '}
