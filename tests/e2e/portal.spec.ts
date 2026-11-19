@@ -1484,6 +1484,25 @@ test('the answer side breaks a word into its characters, with meanings', async (
   await expect(breakdown).toHaveCount(0);
 });
 
+test('screen readers hear the front and the answer, but not the whole word-by-word table', async ({
+  page,
+}) => {
+  await addCard(page, '银行');
+  for (const path of ['./#/review', './#/browse']) {
+    await page.goto(path);
+    const card = page.locator('.flashcard');
+    const live = card.locator('[aria-live="polite"]');
+    await expect(card).not.toHaveAttribute('aria-live');
+    await expect(live).toHaveCount(2); // the front, and the (still empty) answer
+    await expect(live.first()).toContainText('銀行');
+    await expect(live.last()).toBeEmpty();
+    await page.getByRole('button', { name: /Show answer/ }).click();
+    await expect(live.last()).toContainText('bank');
+    await expect(page.getByRole('region', { name: 'Character by character' })).toBeVisible();
+    await expect(live.locator('.breakdown')).toHaveCount(0);
+  }
+});
+
 test('a page that crashes shows a way out, and the rest of the portal keeps working', async ({ page }) => {
   await addCard(page, '你好');
   // Damage a card behind the portal's back, as a bug or a broken browser profile might.

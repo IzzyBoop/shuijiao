@@ -1,5 +1,6 @@
 import type { Card, CardField } from '../../core/db/model';
 import { AudioButton, Pinyin, Simp, Trad } from '../../core/ui/chinese';
+import { CardBreakdown } from './CardBreakdown';
 
 /** Sentences (and very long words) use a smaller size that wraps, so they fit on the card. */
 const isLong = (card: Card) => card.kind === 'sentence' || [...card.traditional].length > 6;
@@ -63,6 +64,44 @@ export function CardSide({
         .map((f) => (
           <FieldView key={f} field={f} card={card} visible={visible} />
         ))}
+    </>
+  );
+}
+
+/**
+ * A flashcard's contents: the front, and once turned over, the back with its notes and
+ * the word-by-word meanings. Screen readers announce the front when a new card comes up
+ * and the answer when it is shown, but not the word-by-word table, which would make
+ * every answer very long to listen to; it can still be read like the rest of the page.
+ * Both regions are always on the page, because a region that appears together with its
+ * text is often not announced.
+ */
+export function CardFaces({
+  card,
+  front,
+  back,
+  shown,
+}: {
+  card: Card;
+  front: readonly CardField[];
+  back: readonly CardField[];
+  shown: boolean;
+}) {
+  return (
+    <>
+      <div class="card-region" aria-live="polite">
+        <CardSide card={card} fields={front} />
+      </div>
+      <div class="card-region card-answer" aria-live="polite">
+        {shown && (
+          <>
+            <hr />
+            <CardSide card={card} fields={back} alsoShown={front} />
+            {card.notes && <div class="muted small">{card.notes}</div>}
+          </>
+        )}
+      </div>
+      {shown && <CardBreakdown card={card} />}
     </>
   );
 }

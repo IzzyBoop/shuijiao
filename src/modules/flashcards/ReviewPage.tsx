@@ -10,8 +10,7 @@ import { speak, stopSpeaking } from '../../core/lang/tts';
 import { getStudyPrefs } from '../../core/study-prefs';
 import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { useKeydown } from '../../core/ui/useKeydown';
-import { CardSide } from './CardFace';
-import { CardBreakdown } from './CardBreakdown';
+import { CardFaces } from './CardFace';
 import { EditCardDialog } from './EditCardDialog';
 import { loadSession } from './session-data';
 
@@ -182,16 +181,8 @@ function ReviewSession({ deckId, ahead }: { deckId: string | undefined; ahead: b
         </span>
       </div>
       {saveError && <div class="notice error">Could not save your answer: {saveError}</div>}
-      <div class="flashcard" aria-live="polite" tabIndex={-1} ref={cardRef}>
-        <CardSide card={item.card} fields={item.template.front} />
-        {shown && (
-          <>
-            <hr />
-            <CardSide card={item.card} fields={item.template.back} alsoShown={item.template.front} />
-            {item.card.notes && <div class="muted small">{item.card.notes}</div>}
-            <CardBreakdown card={item.card} />
-          </>
-        )}
+      <div class="flashcard" tabIndex={-1} ref={cardRef}>
+        <CardFaces card={item.card} front={item.template.front} back={item.template.back} shown={shown} />
       </div>
       {!shown ? (
         <div class="grade-bar" key="show">

@@ -6,8 +6,7 @@ import { Icon } from '../../core/ui/Icon';
 import { useAsync } from '../../core/ui/useAsync';
 import type { Card } from '../../core/db/model';
 import { useKeydown } from '../../core/ui/useKeydown';
-import { CardSide } from './CardFace';
-import { CardBreakdown } from './CardBreakdown';
+import { CardFaces } from './CardFace';
 import { EditCardDialog } from './EditCardDialog';
 
 function shuffled<T>(list: readonly T[]): T[] {
@@ -129,17 +128,9 @@ export function BrowsePage({ params }: RouteProps) {
         </div>
       ) : (
         <>
-          <div class="flashcard" aria-live="polite" tabIndex={-1} ref={cardRef}>
+          <div class="flashcard" tabIndex={-1} ref={cardRef}>
             {/* Like study mode: the front stays put and the back appears underneath. */}
-            <CardSide card={card} fields={template.front} />
-            {flipped && (
-              <>
-                <hr />
-                <CardSide card={card} fields={template.back} alsoShown={template.front} />
-                {card.notes && <div class="muted small">{card.notes}</div>}
-                <CardBreakdown card={card} />
-              </>
-            )}
+            <CardFaces card={card} front={template.front} back={template.back} shown={flipped} />
           </div>
           <div class="flip-controls mt">
             <button
