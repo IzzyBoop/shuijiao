@@ -1,4 +1,5 @@
-import Dexie, { type EntityTable } from 'dexie';
+import Dexie, { type EntityTable, type Table } from 'dexie';
+import type { Backup } from './backup-schema';
 import type { Card, Deck, ReviewLog, ReviewState, StudentLink, Template } from './model';
 import { builtinTemplates, defaultDeck } from './defaults';
 
@@ -6,6 +7,20 @@ export interface MetaRow {
   key: string;
   value: string | number;
 }
+
+/** What the last import or erase was, for "Undo". */
+export interface UndoInfo {
+  kind: 'import' | 'erase';
+  /** For an import: the file name, or "Course cards". */
+  label: string;
+  takenAt: number;
+}
+
+/**
+ * The copy of everything taken just before the last import or erase. The small "info"
+ * row is kept apart from the big "data" row so showing the Undo button doesn't load it.
+ */
+export type UndoRow = ({ id: 'info' } & UndoInfo) | { id: 'data'; backup: Backup; meta: MetaRow[] };
 
 export class PortalDB extends Dexie {
   decks!: EntityTable<Deck, 'id'>;
@@ -15,6 +30,7 @@ export class PortalDB extends Dexie {
   reviewLogs!: EntityTable<ReviewLog, 'id'>;
   meta!: EntityTable<MetaRow, 'key'>;
   links!: EntityTable<StudentLink, 'id'>;
+  undo!: Table<UndoRow, string>;
 
   constructor(name = 'shuijiao') {
     super(name);
@@ -30,6 +46,10 @@ export class PortalDB extends Dexie {
     // v2: students' own links on the Resources page. Existing tables are kept as they are.
     this.version(2).stores({
       links: 'id, updatedAt',
+    });
+    // v3: a copy of everything from just before the last import or erase, for Undo.
+    this.version(3).stores({
+      undo: 'id',
     });
     this.on('populate', (tx) => {
       const now = Date.now();

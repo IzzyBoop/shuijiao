@@ -8,6 +8,14 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Undo an import or an erase.** Before every import, and before "Erase all study data", the
+  portal keeps a copy of everything in your browser. Right after an import, **Undo this import**
+  puts everything back; later, Settings → Storage has **Undo the last import** (or erase) until
+  the next one. It tells you if you've studied since, because those answers would be lost. When
+  erasing on a shared computer, untick "Keep a copy" to remove everything for good.
+
 ### Changed
 
 - **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older

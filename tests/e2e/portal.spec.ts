@@ -430,6 +430,63 @@ test('backup: export, erase, import restores cards', async ({ page }, testInfo) 
   await expect(page.getByText('銀行')).toBeVisible();
 });
 
+test('an import or an erase can be undone', async ({ page }, testInfo) => {
+  await addCard(page, '银行');
+  const now = 1_763_287_200_000;
+  const file = testInfo.outputPath('other.json');
+  await writeFile(
+    file,
+    JSON.stringify({
+      format: 'shuijiao-backup',
+      version: 1,
+      exportedAt: now,
+      decks: [],
+      cards: [
+        {
+          id: 'other-card',
+          deckId: 'default-deck',
+          kind: 'word',
+          traditional: '頭髮',
+          simplified: '头发',
+          pinyin: 'tóufa',
+          meaning: 'hair',
+          notes: '',
+          tags: [],
+          createdAt: now,
+          updatedAt: now,
+          deleted: 0,
+        },
+      ],
+      templates: [],
+      reviewStates: [],
+      reviewLogs: [],
+      links: [],
+    }),
+  );
+  await page.goto('./#/settings');
+  await page.locator('input[type=file]').setInputFiles(file);
+  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Import complete' })).toBeVisible();
+  // Right away, on the results screen.
+  await page.getByRole('button', { name: 'Undo this import' }).click();
+  await expect(page.getByRole('heading', { name: 'Import undone' })).toBeVisible();
+  await page.goto('./#/cards');
+  await expect(page.getByText('銀行')).toBeVisible();
+  await expect(page.getByText('頭髮')).toBeHidden();
+
+  // Later, from Settings: undo an erase.
+  await page.goto('./#/settings');
+  await page.getByText('Erase all study data').click();
+  await page.getByLabel('Type ERASE to confirm').fill('ERASE');
+  await page.getByRole('button', { name: 'Erase everything' }).click();
+  await expect(page.getByText('You can still undo this below.')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo the last erase…' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Undo the erase' }).click();
+  await expect(page.getByText('Everything is back as it was before.')).toBeVisible();
+  await page.goto('./#/cards');
+  await expect(page.getByText('銀行')).toBeVisible();
+});
+
 test('import lets you keep the original decks or put everything in My cards', async ({ page }, testInfo) => {
   const now = 1_763_287_200_000;
   const deck = (id: string, name: string) => ({ id, name, createdAt: now, updatedAt: now, deleted: 0 });

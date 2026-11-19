@@ -226,6 +226,132 @@ describe('LocalStudyStore import', () => {
   });
 });
 
+describe('LocalStudyStore undo', () => {
+  let store: LocalStudyStore;
+  beforeEach(() => {
+    store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));
+  });
+
+  const reviewOf = (cardId: string, review: number) => ({
+    id: crypto.randomUUID(),
+    cardId,
+    templateId: 'tpl-reading',
+    rating: 3 as const,
+    state: 0 as const,
+    due: review,
+    stability: 1,
+    stabilityFast: 1,
+    difficulty: 5,
+    scheduledDays: 0,
+    learningStep: 0,
+    review,
+  });
+
+  it('has nothing to undo at first', async () => {
+    expect(await store.getUndo()).toBeNull();
+    await expect(store.undoLast()).rejects.toThrow('nothing to undo');
+  });
+
+  it('undoes an import that replaced a card, bringing back the card and its progress', async () => {
+    await store.saveCard(card({ id: 'mine', traditional: '行', simplified: '行', pinyin: 'háng' }));
+    await store.recordReview(
+      {
+        key: 'mine|tpl-reading',
+        cardId: 'mine',
+        templateId: 'tpl-reading',
+        due: 2,
+        stability: 3,
+        stabilityFast: 3,
+        difficulty: 5,
+        scheduledDays: 3,
+        learningStep: 0,
+        reps: 4,
+        lapses: 0,
+        state: 2,
+        scheduleStatus: 'review',
+        lastReview: 1,
+        updatedAt: 1,
+      },
+      reviewOf('mine', 1),
+    );
+    await store.setMeta('lastBackupAt', 123);
+    const incoming = backup({
+      cards: [card({ id: 'theirs', traditional: '行', simplified: '行', pinyin: 'xíng' })],
+    });
+    await store.applyImport(incoming, {
+      deckMode: 'keep',
+      duplicates: { default: 'new' },
+      undoLabel: 'course.json',
+    });
+    expect((await store.listCards()).map((c) => c.id)).toEqual(['theirs']);
+
+    const undo = await store.getUndo();
+    expect(undo).toMatchObject({ kind: 'import', label: 'course.json', reviewsSince: 0 });
+    await store.undoLast();
+    expect((await store.listCards()).map((c) => c.id)).toEqual(['mine']);
+    expect((await store.listReviewStates(['tpl-reading']))[0]?.reps).toBe(4);
+    expect(await store.getMeta('lastBackupAt')).toBe(123);
+    expect(await store.getUndo()).toBeNull();
+  });
+
+  it('counts the answers given since, which an undo would lose', async () => {
+    await store.applyImport(backup());
+    const takenAt = (await store.getUndo())?.takenAt ?? 0;
+    await store.recordReview(
+      {
+        key: 'card-1|tpl-reading',
+        cardId: 'card-1',
+        templateId: 'tpl-reading',
+        due: takenAt + 5,
+        stability: 1,
+        stabilityFast: 1,
+        difficulty: 5,
+        scheduledDays: 0,
+        learningStep: 0,
+        reps: 1,
+        lapses: 0,
+        state: 1,
+        scheduleStatus: 'learning',
+        lastReview: takenAt + 5,
+        updatedAt: takenAt + 5,
+      },
+      reviewOf('card-1', takenAt + 5),
+    );
+    expect((await store.getUndo())?.reviewsSince).toBe(1);
+  });
+
+  it('a second import replaces the copy: undo goes back to just before the latest one', async () => {
+    await store.applyImport(backup({ cards: [card({ id: 'a' })] }), { deckMode: 'keep', undoLabel: 'first' });
+    await store.applyImport(backup({ cards: [card({ id: 'b', traditional: '頭', simplified: '头' })] }), {
+      deckMode: 'keep',
+      undoLabel: 'second',
+    });
+    expect((await store.getUndo())?.label).toBe('second');
+    await store.undoLast();
+    expect((await store.listCards()).map((c) => c.id)).toEqual(['a']);
+  });
+
+  it('undoes an erase, unless the student chose not to keep a copy', async () => {
+    await store.saveCard(card());
+    await store.eraseAll();
+    expect(await store.countCards()).toBe(0);
+    expect((await store.getUndo())?.kind).toBe('erase');
+    await store.undoLast();
+    expect((await store.listCards()).map((c) => c.id)).toEqual(['card-1']);
+
+    await store.eraseAll({ keepCopy: false });
+    expect(await store.getUndo()).toBeNull();
+    expect(await store.countCards()).toBe(0);
+  });
+
+  it('the copy kept for undo is never part of a backup', async () => {
+    await store.applyImport(backup());
+    expect(Object.keys(await store.exportBackup())).not.toContain('undo');
+    await store.discardUndo();
+    expect(await store.getUndo()).toBeNull();
+  });
+});
+
 describe('LocalStudyStore links', () => {
   it('saves, lists newest first, and soft-deletes links', async () => {
     const store = new LocalStudyStore(new PortalDB(`test-${crypto.randomUUID()}`));

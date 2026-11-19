@@ -19,6 +19,7 @@ import { errorMessage, useAsync } from '../../core/ui/useAsync';
 import { AudioCheck } from './AudioCheck';
 import { ImportPage } from './ImportPage';
 import { BackupPanel } from './BackupPanel';
+import { UndoLast } from './UndoLast';
 import { requestPersistentStorage } from '../../core/db/persist';
 
 const MODE_LABEL: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark', system: 'System' };
@@ -322,6 +323,8 @@ function StoragePanel() {
   }, []);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState('');
+  const [keepCopy, setKeepCopy] = useState(true);
+  const [undoRefresh, setUndoRefresh] = useState(0);
 
   const askPersist = async () => {
     const granted = await requestPersistentStorage();
@@ -335,9 +338,14 @@ function StoragePanel() {
 
   const erase = async () => {
     try {
-      await store.eraseAll();
+      await store.eraseAll({ keepCopy });
       setConfirmText('');
-      setMessage('All study data on this device was erased.');
+      setMessage(
+        keepCopy
+          ? 'All study data on this device was erased. You can still undo this below.'
+          : 'All study data on this device was erased.',
+      );
+      setUndoRefresh((n) => n + 1);
       info.reload();
     } catch (err) {
       setMessage(errorMessage(err));
@@ -367,6 +375,13 @@ function StoragePanel() {
           </button>
         </div>
       )}
+      <UndoLast
+        refresh={undoRefresh}
+        onUndone={() => {
+          setMessage(null);
+          info.reload();
+        }}
+      />
       <details>
         <summary>Erase all study data</summary>
         <div class="stack mt">
@@ -374,6 +389,17 @@ function StoragePanel() {
             This deletes every card, deck, and review on this device. Download a backup first. Type{' '}
             <strong>ERASE</strong> to confirm.
           </p>
+          <label class="check small">
+            <input
+              type="checkbox"
+              checked={keepCopy}
+              onChange={(e) => {
+                setKeepCopy(e.currentTarget.checked);
+              }}
+            />
+            Keep a copy in this browser so I can undo this. Untick it on a shared computer, to remove
+            everything for good.
+          </label>
           <div class="row">
             <input
               type="text"

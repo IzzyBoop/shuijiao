@@ -1,4 +1,4 @@
-import { PortalDB } from './database';
+import { PortalDB, type UndoInfo } from './database';
 import { BACKUP_FORMAT, BACKUP_VERSION, type Backup } from './backup-schema';
 import { builtinTemplates, DEFAULT_DECK_ID, defaultDeck } from './defaults';
 import {
@@ -33,6 +33,8 @@ export type DuplicateChoice = 'old' | 'new';
 
 export interface ImportOptions {
   deckMode: ImportDeckMode;
+  /** Shown next to "Undo last import" (e.g. the file name). */
+  undoLabel?: string;
   /** How to resolve imported cards with the same characters as existing cards. Default: keep old. */
   duplicates?: {
     default: DuplicateChoice;
@@ -145,8 +147,17 @@ export interface StudyStore {
   /** Imported cards with the same characters as cards you already have (but a different id). */
   findImportDuplicates(backup: Backup): Promise<ImportDuplicate[]>;
   previewImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
+  /** Applies an import, first keeping a copy of everything so it can be undone. */
   applyImport(backup: Backup, options?: ImportOptions): Promise<ImportPreview>;
-  eraseAll(): Promise<void>;
+  /** Erases everything. Unless `keepCopy` is false, a copy is kept so it can be undone. */
+  eraseAll(options?: { keepCopy?: boolean }): Promise<void>;
+
+  /** The last import or erase, if it can be undone, and how many answers were given since. */
+  getUndo(): Promise<(UndoInfo & { reviewsSince: number }) | null>;
+  /** Puts everything back as it was just before the last import or erase. */
+  undoLast(): Promise<void>;
+  /** Deletes the copy kept for Undo. */
+  discardUndo(): Promise<void>;
 
   getMeta(key: string): Promise<string | number | undefined>;
   setMeta(key: string, value: string | number): Promise<void>;
@@ -624,50 +635,96 @@ export class LocalStudyStore implements StudyStore {
     return (await this.plan(backup, options)).preview;
   }
 
-  async applyImport(backup: Backup, options: ImportOptions = DEFAULT_IMPORT) {
+  /** Every table, for transactions that copy or replace all of the student's data. */
+  private allTables() {
     const db = this.db;
-    return db.transaction(
-      'rw',
-      [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs, db.links],
-      async () => {
-        const { writes, preview } = await this.plan(backup, options);
-        await db.links.bulkPut(writes.links);
-        await db.decks.bulkPut(writes.decks);
-        await db.templates.bulkPut(writes.templates);
-        await db.cards.bulkPut(writes.cards);
-        if (writes.retireCardIds.length > 0) {
-          await db.cards
-            .where('id')
-            .anyOf(writes.retireCardIds)
-            .modify({ deleted: 1, updatedAt: Date.now() });
-        }
-        await db.reviewStates.bulkPut(writes.reviewStates);
-        await db.reviewLogs.bulkAdd(writes.reviewLogs);
-        return preview;
-      },
-    );
+    return [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs, db.links, db.meta, db.undo];
   }
 
-  async eraseAll() {
+  /** Keeps a copy of everything for Undo. Call inside a transaction over allTables(). */
+  private async keepUndoCopy(kind: UndoInfo['kind'], label: string) {
+    const backup = await this.exportBackup();
+    const meta = await this.db.meta.toArray();
+    await this.db.undo.bulkPut([
+      { id: 'info', kind, label, takenAt: backup.exportedAt },
+      { id: 'data', backup, meta },
+    ]);
+  }
+
+  async applyImport(backup: Backup, options: ImportOptions = DEFAULT_IMPORT) {
+    const db = this.db;
+    return db.transaction('rw', this.allTables(), async () => {
+      // In the same transaction: if the import fails, the previous copy is kept too.
+      await this.keepUndoCopy('import', options.undoLabel ?? 'a backup');
+      const { writes, preview } = await this.plan(backup, options);
+      await db.links.bulkPut(writes.links);
+      await db.decks.bulkPut(writes.decks);
+      await db.templates.bulkPut(writes.templates);
+      await db.cards.bulkPut(writes.cards);
+      if (writes.retireCardIds.length > 0) {
+        await db.cards.where('id').anyOf(writes.retireCardIds).modify({ deleted: 1, updatedAt: Date.now() });
+      }
+      await db.reviewStates.bulkPut(writes.reviewStates);
+      await db.reviewLogs.bulkAdd(writes.reviewLogs);
+      return preview;
+    });
+  }
+
+  async eraseAll({ keepCopy = true }: { keepCopy?: boolean } = {}) {
     const db = this.db;
     const now = Date.now();
-    await db.transaction(
-      'rw',
-      [db.decks, db.cards, db.templates, db.reviewStates, db.reviewLogs, db.meta, db.links],
-      async () => {
-        await Promise.all([
-          db.decks.clear(),
-          db.cards.clear(),
-          db.templates.clear(),
-          db.reviewStates.clear(),
-          db.reviewLogs.clear(),
-          db.meta.clear(),
-          db.links.clear(),
-        ]);
-        await db.decks.add(defaultDeck(now));
-        await db.templates.bulkAdd(builtinTemplates(now));
-      },
-    );
+    await db.transaction('rw', this.allTables(), async () => {
+      if (keepCopy) await this.keepUndoCopy('erase', '');
+      else await db.undo.clear();
+      await Promise.all([
+        db.decks.clear(),
+        db.cards.clear(),
+        db.templates.clear(),
+        db.reviewStates.clear(),
+        db.reviewLogs.clear(),
+        db.meta.clear(),
+        db.links.clear(),
+      ]);
+      await db.decks.add(defaultDeck(now));
+      await db.templates.bulkAdd(builtinTemplates(now));
+    });
+  }
+
+  async getUndo() {
+    const info = await this.db.undo.get('info');
+    if (info?.id !== 'info') return null;
+    const reviewsSince = await this.db.reviewLogs.where('review').above(info.takenAt).count();
+    return { kind: info.kind, label: info.label, takenAt: info.takenAt, reviewsSince };
+  }
+
+  async undoLast() {
+    const db = this.db;
+    await db.transaction('rw', this.allTables(), async () => {
+      const data = await db.undo.get('data');
+      if (data?.id !== 'data') throw new Error('There is nothing to undo.');
+      const { backup, meta } = data;
+      await Promise.all([
+        db.decks.clear(),
+        db.cards.clear(),
+        db.templates.clear(),
+        db.reviewStates.clear(),
+        db.reviewLogs.clear(),
+        db.links.clear(),
+        db.meta.clear(),
+      ]);
+      await db.decks.bulkAdd(backup.decks);
+      await db.cards.bulkAdd(backup.cards);
+      await db.templates.bulkAdd(backup.templates);
+      await db.reviewStates.bulkAdd(backup.reviewStates);
+      await db.reviewLogs.bulkAdd(backup.reviewLogs);
+      await db.links.bulkAdd(backup.links);
+      await db.meta.bulkAdd(meta);
+      await db.undo.clear();
+    });
+  }
+
+  async discardUndo() {
+    await this.db.undo.clear();
   }
 
   async getMeta(key: string) {

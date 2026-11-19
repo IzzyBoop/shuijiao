@@ -52,6 +52,34 @@ export function ImportPage() {
 }
 
 function ImportDone({ result, back }: { result: ImportPreview; back: PendingImport['back'] }) {
+  const [undo, setUndo] = useState<'idle' | 'busy' | 'done'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const undoImport = async () => {
+    setUndo('busy');
+    setError(null);
+    try {
+      await store.undoLast();
+      setUndo('done');
+    } catch (err) {
+      setError(errorMessage(err));
+      setUndo('idle');
+    }
+  };
+  if (undo === 'done') {
+    return (
+      <section class="panel stack">
+        <h1>Import undone</h1>
+        <div class="notice ok" role="status">
+          <Icon name="check" /> Everything is back as it was before the import.
+        </div>
+        <div class="row">
+          <a class="button primary" href={href(back.path)}>
+            Back to {back.label}
+          </a>
+        </div>
+      </section>
+    );
+  }
   const parts = [plural(result.cards.added, 'new card'), `${result.cards.updated} updated`];
   if (result.duplicatesReplaced > 0) parts.push(`${result.duplicatesReplaced} replaced`);
   if (result.duplicatesKeptOld > 0) parts.push(`${plural(result.duplicatesKeptOld, 'duplicate')} skipped`);
@@ -68,7 +96,16 @@ function ImportDone({ result, back }: { result: ImportPreview; back: PendingImpo
         <a class="button" href={href(back.path)}>
           Back to {back.label}
         </a>
+        <button type="button" disabled={undo === 'busy'} onClick={() => void undoImport()}>
+          Undo this import
+        </button>
       </div>
+      {error && (
+        <div class="notice error" role="alert">
+          {error}
+        </div>
+      )}
+      <p class="small muted">You can also undo it later in Settings, until your next import.</p>
     </section>
   );
 }
@@ -103,7 +140,10 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
     setBusy(true);
     setError(null);
     try {
-      const result = await store.applyImport(backup, options);
+      const result = await store.applyImport(backup, {
+        ...options,
+        undoLabel: source === 'course' ? 'the course cards' : label,
+      });
       clearPendingImport();
       onDone(result);
     } catch (err) {
