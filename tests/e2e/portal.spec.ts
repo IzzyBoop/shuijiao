@@ -1598,7 +1598,7 @@ test('the backup reminder can be hidden for a week', async ({ page }, testInfo) 
   await expect(reminder).toBeVisible();
 });
 
-test("What's new lists every release, folded up until opened", async ({ page }) => {
+test("What's new lists every release: the newest open, the others folded up", async ({ page }) => {
   const changelog = await readFile('CHANGELOG.md', 'utf8');
   const released = [...changelog.matchAll(/^## \[(\d[^\]]*)\]/gm)].map((m) => m[1]);
   expect(released.length).toBeGreaterThan(5);
@@ -1608,7 +1608,8 @@ test("What's new lists every release, folded up until opened", async ({ page }) 
   await expect(releases).toHaveCount(released.length);
   await expect(releases.first()).toContainText(`Version ${released[0] ?? ''}`);
   await expect(releases.last()).toContainText(`Version ${released.at(-1) ?? ''}`);
-  for (const r of await releases.all()) await expect(r).not.toHaveAttribute('open');
+  await expect(releases.first()).toHaveAttribute('open');
+  for (const r of (await releases.all()).slice(1)) await expect(r).not.toHaveAttribute('open');
 
   const v100 = releases.filter({ hasText: 'Version 1.0.0' });
   await expect(v100.getByText('The first stable release')).toBeHidden();

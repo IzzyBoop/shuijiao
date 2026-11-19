@@ -27,6 +27,7 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   remember each deck, and the cards you keep forgetting (with a link to edit each one).
 - **How to** now starts with a short **quick start** in writing, and the video has a list of
   its parts: click one to jump straight to it.
+- **What's new** on the About page opens the newest version's notes straight away.
 - **Report a problem or suggest an idea** from the About page. The form opens in a new tab with
   the portal's version filled in; nothing about your cards is sent.
 - **Undo an import or an erase.** Before every import, and before "Erase all study data", the

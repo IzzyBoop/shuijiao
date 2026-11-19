@@ -2,7 +2,7 @@ import releases from 'virtual:changelog';
 
 /**
  * Release notes from CHANGELOG.md, newest first, rendered as plain text. Every release
- * is listed, each folded up until the student opens it.
+ * is listed; the newest is open, and the older ones are folded up until opened.
  */
 export function WhatsNew() {
   if (releases.length === 0) return null;
@@ -10,8 +10,8 @@ export function WhatsNew() {
     <section class="panel stack" aria-labelledby="whats-new">
       <h2 id="whats-new">What's new</h2>
       <div class="releases">
-        {releases.map((release) => (
-          <details key={release.version} class="release">
+        {releases.map((release, i) => (
+          <details key={release.version} class="release" open={i === 0}>
             <summary>
               <span class="release-version">Version {release.version}</span>
               {release.date && (
