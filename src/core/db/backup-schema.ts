@@ -127,8 +127,10 @@ export type Backup = v.InferOutput<typeof BackupSchema>;
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; errors: string[] };
 
 /** Parses backup file text. Never throws. */
-export function parseBackup(text: string): ParseResult {
-  if (text.length > LIMITS.importBytes) return { ok: false, errors: ['File is larger than 10 MB.'] };
+export function parseBackup(text: string, maxLength: number = LIMITS.importBytes): ParseResult {
+  if (text.length > maxLength) {
+    return { ok: false, errors: [`File is larger than ${Math.round(maxLength / 1024 / 1024)} MB.`] };
+  }
   let raw: unknown;
   try {
     raw = JSON.parse(text);

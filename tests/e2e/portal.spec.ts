@@ -395,7 +395,7 @@ test('backup: export, erase, import restores cards', async ({ page }, testInfo) 
   await page.goto('./#/settings');
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download backup' }).click();
-  const file = testInfo.outputPath('backup.json');
+  const file = testInfo.outputPath('backup.json.gz');
   await (await download).saveAs(file);
 
   await page.getByText('Erase all study data').click();
@@ -731,7 +731,7 @@ test.describe('backup file names', () => {
     await page.goto('./#/settings');
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download backup' }).click();
-    expect((await download).suggestedFilename()).toBe('shuijiao-backup-2026-11-17.json');
+    expect((await download).suggestedFilename()).toBe('shuijiao-backup-2026-11-17.json.gz');
   });
 });
 

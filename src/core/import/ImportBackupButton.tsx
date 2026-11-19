@@ -1,6 +1,5 @@
 import { useState } from 'preact/hooks';
-import { parseBackup } from '../db/backup-schema';
-import { LIMITS } from '../db/model';
+import { readBackupFile } from '../db/backup-file';
 import { navigate } from '../router';
 import { Icon } from '../ui/Icon';
 import { errorMessage } from '../ui/useAsync';
@@ -28,13 +27,9 @@ export function ImportBackupButton({
     input.value = '';
     onError(null);
     if (!file) return;
-    if (file.size > LIMITS.importBytes) {
-      onError('That file is larger than 10 MB, so it is not a backup from this portal.');
-      return;
-    }
     setBusy(true);
     try {
-      const result = parseBackup(await file.text());
+      const result = await readBackupFile(file);
       if (!result.ok) {
         onError(`This file can't be imported. ${result.errors.join(' ')}`);
         return;
@@ -53,7 +48,7 @@ export function ImportBackupButton({
       <Icon name="upload" /> Import a backup…
       <input
         type="file"
-        accept=".json,application/json"
+        accept=".json,.gz,application/json,application/gzip,application/x-gzip"
         class="sr-only"
         disabled={busy}
         onChange={(e) => void chooseFile(e.currentTarget)}

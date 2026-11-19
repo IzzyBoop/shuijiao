@@ -1,13 +1,15 @@
 // Turns one of your backups into the course cards that students can look through and
 // import from the Study page.
 //
-//   npm run course -- ~/Downloads/shuijiao-backup-2026-11-17.json
+//   npm run course -- ~/Downloads/shuijiao-backup-2026-11-17.json.gz
 //
+// Compressed (.json.gz) and plain (.json) backups both work.
 // Only decks and cards that aren't deleted are kept. Study progress, review history,
 // links, and card types are left out, so nothing about your own studying is published.
 // tests/unit/course-deck.test.ts then checks the result against the backup schema.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { gunzipSync } from 'node:zlib';
 
 const OUT = 'public/course/course-deck.json';
 
@@ -38,7 +40,9 @@ if (!path) {
   process.exit(1);
 }
 
-const backup = JSON.parse(await readFile(path, 'utf8')) as BackupFile;
+const raw = await readFile(path);
+const isGzip = raw[0] === 0x1f && raw[1] === 0x8b;
+const backup = JSON.parse((isGzip ? gunzipSync(raw) : raw).toString('utf8')) as BackupFile;
 if (backup.format !== 'shuijiao-backup' || backup.version !== 1) {
   console.error(`${path} is not a 水餃 backup file.`);
   process.exit(1);

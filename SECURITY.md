@@ -22,7 +22,9 @@ The portal is a fully static site. There is no server, no account system, no dat
   `dangerouslySetInnerHTML`, `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `eval`,
   and `new Function`; Trusted Types blocks them in the browser as a second layer.
 - **Imported backup files** are size-limited and validated against a strict schema (allowed keys
-  only, per-field length limits, record-count limits) before anything is written.
+  only, per-field length limits, record-count limits) before anything is written. Compressed
+  backups are decompressed as a stream that stops as soon as the text passes the size limit, so a
+  small "zip bomb" file can't fill memory.
 - **External links** must be `https:` (checked at build time and again at render time) and open with
   `rel="noopener noreferrer"`.
 - **Supply chain:** few runtime dependencies, exact version pins, lockfile, `ignore-scripts=true`,

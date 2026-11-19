@@ -4,7 +4,7 @@ import { BACKUP_FORMAT, parseBackup, type Backup } from '../../src/core/db/backu
 import { PortalDB } from '../../src/core/db/database';
 import { LocalStudyStore } from '../../src/core/db/store';
 import { DEFAULT_DECK_ID } from '../../src/core/db/defaults';
-import { deckNameKey, type Card } from '../../src/core/db/model';
+import { deckNameKey, LIMITS, type Card } from '../../src/core/db/model';
 
 const card = (over: Partial<Card> = {}): Card => ({
   id: 'card-1',
@@ -96,7 +96,7 @@ describe('parseBackup', () => {
   });
 
   it('rejects files over the size limit', () => {
-    expect(parseBackup(' '.repeat(10 * 1024 * 1024 + 1)).ok).toBe(false);
+    expect(parseBackup(' '.repeat(LIMITS.importBytes + 1)).ok).toBe(false);
   });
 });
 

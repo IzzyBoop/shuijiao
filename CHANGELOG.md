@@ -8,6 +8,18 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Changed
+
+- **Backups are now compressed** (`.json.gz`), so they are about a tenth of the size. Older
+  `.json` backups still import as before.
+
+### Fixed
+
+- **Big backups can be imported again.** Import used to refuse files over 10 MB, which a year of
+  daily study can reach, so a student's own backup could be turned away just when they needed
+  it. Any backup the portal makes can now be imported, and the portal checks each backup as it
+  downloads it and tells you straight away if something is wrong.
+
 ## [1.1.0] - 2026-11-17
 
 ### Added

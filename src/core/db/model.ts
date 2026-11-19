@@ -129,7 +129,9 @@ export const LIMITS = {
   linkNote: 300,
   links: 500,
   reviewLogs: 300_000,
-  importBytes: 10 * 1024 * 1024,
+  // The text inside a backup file. A year of daily study is about 10–15 MB; this leaves
+  // room for the record limits above, so any backup the portal makes can be imported.
+  importBytes: 200 * 1024 * 1024,
 } as const;
 
 export const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;

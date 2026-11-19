@@ -51,7 +51,7 @@ Students see these under **Course cards** on the Study page. To publish a new se
 backup in Settings, then:
 
 ```sh
-npm run course -- ~/Downloads/shuijiao-backup-YYYY-MM-DD.json
+npm run course -- ~/Downloads/shuijiao-backup-YYYY-MM-DD.json.gz
 npm test
 ```
 
