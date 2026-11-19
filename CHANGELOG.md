@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-19
+
 ### Added
 
 - **Add a word as a card while you study.** In the word-by-word meanings, press **+** next to a
