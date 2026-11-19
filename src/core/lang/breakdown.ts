@@ -94,6 +94,11 @@ function bestEntry(
 
 const cache = new Map<string, Breakdown>();
 
+/** Starts loading the dictionary ahead of time, so the first answer doesn't wait for it. */
+export function warmUp(): Promise<unknown> {
+  return loadDictionary();
+}
+
 /** The breakdown for a card, loading the dictionary the first time (cached for offline use). */
 export async function breakdown(card: { traditional: string; simplified: string }): Promise<Breakdown> {
   const key = `${card.traditional}\t${card.simplified}`;

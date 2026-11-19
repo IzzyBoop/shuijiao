@@ -1,6 +1,6 @@
 import type { Card, CardField } from '../../core/db/model';
 import { AudioButton, Pinyin, Simp, Trad } from '../../core/ui/chinese';
-import { CardBreakdown } from './CardBreakdown';
+import { CardBreakdown, useWarmBreakdown } from './CardBreakdown';
 
 /** Sentences (and very long words) use a smaller size that wraps, so they fit on the card. */
 const isLong = (card: Card) => card.kind === 'sentence' || [...card.traditional].length > 6;
@@ -87,6 +87,7 @@ export function CardFaces({
   back: readonly CardField[];
   shown: boolean;
 }) {
+  useWarmBreakdown();
   return (
     <>
       <div class="card-region" aria-live="polite">

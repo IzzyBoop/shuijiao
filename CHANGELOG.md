@@ -41,6 +41,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   word-by-word table as well. The table is still there to explore.
 - **Deleted cards are tidied up.** 30 days after you delete a card, its study history is
   removed, so backups stay smaller. Deleted cards also no longer count toward the card limit.
+- **The first answer of a session shows up straight away.** The dictionary for the word-by-word
+  meanings now loads in the background while you look at the first card, instead of after you
+  turn it over.
 - **Updates download less.** A new version now only downloads the files that changed, instead
   of the whole portal again (about 1.5 MB each time).
 - Firefox no longer pops up a storage permission question out of the blue when you save your

@@ -8,6 +8,40 @@ import { Pinyin, Trad } from '../../core/ui/chinese';
 // the main bundle that every page load needs (tools/check-dist.mjs checks this).
 const loadBreakdown = () => import('../../core/lang/breakdown');
 
+let warmed = false;
+
+/**
+ * While a study session or Flip through is open, load the word-by-word code and the
+ * dictionary (several MB, and a moment to read) when the browser has nothing else to
+ * do, instead of when the first answer is shown. Only once per visit, and only if the
+ * word-by-word meanings are turned on.
+ */
+export function useWarmBreakdown(): void {
+  const { showBreakdown } = useStudyPrefs();
+  useEffect(() => {
+    if (!showBreakdown || warmed) return;
+    const run = () => {
+      warmed = true;
+      loadBreakdown()
+        .then((m) => m.warmUp())
+        .catch(() => {
+          warmed = false; // offline: try again next time
+        });
+    };
+    // Safari has no requestIdleCallback.
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(run, { timeout: 5_000 });
+      return () => {
+        window.cancelIdleCallback(handle);
+      };
+    }
+    const handle = window.setTimeout(run, 1_500);
+    return () => {
+      window.clearTimeout(handle);
+    };
+  }, [showBreakdown]);
+}
+
 /**
  * The meaning of each word (in a sentence) or each character (in a word), shown under
  * the answer. Appears once the dictionary has loaded; if it can't load, nothing shows.

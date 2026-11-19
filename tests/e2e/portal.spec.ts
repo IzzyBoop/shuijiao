@@ -1484,6 +1484,15 @@ test('the answer side breaks a word into its characters, with meanings', async (
   await expect(breakdown).toHaveCount(0);
 });
 
+test('the dictionary starts loading before the first answer is shown', async ({ page }) => {
+  await addCard(page, '银行'); // auto-fill loaded the dictionary in this page already…
+  await page.goto('./#/review');
+  const dictionary = page.waitForRequest(/\/dict\/cedict\./);
+  await page.reload(); // …so start afresh, as when you open the portal to study
+  await expect(page.getByRole('button', { name: /Show answer/ })).toBeVisible();
+  await dictionary; // without anyone pressing Show answer
+});
+
 test('screen readers hear the front and the answer, but not the whole word-by-word table', async ({
   page,
 }) => {
