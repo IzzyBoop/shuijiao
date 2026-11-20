@@ -2135,3 +2135,47 @@ test('the character style applies in Classic and 墨 Ink; Ink decoration stays s
   expect(await fontOf('main', '::before')).toContain('Songti TC');
   expect(await fontOf('.brand-mark', '::before')).toContain('Songti TC');
 });
+
+test('Serif and Handwriting bring their own Chinese fonts for devices without one', async ({ page }) => {
+  const fontRequests: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/fonts/cjk/')) fontRequests.push(r.url());
+  });
+  await page.goto('./#/settings');
+  const style = page.getByLabel('Character style');
+  const sheets = () =>
+    page.evaluate(() => [...document.querySelectorAll('link[id^="cjk-"]')].map((l) => l.id).sort());
+
+  await page.getByRole('button', { name: 'Classic', exact: true }).click();
+  await style.selectOption('sans');
+  expect(await sheets()).toEqual([]);
+  expect(fontRequests).toEqual([]); // Sans in Classic: nothing extra at all
+  await style.selectOption('serif');
+  expect(await sheets()).toEqual(['cjk-serif']);
+  await style.selectOption('kai');
+  expect(await sheets()).toEqual(['cjk-kai']);
+  await page.getByRole('button', { name: '墨 Ink (beta)' }).click();
+  expect(await sheets()).toEqual(['cjk-kai', 'cjk-serif']); // Ink's logo is always serif
+
+  // As on a phone: the browser fetches just the piece with the character, from this site.
+  const loaded = await page.evaluate(async () => {
+    const out: Record<string, string> = {};
+    for (const family of ['Shuijiao Serif TC', 'Shuijiao Serif SC', 'Shuijiao Kai']) {
+      const faces = await document.fonts.load(`32px "${family}"`, family.endsWith('SC') ? '学' : '學');
+      out[family] = faces.map((f) => f.status).join() || 'none';
+    }
+    return out;
+  });
+  expect(loaded).toEqual({
+    'Shuijiao Serif TC': 'loaded',
+    'Shuijiao Serif SC': 'loaded',
+    'Shuijiao Kai': 'loaded',
+  });
+  const pieces = fontRequests.filter((u) => u.endsWith('.woff2'));
+  expect(pieces).toHaveLength(3); // one small piece per font, not the whole font
+  expect(fontRequests.every((u) => new URL(u).origin === new URL(page.url()).origin)).toBe(true);
+
+  // None of it is downloaded up front for offline use.
+  const sw = await (await page.request.get('./sw.js')).text();
+  expect(/const PRECACHE = (\[[^\]]*\]);/.exec(sw)?.[1]).not.toContain('fonts/cjk/');
+});

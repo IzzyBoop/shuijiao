@@ -11,10 +11,14 @@
     'PingFang SC', 'Noto Sans SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
   /* Always serif, whatever the student picks: for decoration (Ink's logo and background
      characters), which the other styles make look odd. */
+  /* Serif and Handwriting end with the app's own fonts ('Shuijiao …', see
+     src/core/theme/cjk-fonts.ts), used only where the device has none: phones. */
   --font-hant-serif:
-    'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU', 'MingLiU', serif;
+    'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU', 'MingLiU',
+    'Shuijiao Serif TC', 'Shuijiao Serif SC', serif;
   --font-hans-serif:
-    'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', serif;
+    'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', 'Shuijiao Serif SC',
+    'Shuijiao Serif TC', serif;
 }
 
 [data-hanzi-font='serif'] {
@@ -23,8 +27,9 @@
 }
 
 [data-hanzi-font='kai'] {
-  --font-hant: 'Kaiti TC', 'BiauKai', 'DFKai-SB', 'TW-Kai', 'AR PL UKai TW', 'Kaiti SC', serif;
-  --font-hans: 'Kaiti SC', 'STKaiti', 'KaiTi', 'AR PL UKai CN', 'Kaiti TC', serif;
+  --font-hant:
+    'Kaiti TC', 'BiauKai', 'DFKai-SB', 'TW-Kai', 'AR PL UKai TW', 'Kaiti SC', 'Shuijiao Kai', serif;
+  --font-hans: 'Kaiti SC', 'STKaiti', 'KaiTi', 'AR PL UKai CN', 'Kaiti TC', 'Shuijiao Kai', serif;
 }
 
 /* Never show the app inside a frame (clickjacking defence). */

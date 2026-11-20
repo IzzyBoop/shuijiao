@@ -79,9 +79,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.endsWith('.woff2')) {
-    // Fonts (content-hashed) are only used by the 墨 Ink style, so they
-    // aren't precached: cache each on first use, then serve it from the cache.
+  if (url.pathname.endsWith('.woff2') || url.pathname.includes('/fonts/cjk/')) {
+    // Fonts (墨 Ink's, and the Chinese ones for devices without their own) aren't
+    // precached: each is cached on first use, then served from the cache. Their names
+    // change with their content, so a cached copy is never out of date.
     event.respondWith(
       caches.open(FONT_CACHE).then((cache) =>
         cache.match(request, { ignoreVary: true }).then(

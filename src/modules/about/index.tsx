@@ -61,6 +61,10 @@ function AboutPage() {
           Public License).
         </p>
         <p>
+          Chinese fonts, for devices without their own: Noto Serif TC and SC, and LXGW WenKai TC (SIL Open
+          Font License).
+        </p>
+        <p>
           The 墨 Ink style is inspired by the website of{' '}
           <ExternalLink url="https://ryoku.dev/">Ryoku Linux</ExternalLink>. Its fonts are Fraunces, Space
           Grotesk, and Space Mono (SIL Open Font License).

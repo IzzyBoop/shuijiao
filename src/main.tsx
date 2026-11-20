@@ -6,6 +6,7 @@ import { initTheme } from './app/ThemeToggle';
 import { setAppStatus } from './core/app-status';
 import { store } from './core/db/store';
 import { initStudyPrefs } from './core/study-prefs';
+import { watchCjkFonts } from './core/theme/cjk-fonts';
 import { registerServiceWorker } from './core/sw-register';
 import { ErrorBoundary } from './core/ui/ErrorBoundary';
 
@@ -23,6 +24,7 @@ if (!framed && mount) {
   });
   initTheme();
   initStudyPrefs();
+  watchCjkFonts();
   render(
     <ErrorBoundary>
       <App />

@@ -126,7 +126,11 @@ function AppearancePanel() {
           )}
         </>
       )}
-      <SettingRow id="set-font" label="Character style" hint="Uses fonts installed on your device.">
+      <SettingRow
+        id="set-font"
+        label="Character style"
+        hint="Uses your device's fonts if it has them. If not (most phones), Serif and Handwriting download what they need as characters appear, then work offline."
+      >
         <select
           id="set-font"
           aria-label="Character style"

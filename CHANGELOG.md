@@ -10,6 +10,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Fixed
 
+- **Serif and Handwriting on phones.** Phones have no Chinese serif or handwriting font, so
+  cards stayed in sans whatever you chose. The portal now brings its own (Noto Serif and LXGW
+  WenKai). They're used only when your device has none, and only the characters you actually
+  see are downloaded, a small piece at a time, then kept for offline use.
 - **Character style in 墨 Ink.** Sans now works in Ink too; before, Ink always showed serif
   unless you chose Handwriting.
 
