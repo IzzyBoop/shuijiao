@@ -1425,24 +1425,34 @@ button.version:hover {
   padding-left: 1.4em;
 }
 
-.chapters {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 4px;
+/* The version, top right of the Study page; leads to what's new. On a phone it stays on
+   the heading's line and the buttons go below. */
+.study-head h1 {
+  margin-right: auto;
 }
-.chapters button {
-  width: 100%;
-  justify-content: flex-start;
-  text-align: left;
-}
-.chapter-time {
-  font-variant-numeric: tabular-nums;
+.version-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 4px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
   color: var(--muted);
-  min-width: 3.2em;
-  display: inline-block;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.version-chip:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+.version-chip-mark {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 /* Progress (Study page) */

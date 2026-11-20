@@ -46,8 +46,16 @@ export function StudyHome() {
 
   return (
     <>
-      <div class="page-head">
+      <div class="page-head study-head">
         <h1>Study</h1>
+        <a
+          class="version-chip"
+          href={href('/about')}
+          aria-label={`Version ${__APP_VERSION__}: what's new`}
+          title="What's new"
+        >
+          <span class="version-chip-mark" aria-hidden="true" />v{__APP_VERSION__}
+        </a>
         <div class="row">
           <a class="button" href={href('/course')}>
             <Icon name="book" /> Course cards

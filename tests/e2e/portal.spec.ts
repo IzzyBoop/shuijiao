@@ -2088,3 +2088,12 @@ test('stroke files are cached as they are viewed, never downloaded up front', as
   expect(((await file.json()) as { strokes: string[] }).strokes).toHaveLength(7);
   expect((await page.request.get('./strokes/LICENSE-ArphicPL.txt')).ok()).toBe(true);
 });
+
+test('the Study page shows the version at the top, which leads to what is new', async ({ page }) => {
+  const { version } = JSON.parse(await readFile('package.json', 'utf8')) as { version: string };
+  await page.goto('./#/');
+  const chip = page.getByRole('link', { name: `Version ${version}: what's new` });
+  await expect(chip).toHaveText(`v${version}`);
+  await chip.click();
+  await expect(page).toHaveURL(/#\/about$/);
+});
