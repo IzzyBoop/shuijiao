@@ -101,14 +101,6 @@
   --label-track: 0.2em;
 }
 
-/* Chinese in the device's own serif, unless the
-   student chose the handwriting style. */
-[data-style='ink']:not([data-hanzi-font='kai']) {
-  --font-hant:
-    'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU', 'MingLiU', serif;
-  --font-hans: 'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', serif;
-}
-
 /* A faint paper grain over everything. */
 [data-style='ink'] body::before {
   content: '';
@@ -212,7 +204,7 @@
 }
 [data-style='ink'] .brand-mark::before {
   content: '餃';
-  font: 500 26px/1 var(--font-hant);
+  font: 500 26px/1 var(--font-hant-serif); /* the logo: always serif */
   color: var(--text);
 }
 [data-style='ink'] .nav a {
@@ -456,7 +448,7 @@
     bottom: -6vw;
     z-index: -1;
     pointer-events: none;
-    font: 900 min(46vw, 640px) / 1 var(--font-hant);
+    font: 900 min(46vw, 640px) / 1 var(--font-hant-serif); /* always serif */
     color: transparent;
     -webkit-text-stroke: 1px var(--border);
   }

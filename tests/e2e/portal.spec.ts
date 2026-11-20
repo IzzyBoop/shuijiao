@@ -2097,3 +2097,41 @@ test('the Study page shows the version at the top, which leads to what is new', 
   await chip.click();
   await expect(page).toHaveURL(/#\/about$/);
 });
+
+test('the character style applies in Classic and 墨 Ink; Ink decoration stays serif', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 }); // wide enough for Ink's background character
+  await page.goto('./#/settings');
+  const style = page.getByLabel('Character style');
+  const fontOf = (selector: string, pseudo?: string) =>
+    page.evaluate(
+      ([sel, ps]) => {
+        const el = document.querySelector(sel);
+        return el ? getComputedStyle(el, ps ?? null).fontFamily : '';
+      },
+      [selector, pseudo] as const,
+    );
+  const hanzi = () =>
+    page.evaluate(() => {
+      const span = document.createElement('span');
+      span.className = 'hanzi-trad';
+      span.textContent = '學';
+      document.body.append(span);
+      const font = getComputedStyle(span).fontFamily;
+      span.remove();
+      return font;
+    });
+
+  for (const look of ['Classic', '墨 Ink (beta)']) {
+    await page.getByRole('button', { name: look, exact: true }).click();
+    await style.selectOption('sans');
+    expect(await hanzi()).toContain('PingFang TC');
+    await style.selectOption('serif');
+    expect(await hanzi()).toContain('Songti TC');
+    await style.selectOption('kai');
+    expect(await hanzi()).toContain('Kaiti TC');
+  }
+  // Ink's logo and background character are serif whatever the choice.
+  await style.selectOption('sans');
+  expect(await fontOf('main', '::before')).toContain('Songti TC');
+  expect(await fontOf('.brand-mark', '::before')).toContain('Songti TC');
+});

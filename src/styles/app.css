@@ -9,11 +9,17 @@
     'PingFang TC', 'Noto Sans TC', 'Noto Sans CJK TC', 'Source Han Sans TC', 'Microsoft JhengHei', sans-serif;
   --font-hans:
     'PingFang SC', 'Noto Sans SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Microsoft YaHei', sans-serif;
+  /* Always serif, whatever the student picks: for decoration (Ink's logo and background
+     characters), which the other styles make look odd. */
+  --font-hant-serif:
+    'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU', 'MingLiU', serif;
+  --font-hans-serif:
+    'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', serif;
 }
 
 [data-hanzi-font='serif'] {
-  --font-hant: 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU', serif;
-  --font-hans: 'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', serif;
+  --font-hant: var(--font-hant-serif);
+  --font-hans: var(--font-hans-serif);
 }
 
 [data-hanzi-font='kai'] {

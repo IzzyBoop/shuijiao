@@ -8,6 +8,16 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Fixed
+
+- **Character style in 墨 Ink.** Sans now works in Ink too; before, Ink always showed serif
+  unless you chose Handwriting.
+
+### Changed
+
+- **Ink's background characters and 餃 logo are always serif**, whatever character style you
+  choose, so they keep their look.
+
 ## [1.5.0] - 2026-11-20
 
 ### Added
