@@ -2178,8 +2178,12 @@ test('Serif and Handwriting bring their own Chinese fonts for devices without on
     'Shuijiao Serif SC': 'loaded',
     'Shuijiao Kai': 'loaded',
   });
-  const pieces = fontRequests.filter((u) => u.endsWith('.woff2'));
-  expect(pieces).toHaveLength(3); // one small piece per font, not the whole font
+  // Only a few small pieces, not whole fonts (each has 100+). On a machine without its own
+  // Chinese serif (like CI's Linux), the page's other Chinese text also brings in a piece or two.
+  const pieces = new Set(fontRequests.filter((u) => u.endsWith('.woff2')));
+  expect(pieces.size).toBeGreaterThanOrEqual(3);
+  expect(pieces.size).toBeLessThanOrEqual(15);
+  expect([...pieces].every((u) => /\/fonts\/cjk\/[\w.-]+\/[\w-]+-\d+-\d+-normal\.woff2$/.test(u))).toBe(true);
   expect(fontRequests.every((u) => new URL(u).origin === new URL(page.url()).origin)).toBe(true);
 
   // None of it is downloaded up front for offline use.
