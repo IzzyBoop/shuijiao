@@ -15,6 +15,7 @@ import { AddCardDialog, EditCardDialog } from './EditCardDialog';
 import type { WordGloss } from '../../core/lang/autofill';
 import { loadSession } from './session-data';
 import { LoadError } from '../../core/ui/LoadError';
+import { problemFrom, ProblemNotice, type Problem } from '../../core/ui/problem';
 
 /** Cards due again within this window come back in the same session. */
 const RELEARN_WINDOW = 20 * 60_000;
@@ -48,7 +49,7 @@ function ReviewSession({
   const [queue, setQueue] = useState<QueueItem[] | null>(null);
   const [shown, setShown] = useState(false);
   const [done, setDone] = useState(0);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<Problem | null>(null);
   const [editing, setEditing] = useState(false);
   // A word from the word-by-word meanings being added as a card (a popup, like editing).
   const [adding, setAdding] = useState<WordGloss | null>(null);
@@ -95,7 +96,13 @@ function ReviewSession({
       await store.recordReview(state, log);
     } catch (err) {
       grading.current = null; // not saved: rating it again is allowed
-      setSaveError(errorMessage(err));
+      setSaveError(
+        problemFrom(
+          err,
+          'Saving an answer while studying',
+          `Could not save your answer: ${errorMessage(err)}`,
+        ),
+      );
       return;
     }
     let rest = queue.slice(1);
@@ -194,7 +201,7 @@ function ReviewSession({
           </a>
         </span>
       </div>
-      {saveError && <div class="notice error">Could not save your answer: {saveError}</div>}
+      {saveError && <ProblemNotice problem={saveError} />}
       <div class="flashcard" tabIndex={-1} ref={cardRef}>
         <CardFaces
           card={item.card}

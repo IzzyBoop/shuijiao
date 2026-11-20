@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
 import { store } from '../../core/db/store';
 import { Dialog } from '../../core/ui/Dialog';
-import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useAsync } from '../../core/ui/useAsync';
+import { problemFrom, ReportLink, type Problem } from '../../core/ui/problem';
 
 const when = (time: number) =>
   new Date(time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -14,7 +15,7 @@ export function UndoLast({ refresh, onUndone }: { refresh: number; onUndone: () 
   const undo = useAsync(() => store.getUndo(), [refresh]);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<({ kind: 'ok' | 'error' } & Problem) | null>(null);
 
   const run = async () => {
     setBusy(true);
@@ -23,7 +24,7 @@ export function UndoLast({ refresh, onUndone }: { refresh: number; onUndone: () 
       setMessage({ kind: 'ok', text: 'Done. Everything is back as it was before.' });
       onUndone();
     } catch (err) {
-      setMessage({ kind: 'error', text: errorMessage(err) });
+      setMessage({ kind: 'error', ...problemFrom(err, 'Undoing the last import or erase') });
     } finally {
       setBusy(false);
       setConfirming(false);
@@ -36,7 +37,7 @@ export function UndoLast({ refresh, onUndone }: { refresh: number; onUndone: () 
       await store.discardUndo();
       setMessage(null);
     } catch (err) {
-      setMessage({ kind: 'error', text: errorMessage(err) });
+      setMessage({ kind: 'error', ...problemFrom(err, 'Deleting the copy kept for undo') });
     }
     undo.reload();
   };
@@ -49,6 +50,7 @@ export function UndoLast({ refresh, onUndone }: { refresh: number; onUndone: () 
       {message && (
         <div class={`notice ${message.kind}`} role="status">
           {message.text}
+          <ReportLink problem={message} />
         </div>
       )}
       {u && (

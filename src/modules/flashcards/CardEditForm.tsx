@@ -4,7 +4,7 @@ import { store } from '../../core/db/store';
 import { deckNameKey, LIMITS, newId, type Card, type CardKind, type Deck } from '../../core/db/model';
 import { cleanTags, cleanText } from '../../core/safe/text';
 import { Icon } from '../../core/ui/Icon';
-import { errorMessage } from '../../core/ui/useAsync';
+import { problemFrom, problemText, ReportLink, type ProblemOrText } from '../../core/ui/problem';
 
 const EDIT_FIELDS = [
   { key: 'traditional', label: 'Traditional', max: LIMITS.hanzi, lang: 'zh-Hant' },
@@ -74,7 +74,7 @@ export function CardEditForm({
       setDeckId(deck.id);
       setNewDeck(null);
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Creating a deck'));
     }
   };
 
@@ -88,7 +88,7 @@ export function CardEditForm({
   const [tags, setTags] = useState(card.tags.join(', '));
   const [deckId, setDeckId] = useState(card.deckId);
   const [kind, setKind] = useState<CardKind>(card.kind);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ProblemOrText | null>(null);
   const first = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -120,7 +120,7 @@ export function CardEditForm({
       await store.saveCard(updated);
       onSaved(updated);
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Saving a card'));
     }
   };
 
@@ -138,7 +138,8 @@ export function CardEditForm({
     >
       {error && (
         <div class="notice error" role="alert">
-          {error}
+          {problemText(error)}
+          <ReportLink problem={error} />
         </div>
       )}
       <div class="grid">

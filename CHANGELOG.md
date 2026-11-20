@@ -8,6 +8,14 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Report an issue or suggest a feature** from the bottom of the Study page.
+- When something fails unexpectedly (saving an answer or a card, an import, erasing, undo,
+  changing decks or card types), the message now has a **Report the problem** link that opens
+  the form with the details filled in. Expected messages, like a deck name you already have,
+  don't.
+
 ## [1.2.2] - 2026-11-19
 
 ### Fixed

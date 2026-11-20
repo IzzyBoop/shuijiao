@@ -17,6 +17,7 @@ import { Dialog } from '../../core/ui/Dialog';
 import { InfoTip } from '../../core/ui/InfoTip';
 import { cardListPath } from './return-path';
 import { takePendingDraft } from './pending-draft';
+import { problemFrom, problemText, ReportLink, type ProblemOrText } from '../../core/ui/problem';
 
 type CheckedField = 'traditional' | 'simplified' | 'pinyin' | 'meaning';
 const CHECKED: readonly CheckedField[] = ['traditional', 'simplified', 'pinyin', 'meaning'];
@@ -142,7 +143,7 @@ export function CardEditor({ params }: RouteProps) {
   ].sort((a, b) => a.name.localeCompare(b.name));
   const [newDeckOpen, setNewDeckOpen] = useState(false);
   const [newDeckName, setNewDeckName] = useState('');
-  const [newDeckError, setNewDeckError] = useState<string | null>(null);
+  const [newDeckError, setNewDeckError] = useState<ProblemOrText | null>(null);
   const newDeckInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (newDeckOpen) newDeckInput.current?.focus();
@@ -166,7 +167,7 @@ export function CardEditor({ params }: RouteProps) {
   const [phase, setPhase] = useState<'input' | 'loading' | 'review'>(
     editingId ? 'loading' : handedOver ? 'review' : 'input',
   );
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ProblemOrText | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<Card[]>([]);
   /** The card waiting on "You already have this card" (null when the dialog is closed). */
@@ -350,7 +351,7 @@ export function CardEditor({ params }: RouteProps) {
       setConfirmed(new Set());
       setPhase('input');
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Saving a card'));
     }
   };
 
@@ -379,7 +380,7 @@ export function CardEditor({ params }: RouteProps) {
       closeNewDeck();
       decks.reload();
     } catch (err) {
-      setNewDeckError(errorMessage(err));
+      setNewDeckError(problemFrom(err, 'Creating a deck'));
     }
   };
   const closeNewDeck = () => {
@@ -430,7 +431,8 @@ export function CardEditor({ params }: RouteProps) {
           </div>
           {newDeckError && (
             <div class="small warn-text" role="alert">
-              {newDeckError}
+              {problemText(newDeckError)}
+              <ReportLink problem={newDeckError} />
             </div>
           )}
         </div>
@@ -478,7 +480,8 @@ export function CardEditor({ params }: RouteProps) {
       )}
       {error && (
         <div class="notice error" role="alert">
-          {error}
+          {problemText(error)}
+          <ReportLink problem={error} />
         </div>
       )}
 

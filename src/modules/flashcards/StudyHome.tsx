@@ -13,6 +13,8 @@ import { StorageTip } from './StorageTip';
 import { ProgressSection } from './ProgressSection';
 import { CourseBanner } from '../course/CourseBanner';
 import { LoadError } from '../../core/ui/LoadError';
+import { reportProblemUrl } from '../../core/report';
+import { ExternalLink } from '../../core/ui/ExternalLink';
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
@@ -214,6 +216,10 @@ export function StudyHome() {
       <p class="small muted">
         Studying: {andList(all.templates.map((t) => t.name))} ·{' '}
         <a href={href('/templates')}>Change card types</a>
+      </p>
+      <p class="small muted">
+        Something not working, or an idea for the portal?{' '}
+        <ExternalLink url={reportProblemUrl()}>Report an issue or suggest a feature</ExternalLink>
       </p>
     </>
   );

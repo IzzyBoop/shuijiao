@@ -15,6 +15,7 @@ import {
   type StudentLink,
   type Template,
 } from './model';
+import { StudyError } from '../errors';
 
 export interface MergeCounts {
   added: number;
@@ -210,7 +211,7 @@ export class LocalStudyStore implements StudyStore {
     const clash = live(await this.db.decks.toArray()).find(
       (d) => d.id !== deck.id && deckNameKey(d.name) === key,
     );
-    if (clash && deck.deleted === 0) throw new Error(`You already have a deck called “${clash.name}”.`);
+    if (clash && deck.deleted === 0) throw new StudyError(`You already have a deck called “${clash.name}”.`);
     await this.db.decks.put({ ...deck, updatedAt: Date.now() });
   }
   async deleteDeck(id: string, moveCardsTo?: string) {
@@ -219,12 +220,12 @@ export class LocalStudyStore implements StudyStore {
       const remaining = live(await this.db.decks.toArray());
       if (!remaining.some((d) => d.id === id)) return;
       if (remaining.length <= 1) {
-        throw new Error('You need at least one deck. Create another deck before deleting this one.');
+        throw new StudyError('You need at least one deck. Create another deck before deleting this one.');
       }
       const cards = this.db.cards.where('deckId').equals(id);
       if (moveCardsTo !== undefined) {
         if (moveCardsTo === id || !remaining.some((d) => d.id === moveCardsTo)) {
-          throw new Error('Choose another deck to move the cards to.');
+          throw new StudyError('Choose another deck to move the cards to.');
         }
         await cards.modify({ deckId: moveCardsTo, updatedAt: now });
       } else {
@@ -260,7 +261,7 @@ export class LocalStudyStore implements StudyStore {
   }
   async saveCard(card: Card) {
     if (!(await this.db.cards.get(card.id)) && (await this.countCards()) >= LIMITS.cards) {
-      throw new Error(`You have reached the limit of ${LIMITS.cards} cards.`);
+      throw new StudyError(`You have reached the limit of ${LIMITS.cards} cards.`);
     }
     await this.db.cards.put({ ...card, updatedAt: Date.now() });
   }
@@ -285,7 +286,7 @@ export class LocalStudyStore implements StudyStore {
     return this.db.transaction('rw', this.db.cards, this.db.decks, async () => {
       if (change.deckId !== undefined) {
         const deck = await this.db.decks.get(change.deckId);
-        if (!deck || deck.deleted) throw new Error('That deck no longer exists.');
+        if (!deck || deck.deleted) throw new StudyError('That deck no longer exists.');
       }
       const before = live((await this.db.cards.bulkGet([...ids])).filter((c): c is Card => c !== undefined));
       const now = Date.now();
@@ -311,7 +312,7 @@ export class LocalStudyStore implements StudyStore {
   }
   async moveCards(ids: readonly string[], deckId: string) {
     const deck = await this.db.decks.get(deckId);
-    if (!deck || deck.deleted) throw new Error('That deck no longer exists.');
+    if (!deck || deck.deleted) throw new StudyError('That deck no longer exists.');
     const now = Date.now();
     await this.db.cards
       .where('id')
@@ -359,7 +360,7 @@ export class LocalStudyStore implements StudyStore {
   }
   async saveTemplate(template: Template) {
     const existing = await this.db.templates.get(template.id);
-    if (existing?.builtin) throw new Error("Built-in card types can't be changed.");
+    if (existing?.builtin) throw new StudyError("Built-in card types can't be changed.");
     await this.db.templates.put({ ...template, builtin: false, updatedAt: Date.now() });
   }
   async deleteTemplate(id: string) {
@@ -396,7 +397,7 @@ export class LocalStudyStore implements StudyStore {
   }
   async saveLink(link: StudentLink) {
     if (!(await this.db.links.get(link.id)) && (await this.db.links.count()) >= LIMITS.links) {
-      throw new Error(`You have reached the limit of ${LIMITS.links} links.`);
+      throw new StudyError(`You have reached the limit of ${LIMITS.links} links.`);
     }
     await this.db.links.put({ ...link, updatedAt: Date.now() });
   }
@@ -526,7 +527,7 @@ export class LocalStudyStore implements StudyStore {
       [...local.values(), ...deckRows].filter((d) => final(d.id)?.deleted === 0).map((d) => d.id),
     );
     if (liveAfter.size > LIMITS.decks) {
-      throw new Error(`Import would exceed the limit of ${LIMITS.decks} decks.`);
+      throw new StudyError(`Import would exceed the limit of ${LIMITS.decks} decks.`);
     }
     return { cardRows, deckRows, counts, created: [...created] };
   }
@@ -669,12 +670,12 @@ export class LocalStudyStore implements StudyStore {
 
     const links = await this.mergeRows(this.db.links, backup.links, (r) => r.id);
     if ((await this.db.links.count()) + links.counts.added > LIMITS.links) {
-      throw new Error(`Import would exceed the limit of ${LIMITS.links} links.`);
+      throw new StudyError(`Import would exceed the limit of ${LIMITS.links} links.`);
     }
 
     // Deleted cards don't count (the file's own deleted ones, if any, do: close enough).
     const total = (await this.countCards()) + cards.counts.added;
-    if (total > LIMITS.cards) throw new Error(`Import would exceed the limit of ${LIMITS.cards} cards.`);
+    if (total > LIMITS.cards) throw new StudyError(`Import would exceed the limit of ${LIMITS.cards} cards.`);
 
     const orphans = orphansBefore - (cardRows.length + stateRows.length + logRows.length);
     return {
@@ -796,7 +797,7 @@ export class LocalStudyStore implements StudyStore {
     const db = this.db;
     await db.transaction('rw', this.allTables(), async () => {
       const data = await db.undo.get('data');
-      if (data?.id !== 'data') throw new Error('There is nothing to undo.');
+      if (data?.id !== 'data') throw new StudyError('There is nothing to undo.');
       const { backup, meta } = data;
       await Promise.all([
         db.decks.clear(),

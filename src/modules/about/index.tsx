@@ -33,7 +33,7 @@ function AboutPage() {
           nothing about your cards is sent.
         </p>
         <p>
-          <ExternalLink url={reportProblemUrl()}>Report a problem or suggest an idea</ExternalLink>
+          <ExternalLink url={reportProblemUrl()}>Report an issue or suggest a feature</ExternalLink>
         </p>
       </section>
 

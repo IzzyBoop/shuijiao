@@ -1780,6 +1780,44 @@ test('the Add a card popup can make a new deck, or hand the card over to the ful
   await expect(page.locator('.card-list > li', { hasText: 'to be' })).toHaveCount(1);
 });
 
+test('the Study page has a link to report an issue or suggest a feature', async ({ page }) => {
+  await page.goto('./#/');
+  const link = page.getByRole('link', { name: /Report an issue or suggest a feature/ });
+  await expect(link).toHaveAttribute('href', /^https:\/\/docs\.google\.com\/forms\//);
+  await expect(link).toHaveAttribute('target', '_blank');
+});
+
+test('a failure while doing something offers a report; an expected problem does not', async ({ page }) => {
+  await addCard(page, '你好');
+  await page.goto('./#/review');
+  await expect(page.locator('.flashcard')).toContainText('你好');
+  // The browser refuses to save anything from now on (as with a full disk).
+  await page.evaluate(() => {
+    const refuse = () => {
+      throw new DOMException('The disk is full.', 'QuotaExceededError');
+    };
+    IDBObjectStore.prototype.put = refuse;
+    IDBObjectStore.prototype.add = refuse;
+  });
+  await page.keyboard.press('Space');
+  await page.getByRole('button', { name: /Good/ }).click();
+  const failure = page.getByRole('alert').filter({ hasText: 'Could not save your answer' });
+  await expect(failure).toBeVisible();
+  await expect(failure.getByRole('link', { name: /Report the problem/ })).toHaveAttribute(
+    'href',
+    /docs\.google\.com\/forms/,
+  );
+
+  // A deck name you already have is explained, and there's nothing to report.
+  await page.goto('./#/decks');
+  await page.reload(); // saving works again
+  await page.getByLabel('New deck name').fill('My cards');
+  await page.getByRole('button', { name: /Add deck/ }).click();
+  const clash = page.getByText(/You already have a deck called/);
+  await expect(clash).toBeVisible();
+  await expect(page.getByRole('link', { name: /Report the problem/ })).toHaveCount(0);
+});
+
 test('a page that crashes shows a way out, and the rest of the portal keeps working', async ({ page }) => {
   await addCard(page, '你好');
   // Damage a card behind the portal's back, as a bug or a broken browser profile might.

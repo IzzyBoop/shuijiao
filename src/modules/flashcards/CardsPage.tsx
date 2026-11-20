@@ -6,11 +6,12 @@ import { href } from '../../core/router';
 import { cleanTags } from '../../core/safe/text';
 import { Pinyin, Simp, Trad } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
-import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useAsync } from '../../core/ui/useAsync';
 import { useStudyPrefs } from '../../core/study-prefs';
 import { Pager, usePaging } from '../../core/ui/Pager';
 import { rememberCardList } from './return-path';
 import { CardEditForm } from './CardEditForm';
+import { problemFrom, problemText, ReportLink, type ProblemOrText } from '../../core/ui/problem';
 
 /** Lower-cases and strips tone marks so "yinhang" finds "yínháng". */
 function fold(s: string): string {
@@ -50,7 +51,7 @@ export function CardsPage({ params }: RouteProps) {
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [undo, setUndo] = useState<Undo | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ProblemOrText | null>(null);
 
   const data = useAsync(async () => {
     const [cards, decks] = await Promise.all([store.listCards(), store.listDecks()]);
@@ -107,7 +108,7 @@ export function CardsPage({ params }: RouteProps) {
     try {
       await action();
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Changing several cards on the Cards page'));
     }
     data.reload();
   };
@@ -287,7 +288,8 @@ export function CardsPage({ params }: RouteProps) {
 
       {error && (
         <div class="notice error" role="alert">
-          {error}
+          {problemText(error)}
+          <ReportLink problem={error} />
         </div>
       )}
 

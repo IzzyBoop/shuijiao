@@ -5,7 +5,8 @@ import { cleanText } from '../../core/safe/text';
 import { normaliseUserUrl } from '../../core/safe/url';
 import { ExternalLink } from '../../core/ui/ExternalLink';
 import { Icon } from '../../core/ui/Icon';
-import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useAsync } from '../../core/ui/useAsync';
+import { problemFrom, problemText, ReportLink, type ProblemOrText } from '../../core/ui/problem';
 
 interface Draft {
   title: string;
@@ -20,7 +21,7 @@ export function MyLinks() {
   const links = useAsync(() => store.listLinks(), []);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [editing, setEditing] = useState<StudentLink | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ProblemOrText | null>(null);
 
   const set = (field: keyof Draft) => (e: Event) => {
     const value = (e.currentTarget as HTMLInputElement).value;
@@ -54,7 +55,7 @@ export function MyLinks() {
       reset();
       links.reload();
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Saving a link'));
     }
   };
 
@@ -128,7 +129,8 @@ export function MyLinks() {
         <h3>{editing ? 'Edit link' : 'Add a link'}</h3>
         {error && (
           <div class="notice error" role="alert">
-            {error}
+            {problemText(error)}
+            <ReportLink problem={error} />
           </div>
         )}
         <div class="grid">

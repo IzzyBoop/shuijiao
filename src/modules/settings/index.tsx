@@ -15,12 +15,13 @@ import { updateStudyPrefs, useStudyPrefs, type HanziFont } from '../../core/stud
 import { THEME_FAMILIES, THEME_MODES, type ThemeMode } from '../../core/theme/themes';
 import { setThemeState, useThemeState } from '../../app/ThemeToggle';
 import { SettingRow } from '../../core/ui/SettingRow';
-import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useAsync } from '../../core/ui/useAsync';
 import { AudioCheck } from './AudioCheck';
 import { ImportPage } from './ImportPage';
 import { BackupPanel } from './BackupPanel';
 import { UndoLast } from './UndoLast';
 import { requestPersistentStorage } from '../../core/db/persist';
+import { problemFrom, ProblemNotice, type Problem } from '../../core/ui/problem';
 
 const MODE_LABEL: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark', system: 'System' };
 const FONT_LABEL: Record<HanziFont, string> = {
@@ -322,6 +323,7 @@ function StoragePanel() {
     return { persisted, used: estimate.usage ?? 0, cards };
   }, []);
   const [message, setMessage] = useState<string | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
   const [confirmText, setConfirmText] = useState('');
   const [keepCopy, setKeepCopy] = useState(true);
   const [undoRefresh, setUndoRefresh] = useState(0);
@@ -348,7 +350,7 @@ function StoragePanel() {
       setUndoRefresh((n) => n + 1);
       info.reload();
     } catch (err) {
-      setMessage(errorMessage(err));
+      setProblem(problemFrom(err, 'Erasing all study data'));
     }
   };
 
@@ -368,6 +370,7 @@ function StoragePanel() {
           {message}
         </div>
       )}
+      {problem && <ProblemNotice problem={problem} />}
       {info.data && !info.data.persisted && (
         <div>
           <button type="button" onClick={() => void askPersist()}>

@@ -7,7 +7,8 @@ import { ImportBackupButton } from '../../core/import/ImportBackupButton';
 import { reportProblemUrl } from '../../core/report';
 import { ExternalLink } from '../../core/ui/ExternalLink';
 import { Icon } from '../../core/ui/Icon';
-import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useAsync } from '../../core/ui/useAsync';
+import { problemFrom } from '../../core/ui/problem';
 
 function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
@@ -69,7 +70,8 @@ export function BackupPanel() {
         text: `Backup downloaded (${plural(cards, 'card')}, ${formatSize(file.blob.size)}).`,
       });
     } catch (err) {
-      setStatus({ kind: 'error', text: errorMessage(err) });
+      const problem = problemFrom(err, 'Downloading a backup');
+      setStatus({ kind: 'error', text: problem.text, ...(problem.report ? { report: problem.report } : {}) });
     } finally {
       setBusy(false);
     }

@@ -16,8 +16,9 @@ import { href, navigate } from '../../core/router';
 import { Pinyin } from '../../core/ui/chinese';
 import { Icon } from '../../core/ui/Icon';
 import { Pager, usePaging } from '../../core/ui/Pager';
-import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useAsync } from '../../core/ui/useAsync';
 import { clearPendingImport, getPendingImport, type PendingImport } from '../../core/import/pending';
+import { problemFrom, ProblemNotice, type Problem } from '../../core/ui/problem';
 
 type DuplicateMode = DuplicateChoice | 'choose';
 
@@ -53,7 +54,7 @@ export function ImportPage() {
 
 function ImportDone({ result, back }: { result: ImportPreview; back: PendingImport['back'] }) {
   const [undo, setUndo] = useState<'idle' | 'busy' | 'done'>('idle');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Problem | null>(null);
   const undoImport = async () => {
     setUndo('busy');
     setError(null);
@@ -61,7 +62,7 @@ function ImportDone({ result, back }: { result: ImportPreview; back: PendingImpo
       await store.undoLast();
       setUndo('done');
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Undoing an import'));
       setUndo('idle');
     }
   };
@@ -101,11 +102,7 @@ function ImportDone({ result, back }: { result: ImportPreview; back: PendingImpo
           Undo this import
         </button>
       </div>
-      {error && (
-        <div class="notice error" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <ProblemNotice problem={error} />}
       <p class="small muted">You can also undo it later in Settings, until your next import.</p>
     </section>
   );
@@ -117,7 +114,7 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
   const [dupMode, setDupMode] = useState<DuplicateMode>('old');
   const [choices, setChoices] = useState<Record<string, DuplicateChoice>>({});
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Problem | null>(null);
 
   const duplicates = useAsync(() => store.findImportDuplicates(backup), [backup]);
   const decks = useAsync(() => store.listDecks(), []);
@@ -152,7 +149,7 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
       clearPendingImport();
       onDone(result);
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Importing'));
       setBusy(false);
     }
   };
@@ -171,11 +168,7 @@ function ImportFlow({ pending, onDone }: { pending: PendingImport; onDone: (r: I
         <span class="badge truncate">{label}</span>
       </div>
 
-      {error && (
-        <div class="notice error" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <ProblemNotice problem={error} />}
 
       <section class="panel stack">
         <h2>1. Which decks should the cards go into?</h2>

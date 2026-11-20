@@ -5,7 +5,8 @@ import { deckNameKey, LIMITS, newId, type Deck } from '../../core/db/model';
 import { cleanText } from '../../core/safe/text';
 import { Dialog } from '../../core/ui/Dialog';
 import { Icon } from '../../core/ui/Icon';
-import { errorMessage, useAsync } from '../../core/ui/useAsync';
+import { useAsync } from '../../core/ui/useAsync';
+import { problemFrom, problemText, ReportLink, type ProblemOrText } from '../../core/ui/problem';
 
 export function DecksPage() {
   const data = useAsync(async () => {
@@ -15,7 +16,7 @@ export function DecksPage() {
     return { decks, counts };
   }, []);
   const [name, setName] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ProblemOrText | null>(null);
 
   const add = async () => {
     const clean = cleanText(name, LIMITS.deckName);
@@ -31,7 +32,7 @@ export function DecksPage() {
       setName('');
       data.reload();
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Creating a deck'));
     }
   };
 
@@ -45,7 +46,7 @@ export function DecksPage() {
       setError(null);
       data.reload();
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Renaming a deck'));
     }
   };
 
@@ -68,7 +69,7 @@ export function DecksPage() {
       for (const d of rest) await store.deleteDeck(d.id, keep.id);
       setError(null);
     } catch (err) {
-      setError(errorMessage(err));
+      setError(problemFrom(err, 'Merging decks with the same name'));
     }
     data.reload();
   };
@@ -80,7 +81,8 @@ export function DecksPage() {
       </div>
       {error && (
         <div class="notice error" role="alert">
-          {error}
+          {problemText(error)}
+          <ReportLink problem={error} />
         </div>
       )}
       {sameNameGroups.map((group) => {
@@ -195,7 +197,7 @@ function DeleteDeckDialog({
   count: number;
   others: readonly Deck[];
   onClose: () => void;
-  onDone: (error?: string) => void;
+  onDone: (error?: ProblemOrText) => void;
 }) {
   const [mode, setMode] = useState<'move' | 'delete'>('move');
   const [target, setTarget] = useState(others[0]?.id ?? '');
@@ -208,7 +210,7 @@ function DeleteDeckDialog({
       await store.deleteDeck(deck.id, count > 0 && mode === 'move' ? target : undefined);
       onDone();
     } catch (err) {
-      onDone(errorMessage(err));
+      onDone(problemFrom(err, 'Deleting a deck'));
     }
   };
 
