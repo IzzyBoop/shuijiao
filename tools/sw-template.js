@@ -81,8 +81,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.endsWith('.woff2') || url.pathname.includes('/fonts/')) {
-    // Fonts (content-hashed, or versioned by folder) are only used by the 墨 Ink style, so they
+  if (url.pathname.endsWith('.woff2')) {
+    // Fonts (content-hashed) are only used by the 墨 Ink style, so they
     // aren't precached: cache each on first use, then serve it from the cache.
     event.respondWith(
       caches.open(FONT_CACHE).then((cache) =>

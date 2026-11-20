@@ -33,6 +33,14 @@ export function writeRawPref(key: string, value: string): void {
   }
 }
 
+export function removeRawPref(key: string): void {
+  try {
+    localStorage.removeItem(PREFIX + key);
+  } catch {
+    // ignore
+  }
+}
+
 export function readRawPref(key: string): string | null {
   try {
     return localStorage.getItem(PREFIX + key);

@@ -1509,30 +1509,25 @@ test('the 墨 Ink style (beta) can be switched on and off, and Classic never loa
   await expect(page.getByLabel('Theme', { exact: true })).toBeVisible();
 });
 
-test('墨 Ink: Noto Serif TC can be downloaded for offline use, and removed', async ({ page }) => {
+test('a Noto Serif TC download from v1.3.0 is cleaned up on the next visit', async ({ page }) => {
+  await page.goto('./#/');
+  await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();
+  // As v1.3.0 left it for a student who downloaded the font.
+  await page.evaluate(async () => {
+    localStorage.setItem('portal.theme.inkFont', 'noto');
+    const cache = await caches.open('fonts');
+    await cache.put('fonts/noto-serif-tc/noto-serif-tc-1-500-normal.woff2', new Response('font'));
+    await cache.put('assets/fraunces-abc.woff2', new Response('kept'));
+  });
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('portal.theme.inkFont'))).toBeNull();
+  const left = await page.evaluate(async () =>
+    (await (await caches.open('fonts')).keys()).map((r) => new URL(r.url).pathname.split('/').pop()),
+  );
+  expect(left).toEqual(['fraunces-abc.woff2']); // only the Noto pieces are removed
   await page.goto('./#/settings');
   await page.getByRole('button', { name: '墨 Ink (beta)' }).click();
-  await page.getByRole('button', { name: /Download Noto Serif TC \(2\.9 MB\)/ }).click();
-  await expect(page.getByRole('button', { name: "Use my device's font" })).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('#ink-noto-css')).toHaveCount(1);
-  const cached = await page.evaluate(
-    async () =>
-      (await (await caches.open('fonts')).keys()).filter((r) => r.url.includes('/fonts/noto-serif-tc/'))
-        .length,
-  );
-  expect(cached).toBe(105); // the stylesheet and its 104 pieces
-  await page.reload();
-  await expect(page.locator('#ink-noto-css')).toHaveCount(1); // remembered
-
-  await page.getByRole('button', { name: "Use my device's font" }).click();
-  await expect(page.getByRole('button', { name: /Download Noto Serif TC/ })).toBeVisible();
-  await expect(page.locator('#ink-noto-css')).toHaveCount(0);
-  const left = await page.evaluate(
-    async () =>
-      (await (await caches.open('fonts')).keys()).filter((r) => r.url.includes('/fonts/noto-serif-tc/'))
-        .length,
-  );
-  expect(left).toBe(0);
+  await expect(page.getByText(/Noto Serif TC/)).toHaveCount(0);
 });
 
 test('Google Chrome users never see the Chrome message', async ({ page }) => {

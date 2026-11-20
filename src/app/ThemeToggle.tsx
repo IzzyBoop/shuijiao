@@ -6,7 +6,7 @@ import {
   type ThemeMode,
   type ThemeState,
 } from '../core/theme/themes';
-import { applyInkFont, notoChosen } from '../core/theme/ink-font';
+import { cleanUpNotoDownload } from '../core/theme/noto-cleanup';
 import { Icon, type IconName } from '../core/ui/Icon';
 
 const NEXT: Record<ThemeMode, ThemeMode> = { system: 'light', light: 'dark', dark: 'system' };
@@ -24,7 +24,6 @@ export function getThemeState(): ThemeState {
 export function setThemeState(next: ThemeState): void {
   state = next;
   applyTheme(state);
-  applyInkFont(state.style === 'ink' && notoChosen());
   for (const l of listeners) l(state);
 }
 
@@ -41,7 +40,7 @@ export function useThemeState(): ThemeState {
 
 export function initTheme(): void {
   applyTheme(state);
-  if (state.style === 'ink') applyInkFont();
+  void cleanUpNotoDownload();
   watchSystemTheme(() => state);
 }
 

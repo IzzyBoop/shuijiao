@@ -22,7 +22,6 @@ import { AudioCheck } from './AudioCheck';
 import { ImportPage } from './ImportPage';
 import { BackupPanel } from './BackupPanel';
 import { UndoLast } from './UndoLast';
-import { InkFontRow } from './InkFontRow';
 import { requestPersistentStorage } from '../../core/db/persist';
 import { problemFrom, ProblemNotice, type Problem } from '../../core/ui/problem';
 
@@ -80,7 +79,6 @@ function AppearancePanel() {
           ))}
         </div>
       </SettingRow>
-      {theme.style === 'ink' && <InkFontRow />}
       {theme.style === 'ink' ? (
         <p class="small muted">
           墨 Ink has its own colours: black ink in dark mode, paper in light mode. Switch back to Classic to

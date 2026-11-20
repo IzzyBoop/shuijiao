@@ -46,15 +46,12 @@
   --label-track: 0.2em;
 }
 
-/* Chinese in a serif (the device's own, or Noto Serif TC once downloaded), unless the
+/* Chinese in the device's own serif, unless the
    student chose the handwriting style. */
 [data-style='ink']:not([data-hanzi-font='kai']) {
   --font-hant:
-    'Ink Noto Serif TC', 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU',
-    'MingLiU', serif;
-  --font-hans:
-    'Ink Noto Serif TC', 'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun',
-    serif;
+    'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU', 'MingLiU', serif;
+  --font-hans: 'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun', serif;
 }
 
 /* A faint paper grain over everything. */
