@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-11-20
+
 ### Fixed
 
 - **Top bar on iPhone home-screen apps.** When the portal is installed to an iPhone's home
