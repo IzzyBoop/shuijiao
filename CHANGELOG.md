@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-20
+
 ### Added
 
 - **Stroke order** under the answer. Open **筆順 Stroke order** to watch each character of the
