@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-20
+
 ### Fixed
 
 - **Serif and Handwriting on phones.** Phones have no Chinese serif or handwriting font, so
