@@ -228,6 +228,22 @@ function StudyPanel() {
           }}
         />
       </SettingRow>
+      <SettingRow
+        id="set-strokes"
+        label="Stroke order"
+        hint="Under the answer: how each character is written, stroke by stroke."
+        compact
+      >
+        <input
+          id="set-strokes"
+          type="checkbox"
+          class="switch"
+          checked={prefs.showStrokes}
+          onChange={(e) => {
+            updateStudyPrefs({ showStrokes: e.currentTarget.checked });
+          }}
+        />
+      </SettingRow>
       <p class="mt">
         <a href={href('/templates')}>Choose which card types you study →</a>
       </p>

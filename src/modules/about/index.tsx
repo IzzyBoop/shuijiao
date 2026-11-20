@@ -54,6 +54,13 @@ function AboutPage() {
           BSD-3-Clause licences). Icons adapted from Feather (MIT).
         </p>
         <p>
+          Stroke order:{' '}
+          <ExternalLink url="https://github.com/chanind/hanzi-writer">Hanzi Writer</ExternalLink> (MIT), with
+          character data from{' '}
+          <ExternalLink url="https://github.com/skishore/makemeahanzi">Make Me a Hanzi</ExternalLink> (Arphic
+          Public License).
+        </p>
+        <p>
           The 墨 Ink style is inspired by the website of{' '}
           <ExternalLink url="https://ryoku.dev/">Ryoku Linux</ExternalLink>. Its fonts are Fraunces, Space
           Grotesk, and Space Mono (SIL Open Font License).

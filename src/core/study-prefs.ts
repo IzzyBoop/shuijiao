@@ -23,7 +23,15 @@ export interface StudyPrefs {
   pageSize: PageSize;
   /** Show each word's (or character's) meaning under the answer. */
   showBreakdown: boolean;
+  /** Offer the stroke order of each character under the answer. */
+  showStrokes: boolean;
+  /** Whether the stroke order section is open (it stays as the student left it). */
+  strokesOpen: boolean;
+  strokeSpeed: StrokeSpeed;
 }
+
+export const STROKE_SPEEDS = ['slow', 'normal', 'fast'] as const;
+export type StrokeSpeed = (typeof STROKE_SPEEDS)[number];
 
 const isIdList = (v: unknown): v is string[] =>
   Array.isArray(v) &&
@@ -45,6 +53,9 @@ function load(): StudyPrefs {
     showSimplified: readPref('study.showSimplified', true, isBoolean),
     pageSize: readPref('study.pageSize', 50, isPageSize),
     showBreakdown: readPref('study.showBreakdown', true, isBoolean),
+    showStrokes: readPref('study.showStrokes', true, isBoolean),
+    strokesOpen: readPref('study.strokesOpen', false, isBoolean),
+    strokeSpeed: readPref('study.strokeSpeed', 'normal', isOneOf(STROKE_SPEEDS)),
   };
 }
 

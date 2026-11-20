@@ -2034,3 +2034,82 @@ test('the built files contain no personal paths', async () => {
   const html = await readFile('dist/index.html', 'utf8');
   expect(html).not.toMatch(/\/Users\//);
 });
+
+test('stroke order: folded under the answer, drawn from our own site, and remembered open', async ({
+  page,
+}) => {
+  const strokeRequests: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('/strokes/')) strokeRequests.push(r.url());
+  });
+  await addCard(page, '學生');
+  await page.goto('./#/');
+  await page.getByRole('link', { name: 'Study now' }).click();
+  await expect(page.locator('.flashcard')).toContainText('學生');
+  await expect(page.getByText('Stroke order')).toHaveCount(0); // not on the question side
+  await page.keyboard.press('Space');
+
+  const section = page.locator('details.strokes');
+  await expect(section).toBeVisible();
+  await expect(section).not.toHaveAttribute('open', '');
+  expect(strokeRequests).toEqual([]); // nothing fetched until it is opened
+  await section.locator('summary').click();
+
+  const drawing = page.getByRole('img', { name: /How to write 學, 16 strokes/ });
+  await expect(drawing.locator('svg')).toBeVisible();
+  await expect(page.getByText('16 strokes')).toBeVisible();
+  expect(strokeRequests).toEqual([new URL('./strokes/5b78.json', page.url()).href]);
+
+  // Step through, then pick the other character and the simplified form.
+  await page.getByRole('button', { name: 'Next stroke' }).click();
+  await expect(page.getByText('Stroke 1 of 16')).toBeVisible();
+  await page.getByRole('group', { name: 'Character' }).getByRole('button', { name: '生' }).click();
+  await expect(page.getByRole('img', { name: /How to write 生, 5 strokes/ })).toBeVisible();
+  await page.getByRole('button', { name: '简 Simplified' }).click();
+  await expect(page.getByRole('img', { name: /How to write 学, 8 strokes/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Fast' }).click();
+  await expect(page.getByRole('button', { name: 'Fast' })).toHaveAttribute('aria-pressed', 'true');
+
+  // Keys pressed inside it don't rate the card.
+  await page.getByRole('button', { name: 'Replay' }).press('Space');
+  await expect(page.locator('.flashcard')).toContainText('學生');
+
+  // Opened once, it stays open on the next card.
+  await page.reload();
+  await expect(page.locator('.flashcard')).toContainText('學生');
+  await page.keyboard.press('Space');
+  await expect(section).toHaveAttribute('open', '');
+  await expect(page.getByRole('img', { name: /How to write 學/ }).locator('svg')).toBeVisible();
+  expect(strokeRequests.every((u) => new URL(u).origin === new URL(page.url()).origin)).toBe(true);
+});
+
+test('stroke order says so when a character has none, and can be turned off', async ({ page }) => {
+  await addCard(page, '囍', 'double happiness');
+  await page.goto('./#/');
+  await page.getByRole('link', { name: 'Study now' }).click();
+  await expect(page.locator('.flashcard')).toContainText('囍');
+  await page.keyboard.press('Space');
+  await page.locator('details.strokes summary').click();
+  await expect(page.getByText("Stroke order isn't available for 囍.")).toBeVisible();
+
+  await page.goto('./#/settings');
+  await page.getByLabel('Stroke order').uncheck();
+  await page.goto('./#/');
+  await page.getByRole('link', { name: 'Study now' }).click();
+  await expect(page.locator('.flashcard')).toContainText('囍');
+  await page.keyboard.press('Space');
+  await expect(page.locator('.flashcard')).toContainText('double happiness');
+  await expect(page.locator('details.strokes')).toHaveCount(0);
+});
+
+test('stroke files are cached as they are viewed, never downloaded up front', async ({ page }) => {
+  const sw = await (await page.request.get('./sw.js')).text();
+  const precache = /const PRECACHE = (\[[^\]]*\]);/.exec(sw)?.[1] ?? '';
+  expect(JSON.parse(precache)).toContain('./');
+  expect(precache).not.toContain('strokes/');
+  expect(sw).toContain("STROKE_CACHE = 'strokes'");
+  const file = await page.request.get('./strokes/6211.json');
+  expect(file.ok()).toBe(true);
+  expect(((await file.json()) as { strokes: string[] }).strokes).toHaveLength(7);
+  expect((await page.request.get('./strokes/LICENSE-ArphicPL.txt')).ok()).toBe(true);
+});

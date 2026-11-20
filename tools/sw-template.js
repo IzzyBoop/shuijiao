@@ -8,6 +8,7 @@ const SHELL_CACHE = 'shell-' + VERSION;
 const DICT_CACHE = 'dict';
 const COURSE_CACHE = 'course';
 const FONT_CACHE = 'fonts';
+const STROKE_CACHE = 'strokes';
 
 // Files in assets/ have their content's hash in their name: the same name means the
 // same file. Take those from the previous version's cache instead of downloading them
@@ -45,10 +46,7 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter(
-              (key) =>
-                key !== SHELL_CACHE && key !== DICT_CACHE && key !== COURSE_CACHE && key !== FONT_CACHE,
-            )
+            .filter((key) => ![SHELL_CACHE, DICT_CACHE, COURSE_CACHE, FONT_CACHE, STROKE_CACHE].includes(key))
             .map((key) => caches.delete(key)),
         ),
       )
@@ -91,6 +89,24 @@ self.addEventListener('fetch', (event) => {
             cached ||
             fetch(request).then((response) => {
               if (response.ok && response.type === 'basic') cache.put(request, response.clone());
+              return response;
+            }),
+        ),
+      ),
+    );
+    return;
+  }
+
+  if (url.pathname.includes('/strokes/')) {
+    // Stroke order data, one small file per character: cached the first time it's viewed.
+    event.respondWith(
+      caches.open(STROKE_CACHE).then((cache) =>
+        cache.match(request, { ignoreVary: true }).then(
+          (cached) =>
+            cached ||
+            fetch(request).then((response) => {
+              const json = response.headers.get('content-type')?.includes('json');
+              if (response.ok && response.type === 'basic' && json) cache.put(request, response.clone());
               return response;
             }),
         ),

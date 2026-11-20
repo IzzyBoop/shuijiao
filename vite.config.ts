@@ -2,7 +2,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
 import { parseChangelog } from './tools/changelog.ts';
 
@@ -75,6 +75,8 @@ function serviceWorkerPlugin(): Plugin {
             f !== 'sw.js' &&
             !f.startsWith('dict/') &&
             !f.startsWith('media/') &&
+            // Stroke order (9,500 small files): each cached when first viewed.
+            !f.startsWith('strokes/') &&
             // Fonts are only needed for the 墨 Ink style: cached when first used.
             !f.endsWith('.woff2') &&
             f !== 'CNAME' &&
@@ -90,6 +92,55 @@ function serviceWorkerPlugin(): Plugin {
         .replace('__VERSION__', JSON.stringify(version))
         .replace('__PRECACHE__', JSON.stringify(precache, null, 2));
       await writeFile(join(outDir, 'sw.js'), sw);
+    },
+  };
+}
+
+/**
+ * Stroke order data (hanzi-writer-data, Arphic Public License) served as
+ * strokes/<code point in hex>.json, e.g. strokes/6211.json for 我: plain ASCII names, so
+ * no Chinese file names reach the host or the offline cache. Copied from the pinned npm
+ * package at build time (nothing is committed); the dev server serves it straight from
+ * the package. Students fetch each character's file when they first view it.
+ */
+const STROKES_SRC = 'node_modules/hanzi-writer-data';
+function strokesPlugin(): Plugin {
+  let outDir = 'dist';
+  return {
+    name: 'portal:strokes',
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    configureServer(server) {
+      server.middlewares.use('/strokes/', (req, res, next) => {
+        const match = /^\/([0-9a-f]{4,5})\.json$/.exec(req.url ?? '');
+        if (!match?.[1]) {
+          next();
+          return;
+        }
+        const char = String.fromCodePoint(parseInt(match[1], 16));
+        readFile(join(STROKES_SRC, `${char}.json`)).then(
+          (body) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.end(body);
+          },
+          () => {
+            res.statusCode = 404;
+            res.end();
+          },
+        );
+      });
+    },
+    async closeBundle() {
+      const dir = join(outDir, 'strokes');
+      await mkdir(dir, { recursive: true });
+      for (const file of await readdir(STROKES_SRC)) {
+        const chars = [...file.replace(/\.json$/, '')];
+        if (!file.endsWith('.json') || chars.length !== 1) continue;
+        const code = chars[0]?.codePointAt(0)?.toString(16);
+        if (code) await copyFile(join(STROKES_SRC, file), join(dir, `${code}.json`));
+      }
+      await copyFile(join(STROKES_SRC, 'ARPHICPL.TXT'), join(dir, 'LICENSE-ArphicPL.txt'));
     },
   };
 }
@@ -152,7 +203,7 @@ export default defineConfig({
   oxc: {
     jsx: { runtime: 'automatic', importSource: 'preact' },
   },
-  plugins: [cspPlugin(), serviceWorkerPlugin(), changelogPlugin(), restartOnPackageChange()],
+  plugins: [cspPlugin(), strokesPlugin(), serviceWorkerPlugin(), changelogPlugin(), restartOnPackageChange()],
   build: {
     target: 'es2022',
     sourcemap: false,

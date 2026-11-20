@@ -8,6 +8,15 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Added
+
+- **Stroke order** under the answer. Open **筆順 Stroke order** to watch each character of the
+  card being written, stroke by stroke (mainland standard), in your theme's colours. You can
+  replay it, step through one stroke at a time, change the speed, and switch between
+  traditional and simplified. Each character downloads the first time you view it (about 3 KB)
+  and then works offline. You can turn it off in Settings. The stroke data comes from Make Me a
+  Hanzi, and the drawing from Hanzi Writer.
+
 ## [1.3.3] - 2026-11-20
 
 ### Fixed

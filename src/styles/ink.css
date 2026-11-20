@@ -474,3 +474,21 @@
 [data-style='ink'] .progress h3 {
   margin-top: 22px;
 }
+
+[data-style='ink'] .strokes > summary {
+  font-size: var(--label-size);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+}
+[data-style='ink'] .strokes-char[aria-pressed='true'] {
+  border-color: var(--sun);
+  color: var(--text);
+}
+[data-style='ink'] .strokes-count {
+  font-family: var(--font-mono);
+}
+[data-style='ink'] .strokes-char {
+  font-size: 1.15rem;
+  letter-spacing: 0;
+  min-width: 42px;
+}

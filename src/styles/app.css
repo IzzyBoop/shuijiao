@@ -1762,3 +1762,75 @@ button.version:hover {
   padding: 4px;
   color: var(--ok);
 }
+
+/* ---------- Stroke order under the answer ---------- */
+
+.strokes {
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.strokes > summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 4px 0;
+}
+.strokes-panel {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 8px 0 4px;
+}
+.strokes-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.strokes-chars {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.strokes-char {
+  min-width: 40px;
+  font-size: 1.2rem;
+}
+.strokes-char[aria-pressed='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+/* The writing box: a 田字格 guide (centre lines, faint) like the squares in exercise books. */
+.strokes-canvas {
+  width: 220px;
+  height: 220px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(var(--surface-2), var(--surface-2)) center / 100% 1px no-repeat,
+    linear-gradient(var(--surface-2), var(--surface-2)) center / 1px 100% no-repeat,
+    var(--surface);
+}
+.strokes-stage {
+  position: relative;
+}
+.strokes-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 16px;
+  margin: 0;
+}
+.strokes-count {
+  margin: 0;
+  min-height: 1.5em;
+}
+.strokes-controls {
+  justify-content: center;
+}

@@ -1,6 +1,7 @@
 import type { Card, CardField } from '../../core/db/model';
 import { AudioButton, Pinyin, Simp, Trad } from '../../core/ui/chinese';
 import { CardBreakdown, useWarmBreakdown } from './CardBreakdown';
+import { StrokeOrder } from './StrokeOrder';
 import type { WordGloss } from '../../core/lang/autofill';
 
 /** Sentences (and very long words) use a smaller size that wraps, so they fit on the card. */
@@ -109,6 +110,7 @@ export function CardFaces({
         )}
       </div>
       {shown && <CardBreakdown card={card} onAdd={onAdd} refresh={refresh} />}
+      {shown && <StrokeOrder card={card} />}
     </>
   );
 }
