@@ -1863,6 +1863,7 @@ test('the Add a card popup can make a new deck, or hand the card over to the ful
   await expect(page.locator('#field-meaning')).toHaveValue('to be');
   await page.getByText('All fields look right').click();
   await page.getByRole('button', { name: 'Save card' }).click();
+  await expect(page.getByText(/Saved 是/)).toBeVisible(); // wait for the save before leaving
 
   await page.goto('./#/cards');
   await expect(page.getByRole('link', { name: /Vocabulary/ })).toBeVisible();
