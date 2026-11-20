@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-11-20
+
 ### Removed
 
 - The option to download **Noto Serif TC** for 墨 Ink. Ink shows Chinese in your device's own
