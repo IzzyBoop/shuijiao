@@ -8,6 +8,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Fixed
+
+- **Top bar on iPhone home-screen apps.** When the portal is installed to an iPhone's home
+  screen, the top bar now sits a little lower, clear of the blur iOS draws under the status bar.
+
 ## [1.5.1] - 2026-11-20
 
 ### Fixed

@@ -117,6 +117,17 @@ p {
   gap: 12px;
 }
 
+/* Installed to an iPhone's home screen, iOS blurs a band just below the status bar.
+   Start the bar's contents a little lower so they sit clear of it. (iOS only:
+   -webkit-touch-callout is supported by no other browser engine.) */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    .topbar-inner {
+      padding-top: 20px;
+    }
+  }
+}
+
 .brand {
   display: flex;
   align-items: center;
