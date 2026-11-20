@@ -8,11 +8,6 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
-### Fixed
-
-- **Top bar on iPhone home-screen apps**, again: the 餃 logo now clears the status-bar blur too,
-  not just the tab icons.
-
 ## [1.5.2] - 2026-11-20
 
 ### Fixed
