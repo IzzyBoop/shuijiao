@@ -123,7 +123,7 @@ p {
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone) {
     .topbar-inner {
-      padding-top: 20px;
+      padding-top: 28px;
     }
   }
 }
