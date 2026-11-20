@@ -3,23 +3,27 @@ import type { PortalModule } from '../../core/modules';
 import { href } from '../../core/router';
 
 /** The walkthrough video, served from public/media/ (not cached for offline use). */
-const VIDEO = 'media/review-video.mp4';
-const POSTER = 'media/review-video.jpg';
+const VIDEO = 'media/how-to-video.mp4';
+const POSTER = 'media/how-to-video.jpg';
 
 /** Where each part of the walkthrough starts, in seconds. */
 const CHAPTERS: readonly [number, string][] = [
   [0, 'A quick look around'],
-  [185, 'Adding a card'],
-  [432, 'Getting the course cards'],
-  [682, 'Flipping through cards'],
-  [767, 'Studying'],
-  [833, 'Finding and changing cards'],
-  [1033, 'Decks'],
-  [1048, 'Resources'],
-  [1082, 'Settings'],
-  [1212, 'Card types'],
-  [1235, 'Backups'],
-  [1388, "About & what's new"],
+  [195, 'Adding a card'],
+  [415, 'Getting the course cards'],
+  [683, 'Flipping through cards'],
+  [718, 'Adding a word while you study'],
+  [843, 'Studying'],
+  [908, 'Your progress'],
+  [983, 'Finding and changing cards'],
+  [1173, 'Resources'],
+  [1198, 'How to'],
+  [1218, 'Settings'],
+  [1378, 'Card types'],
+  [1425, 'Backups'],
+  [1508, 'About'],
+  [1538, '墨 Ink (beta)'],
+  [1608, 'Reporting a problem'],
 ];
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -71,8 +75,8 @@ function TutorialPage() {
       <section class="panel stack">
         <h2>Video walkthrough</h2>
         <p>
-          The whole portal in 24 minutes: adding cards, getting the course cards, studying and flipping
-          through, managing your cards and decks, settings, and backups.
+          The whole portal in 28 minutes: adding cards, getting the course cards, studying and flipping
+          through, your progress, managing your cards, settings, backups, and the 墨 Ink style.
         </p>
         <video
           ref={video}
@@ -85,9 +89,7 @@ function TutorialPage() {
         >
           Your browser can't play this video.
         </video>
-        <p class="small muted">
-          The video needs an internet connection. Some buttons have new names since it was made.
-        </p>
+        <p class="small muted">The video needs an internet connection.</p>
         <h3>Jump to a part</h3>
         <ul class="chapters">
           {CHAPTERS.map(([seconds, title]) => (

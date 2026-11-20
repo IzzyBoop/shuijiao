@@ -1417,11 +1417,11 @@ test('the How to tab shows the walkthrough video, which is never cached offline'
   await page.getByRole('link', { name: 'How to' }).click();
   await expect(page.getByRole('heading', { name: 'How to use 水餃' })).toBeVisible();
   const video = page.locator('video.tutorial-video');
-  await expect(video).toHaveAttribute('src', 'media/review-video.mp4');
-  await expect(video).toHaveAttribute('poster', 'media/review-video.jpg');
+  await expect(video).toHaveAttribute('src', 'media/how-to-video.mp4');
+  await expect(video).toHaveAttribute('poster', 'media/how-to-video.jpg');
   // The poster and the start of the video are served from this site.
-  expect((await page.request.get('./media/review-video.jpg')).ok()).toBe(true);
-  const head = await page.request.get('./media/review-video.mp4', { headers: { Range: 'bytes=0-1023' } });
+  expect((await page.request.get('./media/how-to-video.jpg')).ok()).toBe(true);
+  const head = await page.request.get('./media/how-to-video.mp4', { headers: { Range: 'bytes=0-1023' } });
   expect(head.status()).toBeLessThan(300);
   const sw = await (await page.request.get('./sw.js')).text();
   expect(sw).not.toContain('"./media/');
@@ -1434,7 +1434,7 @@ test('the How to page has a quick start, and jumps to each part of the video', a
   await page.getByRole('button', { name: /Backups/ }).click();
   await expect
     .poll(() => page.locator('video.tutorial-video').evaluate((v: HTMLVideoElement) => v.currentTime))
-    .toBe(1235);
+    .toBe(1425);
 });
 
 test('the "works best in Chrome" message can be closed for good', async ({ page }) => {

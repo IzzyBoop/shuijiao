@@ -1390,7 +1390,7 @@ button.version:hover {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 1744 / 970;
+  aspect-ratio: 1800 / 1170;
   background: #000;
   border-radius: var(--radius-sm);
 }

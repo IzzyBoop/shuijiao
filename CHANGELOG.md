@@ -8,6 +8,12 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Changed
+
+- **A new walkthrough video** on the How to page (28 minutes), showing the portal as it is now,
+  including your progress, adding words while you study, and the 墨 Ink style. The list of its
+  parts has been updated to match.
+
 ## [1.3.1] - 2026-11-20
 
 ### Removed
