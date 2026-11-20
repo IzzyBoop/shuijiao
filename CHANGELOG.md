@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-11-20
+
 ### Added
 
 - **The version number at the top of the Study page**, as a small tag beside the buttons. Tap
