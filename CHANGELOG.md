@@ -10,6 +10,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Changed
 
+- **A new app icon** in the 墨 Ink look: a serif 餃 on black with an orange underline, in the
+  browser tab and on your home screen.
 - **A new walkthrough video** on the How to page (28 minutes), showing the portal as it is now,
   including your progress, adding words while you study, and the 墨 Ink style. The list of its
   parts has been updated to match.
