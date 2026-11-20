@@ -37,6 +37,37 @@ export const THEME_FAMILIES: readonly ThemeFamily[] = [
     light: 'gruvbox-light',
     dark: [{ id: 'gruvbox-dark', label: 'Dark' }],
   },
+  {
+    id: 'tokyo-night',
+    label: 'Tokyo Night',
+    light: 'tokyo-night-day',
+    dark: [
+      { id: 'tokyo-night', label: 'Night' },
+      { id: 'tokyo-night-storm', label: 'Storm' },
+    ],
+  },
+  {
+    id: 'kanagawa',
+    label: 'Kanagawa',
+    light: 'kanagawa-lotus',
+    dark: [
+      { id: 'kanagawa-wave', label: 'Wave' },
+      { id: 'kanagawa-dragon', label: 'Dragon' },
+    ],
+  },
+  {
+    id: 'everforest',
+    label: 'Everforest',
+    light: 'everforest-light',
+    dark: [{ id: 'everforest-dark', label: 'Dark' }],
+  },
+  { id: 'dracula', label: 'Dracula', light: 'alucard', dark: [{ id: 'dracula', label: 'Dracula' }] },
+  {
+    id: 'solarized',
+    label: 'Solarized',
+    light: 'solarized-light',
+    dark: [{ id: 'solarized-dark', label: 'Dark' }],
+  },
   { id: 'default', label: 'Plain', light: 'default-light', dark: [{ id: 'default-dark', label: 'Dark' }] },
 ];
 

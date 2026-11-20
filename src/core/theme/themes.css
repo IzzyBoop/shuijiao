@@ -255,3 +255,235 @@
   --tone4: #83a598;
   --tone5: #bdae93;
 }
+/* Tokyo Night — https://github.com/folke/tokyonight.nvim */
+[data-theme='tokyo-night-day'] {
+  --bg: #d0d5e3;
+  --surface: #e1e2e7;
+  --surface-2: #c4c8da;
+  --border: #a8aecb;
+  --text: #343b58;
+  --muted: #4d5888;
+  --accent: #2e5fbf;
+  --on-accent: #e1e2e7;
+  --ok: #4f6a33;
+  --warn: #7d6036;
+  --danger: #b81e48;
+  --tone1: #b81e48;
+  --tone2: #985000;
+  --tone3: #4f6a33;
+  --tone4: #2e5fbf;
+  --tone5: #4d5888;
+}
+
+[data-theme='tokyo-night-storm'] {
+  --bg: #1f2335;
+  --surface: #24283b;
+  --surface-2: #292e42;
+  --border: #3b4261;
+  --text: #c0caf5;
+  --muted: #a9b1d6;
+  --accent: #7aa2f7;
+  --on-accent: #1f2335;
+  --ok: #9ece6a;
+  --warn: #e0af68;
+  --danger: #f7768e;
+  --tone1: #f7768e;
+  --tone2: #ff9e64;
+  --tone3: #9ece6a;
+  --tone4: #7aa2f7;
+  --tone5: #a9b1d6;
+}
+
+[data-theme='tokyo-night'] {
+  --bg: #16161e;
+  --surface: #1a1b26;
+  --surface-2: #292e42;
+  --border: #3b4261;
+  --text: #c0caf5;
+  --muted: #a9b1d6;
+  --accent: #7aa2f7;
+  --on-accent: #16161e;
+  --ok: #9ece6a;
+  --warn: #e0af68;
+  --danger: #f7768e;
+  --tone1: #f7768e;
+  --tone2: #ff9e64;
+  --tone3: #9ece6a;
+  --tone4: #7aa2f7;
+  --tone5: #a9b1d6;
+}
+
+/* Kanagawa — https://github.com/rebelot/kanagawa.nvim */
+[data-theme='kanagawa-lotus'] {
+  --bg: #e5ddb0;
+  --surface: #f2ecbc;
+  --surface-2: #e7dba0;
+  --border: #c9c096;
+  --text: #43436c;
+  --muted: #5e5b4f;
+  --accent: #4d699b;
+  --on-accent: #f2ecbc;
+  --ok: #5a7040;
+  --warn: #6b6538;
+  --danger: #b6384a;
+  --tone1: #b6384a;
+  --tone2: #985000;
+  --tone3: #5a7040;
+  --tone4: #4d699b;
+  --tone5: #5e5b4f;
+}
+
+[data-theme='kanagawa-wave'] {
+  --bg: #16161d;
+  --surface: #1f1f28;
+  --surface-2: #2a2a37;
+  --border: #363646;
+  --text: #dcd7ba;
+  --muted: #c8c093;
+  --accent: #7e9cd8;
+  --on-accent: #1f1f28;
+  --ok: #98bb6c;
+  --warn: #e6c384;
+  --danger: #e46876;
+  --tone1: #ff5d62;
+  --tone2: #ffa066;
+  --tone3: #98bb6c;
+  --tone4: #7fb4ca;
+  --tone5: #a6a69c;
+}
+
+[data-theme='kanagawa-dragon'] {
+  --bg: #12120f;
+  --surface: #181616;
+  --surface-2: #282727;
+  --border: #393836;
+  --text: #c5c9c5;
+  --muted: #a6a69c;
+  --accent: #8ba4b0;
+  --on-accent: #181616;
+  --ok: #8a9a7b;
+  --warn: #c4b28a;
+  --danger: #c4746e;
+  --tone1: #c4746e;
+  --tone2: #b6927b;
+  --tone3: #8a9a7b;
+  --tone4: #8ba4b0;
+  --tone5: #9e9b93;
+}
+
+/* Everforest — https://github.com/sainnhe/everforest (medium) */
+[data-theme='everforest-light'] {
+  --bg: #efebd4;
+  --surface: #fdf6e3;
+  --surface-2: #f4f0d9;
+  --border: #d8d3ba;
+  --text: #4a565d;
+  --muted: #5c6a72;
+  --accent: #2a6f97;
+  --on-accent: #fdf6e3;
+  --ok: #5f6d00;
+  --warn: #8a6500;
+  --danger: #c9312f;
+  --tone1: #c9312f;
+  --tone2: #a8540f;
+  --tone3: #5f6d00;
+  --tone4: #2a6f97;
+  --tone5: #5c6a72;
+}
+
+[data-theme='everforest-dark'] {
+  --bg: #232a2e;
+  --surface: #2d353b;
+  --surface-2: #343f44;
+  --border: #475258;
+  --text: #d3c6aa;
+  --muted: #9da9a0;
+  --accent: #a7c080;
+  --on-accent: #2d353b;
+  --ok: #a7c080;
+  --warn: #dbbc7f;
+  --danger: #e67e80;
+  --tone1: #e67e80;
+  --tone2: #e69875;
+  --tone3: #a7c080;
+  --tone4: #7fbbb3;
+  --tone5: #9da9a0;
+}
+
+/* Dracula and Alucard — https://draculatheme.com/contribute */
+[data-theme='alucard'] {
+  --bg: #f2eddb;
+  --surface: #fffbeb;
+  --surface-2: #efe9d4;
+  --border: #cfcfde;
+  --text: #1f1f1f;
+  --muted: #59538a;
+  --accent: #644ac9;
+  --on-accent: #fffbeb;
+  --ok: #14710a;
+  --warn: #846e15;
+  --danger: #cb3a2a;
+  --tone1: #cb3a2a;
+  --tone2: #a34d14;
+  --tone3: #14710a;
+  --tone4: #036a96;
+  --tone5: #59538a;
+}
+
+[data-theme='dracula'] {
+  --bg: #21222c;
+  --surface: #282a36;
+  --surface-2: #343746;
+  --border: #44475a;
+  --text: #f8f8f2;
+  --muted: #b6bcd8;
+  --accent: #bd93f9;
+  --on-accent: #282a36;
+  --ok: #50fa7b;
+  --warn: #f1fa8c;
+  --danger: #ff5555;
+  --tone1: #ff6e6e;
+  --tone2: #ffb86c;
+  --tone3: #50fa7b;
+  --tone4: #8be9fd;
+  --tone5: #b6bcd8;
+}
+
+/* Solarized — https://ethanschoonover.com/solarized (accents darkened in light for reading) */
+[data-theme='solarized-light'] {
+  --bg: #eee8d5;
+  --surface: #fdf6e3;
+  --surface-2: #f5efdc;
+  --border: #d3cbb7;
+  --text: #4c5f66;
+  --muted: #586e75;
+  --accent: #1f6fa8;
+  --on-accent: #fdf6e3;
+  --ok: #5f6e00;
+  --warn: #8a6800;
+  --danger: #c22a27;
+  --tone1: #c22a27;
+  --tone2: #b0410f;
+  --tone3: #5f6e00;
+  --tone4: #1f6fa8;
+  --tone5: #586e75;
+}
+
+[data-theme='solarized-dark'] {
+  --bg: #00212b;
+  --surface: #002b36;
+  --surface-2: #073642;
+  --border: #2a4b54;
+  --text: #a3b1b1;
+  --muted: #8fa0a2;
+  --accent: #4ea3e0;
+  --on-accent: #002b36;
+  --ok: #a3b31a;
+  --warn: #c99a1c;
+  --danger: #f0605d;
+  --tone1: #f0605d;
+  --tone2: #e8763f;
+  --tone3: #a3b31a;
+  --tone4: #4ea3e0;
+  --tone5: #8fa0a2;
+}

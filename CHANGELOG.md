@@ -10,6 +10,9 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **Five more themes** in Settings → Appearance: **Tokyo Night** (Night, Storm, and Day),
+  **Kanagawa** (Wave, Dragon, and Lotus), **Everforest**, **Dracula** (with Alucard for light
+  mode), and **Solarized**. Their text and pinyin tone colours are all easy to read.
 - **Report an issue or suggest a feature** from the bottom of the Study page.
 - When something fails unexpectedly (saving an answer or a card, an import, erasing, undo,
   changing decks or card types), the message now has a **Report the problem** link that opens
