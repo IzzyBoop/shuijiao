@@ -2159,6 +2159,13 @@ test('Serif and Handwriting bring their own Chinese fonts for devices without on
 
   // As on a phone: the browser fetches just the piece with the character, from this site.
   const loaded = await page.evaluate(async () => {
+    // Each stylesheet must have arrived before its fonts are known to the page.
+    for (const link of document.querySelectorAll<HTMLLinkElement>('link[id^="cjk-"]')) {
+      if (!link.sheet)
+        await new Promise((done) => {
+          link.addEventListener('load', done, { once: true });
+        });
+    }
     const out: Record<string, string> = {};
     for (const family of ['Shuijiao Serif TC', 'Shuijiao Serif SC', 'Shuijiao Kai']) {
       const faces = await document.fonts.load(`32px "${family}"`, family.endsWith('SC') ? '学' : '學');
