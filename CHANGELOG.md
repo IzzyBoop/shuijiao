@@ -17,6 +17,10 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
   and then works offline. You can turn it off in Settings. The stroke data comes from Make Me a
   Hanzi, and the drawing from Hanzi Writer.
 
+### Removed
+
+- **The How to page and its walkthrough video**, for now. They'll come back reworked.
+
 ## [1.3.3] - 2026-11-20
 
 ### Fixed

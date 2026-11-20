@@ -1384,17 +1384,6 @@ button.version:hover {
   gap: 10px;
 }
 
-/* ---------- How to ---------- */
-
-.tutorial-video {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1800 / 1170;
-  background: #000;
-  border-radius: var(--radius-sm);
-}
-
 /* ---------- Notices that can be closed ---------- */
 
 .notice > .notice-close {

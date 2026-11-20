@@ -21,7 +21,6 @@ const ORNAMENT: Record<string, string> = {
   course: '課',
   import: '入',
   resources: '源',
-  'how-to': '教',
   settings: '設',
   about: '餃',
 };

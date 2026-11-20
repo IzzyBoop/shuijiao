@@ -1412,31 +1412,6 @@ test('clicking the version number sends a dumpling flying, then it goes away', a
   await expect(dumpling).toHaveCount(0, { timeout: 5_000 });
 });
 
-test('the How to tab shows the walkthrough video, which is never cached offline', async ({ page }) => {
-  await page.goto('./#/');
-  await page.getByRole('link', { name: 'How to' }).click();
-  await expect(page.getByRole('heading', { name: 'How to use 水餃' })).toBeVisible();
-  const video = page.locator('video.tutorial-video');
-  await expect(video).toHaveAttribute('src', 'media/how-to-video.mp4');
-  await expect(video).toHaveAttribute('poster', 'media/how-to-video.jpg');
-  // The poster and the start of the video are served from this site.
-  expect((await page.request.get('./media/how-to-video.jpg')).ok()).toBe(true);
-  const head = await page.request.get('./media/how-to-video.mp4', { headers: { Range: 'bytes=0-1023' } });
-  expect(head.status()).toBeLessThan(300);
-  const sw = await (await page.request.get('./sw.js')).text();
-  expect(sw).not.toContain('"./media/');
-});
-
-test('the How to page has a quick start, and jumps to each part of the video', async ({ page }) => {
-  await page.goto('./#/how-to');
-  await expect(page.getByRole('heading', { name: 'Quick start' })).toBeVisible();
-  await expect(page.getByText('Back up now and then.')).toBeVisible();
-  await page.getByRole('button', { name: /Backups/ }).click();
-  await expect
-    .poll(() => page.locator('video.tutorial-video').evaluate((v: HTMLVideoElement) => v.currentTime))
-    .toBe(1425);
-});
-
 test('the "works best in Chrome" message can be closed for good', async ({ page }) => {
   await page.goto('./#/');
   const notice = page.locator('.site-notice');
