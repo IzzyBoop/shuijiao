@@ -1509,6 +1509,42 @@ test('the 墨 Ink style (beta) can be switched on and off, and Classic never loa
   await expect(page.getByLabel('Theme', { exact: true })).toBeVisible();
 });
 
+test('墨 Ink sets pinyin in a font that has every tone mark (no loose or borrowed marks)', async ({
+  page,
+}) => {
+  await addCard(page, '女兒');
+  await page.goto('./#/settings');
+  await page.getByRole('button', { name: '墨 Ink (beta)' }).click();
+  await page.goto('./#/browse');
+  await expect(page.locator('.flashcard')).toContainText('女兒');
+  await page.keyboard.press('Space');
+  const family = await page
+    .locator('.face-pinyin')
+    .first()
+    .evaluate((el) => getComputedStyle(el).fontFamily);
+  expect(family.startsWith("'Ink Grotesk'") || family.startsWith('"Ink Grotesk"')).toBe(true);
+  // Every pinyin letter must come from that font itself: measured with two very different
+  // fallback fonts behind it, a letter it has keeps its width; a borrowed one doesn't.
+  const borrowed = await page.evaluate(async () => {
+    const letters = [...'āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙǕǗǙǛÜ'];
+    await document.fonts.load("40px 'Ink Grotesk'", letters.join(''));
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return ['no canvas'];
+    const width = (font: string, ch: string) => {
+      ctx.font = font;
+      return ctx.measureText(ch).width;
+    };
+    return letters.filter(
+      (ch) =>
+        Math.abs(
+          width("40px 'Ink Grotesk', 'Courier New', monospace", ch) -
+            width("40px 'Ink Grotesk', 'Zapfino', cursive", ch),
+        ) > 0.01,
+    );
+  });
+  expect(borrowed).toEqual([]);
+});
+
 test('a Noto Serif TC download from v1.3.0 is cleaned up on the next visit', async ({ page }) => {
   await page.goto('./#/');
   await expect(page.getByRole('heading', { name: 'Study' })).toBeVisible();

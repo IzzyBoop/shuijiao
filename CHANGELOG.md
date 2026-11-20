@@ -8,6 +8,12 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Fixed
+
+- **Tone marks in 墨 Ink.** First tones (tā, shēng) had their tone mark drawn off to the right,
+  and some third and ü tones (xiǎng, nǚ) were mismatched. Pinyin in Ink now uses a font with
+  every pinyin letter, and every tone mark sits where it should.
+
 ## [1.3.2] - 2026-11-20
 
 ### Changed
