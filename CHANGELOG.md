@@ -10,6 +10,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ### Added
 
+- **墨 Ink, a new look (beta).** Switch it on in Settings → Appearance → Site style: serif type
+  for headings and Chinese, small spaced capitals, hairlines and square corners, black ink in
+  dark mode and paper in light mode, with one orange accent. Switch back to Classic any time.
+  Chinese uses your device's serif font, or download **Noto Serif TC** (2.9 MB) in Settings so
+  it looks the same everywhere, also offline. Inspired by the Ryoku Linux website.
 - **Five more themes** in Settings → Appearance: **Tokyo Night** (Night, Storm, and Day),
   **Kanagawa** (Wave, Dragon, and Lotus), **Everforest**, **Dracula** (with Alucard for light
   mode), and **Solarized**. Their text and pinyin tone colours are all easy to read.

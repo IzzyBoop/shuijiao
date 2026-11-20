@@ -2,6 +2,15 @@ import { readRawPref, writeRawPref } from '../safe/prefs';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+/**
+ * The site's whole look: Classic, or 墨 Ink (beta), which has its own type, shapes and two
+ * palettes (ink in dark mode, paper in light mode) and ignores the colour theme.
+ */
+export type SiteStyle = 'classic' | 'ink';
+
+/** 墨 Ink's palettes in themes.css. */
+export const INK_THEMES = { dark: 'ink', light: 'ink-paper' } as const;
+
 export interface ThemeFamily {
   id: string;
   label: string;
@@ -77,6 +86,7 @@ export interface ThemeState {
   familyId: string;
   darkId: string;
   mode: ThemeMode;
+  style: SiteStyle;
 }
 
 function familyFor(themeId: string): ThemeFamily | undefined {
@@ -89,7 +99,8 @@ export function loadThemeState(): ThemeState {
   const dark = readRawPref('theme.dark') ?? 'catppuccin-macchiato';
   const family = familyFor(dark) ?? THEME_FAMILIES[0];
   const darkId = family?.dark.some((d) => d.id === dark) ? dark : (family?.dark[0]?.id ?? 'default-dark');
-  return { familyId: family?.id ?? 'default', darkId, mode };
+  const style: SiteStyle = readRawPref('theme.style') === 'ink' ? 'ink' : 'classic';
+  return { familyId: family?.id ?? 'default', darkId, mode, style };
 }
 
 const darkQuery = (): MediaQueryList | null =>
@@ -98,6 +109,7 @@ const darkQuery = (): MediaQueryList | null =>
 export function resolveTheme(state: ThemeState): { id: string; isDark: boolean } {
   const family = THEME_FAMILIES.find((f) => f.id === state.familyId) ?? THEME_FAMILIES[0];
   const isDark = state.mode === 'dark' || (state.mode === 'system' && darkQuery()?.matches === true);
+  if (state.style === 'ink') return { id: isDark ? INK_THEMES.dark : INK_THEMES.light, isDark };
   if (!family) return { id: isDark ? 'default-dark' : 'default-light', isDark };
   const darkId = family.dark.some((d) => d.id === state.darkId) ? state.darkId : (family.dark[0]?.id ?? '');
   return { id: isDark ? darkId : family.light, isDark };
@@ -109,9 +121,12 @@ export function applyTheme(state: ThemeState): void {
   writeRawPref('theme.mode', state.mode);
   writeRawPref('theme.light', family.light);
   writeRawPref('theme.dark', state.darkId);
+  writeRawPref('theme.style', state.style);
   const { id, isDark } = resolveTheme(state);
   const root = document.documentElement;
   root.setAttribute('data-theme', id);
+  if (state.style === 'ink') root.setAttribute('data-style', 'ink');
+  else root.removeAttribute('data-style');
   root.style.colorScheme = isDark ? 'dark' : 'light';
 }
 

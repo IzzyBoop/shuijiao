@@ -1476,6 +1476,65 @@ test.describe('on an iPad', () => {
   });
 });
 
+test('the 墨 Ink style (beta) can be switched on and off, and Classic never loads its fonts', async ({
+  page,
+}) => {
+  const fonts: string[] = [];
+  page.on('request', (r) => {
+    if (/\.woff2$|\/fonts\//.test(r.url())) fonts.push(r.url());
+  });
+  await page.goto('./#/settings');
+  const html = page.locator('html');
+  await expect(page.getByLabel('Theme', { exact: true })).toBeVisible();
+  await expect(html).not.toHaveAttribute('data-style', 'ink');
+  expect(fonts).toEqual([]);
+
+  await page.getByRole('button', { name: '墨 Ink (beta)' }).click();
+  await expect(html).toHaveAttribute('data-style', 'ink');
+  await page.getByRole('button', { name: 'Dark', exact: true }).click();
+  await expect(html).toHaveAttribute('data-theme', 'ink');
+  await page.getByRole('button', { name: 'Light', exact: true }).click();
+  await expect(html).toHaveAttribute('data-theme', 'ink-paper');
+  await expect(page.getByLabel('Theme', { exact: true })).toHaveCount(0); // Ink has its own colours
+  await expect(page.getByText('墨 Ink has its own colours')).toBeVisible();
+  await expect.poll(() => fonts.length).toBeGreaterThan(0); // its fonts load now
+
+  // Applied before the first paint after a reload (by theme-init.js).
+  await page.reload();
+  await expect(html).toHaveAttribute('data-style', 'ink');
+  await expect(html).toHaveAttribute('data-theme', 'ink-paper');
+
+  await page.getByRole('button', { name: 'Classic', exact: true }).click();
+  await expect(html).not.toHaveAttribute('data-style', 'ink');
+  await expect(page.getByLabel('Theme', { exact: true })).toBeVisible();
+});
+
+test('墨 Ink: Noto Serif TC can be downloaded for offline use, and removed', async ({ page }) => {
+  await page.goto('./#/settings');
+  await page.getByRole('button', { name: '墨 Ink (beta)' }).click();
+  await page.getByRole('button', { name: /Download Noto Serif TC \(2\.9 MB\)/ }).click();
+  await expect(page.getByRole('button', { name: "Use my device's font" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('#ink-noto-css')).toHaveCount(1);
+  const cached = await page.evaluate(
+    async () =>
+      (await (await caches.open('fonts')).keys()).filter((r) => r.url.includes('/fonts/noto-serif-tc/'))
+        .length,
+  );
+  expect(cached).toBe(105); // the stylesheet and its 104 pieces
+  await page.reload();
+  await expect(page.locator('#ink-noto-css')).toHaveCount(1); // remembered
+
+  await page.getByRole('button', { name: "Use my device's font" }).click();
+  await expect(page.getByRole('button', { name: /Download Noto Serif TC/ })).toBeVisible();
+  await expect(page.locator('#ink-noto-css')).toHaveCount(0);
+  const left = await page.evaluate(
+    async () =>
+      (await (await caches.open('fonts')).keys()).filter((r) => r.url.includes('/fonts/noto-serif-tc/'))
+        .length,
+  );
+  expect(left).toBe(0);
+});
+
 test('Google Chrome users never see the Chrome message', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'userAgentData', {

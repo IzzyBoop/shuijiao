@@ -8,6 +8,24 @@ import { ChromeNotice } from './ChromeNotice';
 import { UpdateBanner } from './UpdateBanner';
 import { ErrorBoundary } from '../core/ui/ErrorBoundary';
 
+/** Each page's character, drawn behind it in the 墨 Ink style (see styles/ink.css). */
+const ORNAMENT: Record<string, string> = {
+  '': '學',
+  review: '習',
+  'study-ahead': '習',
+  browse: '翻',
+  add: '寫',
+  cards: '卡',
+  decks: '組',
+  templates: '型',
+  course: '課',
+  import: '入',
+  resources: '源',
+  'how-to': '教',
+  settings: '設',
+  about: '餃',
+};
+
 function isActive(navPath: string, current: string): boolean {
   if (navPath === '/')
     return current === '/' || current.startsWith('/review') || current.startsWith('/browse');
@@ -67,7 +85,7 @@ export function App() {
         </div>
       </header>
 
-      <main id="main" tabIndex={-1}>
+      <main id="main" tabIndex={-1} data-ornament={ORNAMENT[path.split('/')[1] ?? ''] ?? '水'}>
         <ChromeNotice />
         {match ? (
           // A crash on one page leaves the menu working; going to another page tries again.

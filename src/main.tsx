@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import './styles/app.css';
+import './styles/ink.css';
 import { App } from './app/App';
 import { initTheme } from './app/ThemeToggle';
 import { setAppStatus } from './core/app-status';

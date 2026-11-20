@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { THEME_FAMILIES } from '../../src/core/theme/themes';
+import { resolveTheme, THEME_FAMILIES } from '../../src/core/theme/themes';
 
 const css = readFileSync('src/core/theme/themes.css', 'utf8');
 const TOKENS = [
@@ -51,6 +51,8 @@ describe('themes', () => {
   // Text, links, buttons and the pinyin tone colours must be easy to read: WCAG AA, 4.5:1.
   // (Some older light themes keep their original, paler tone colours.)
   const CHECKED = [
+    'ink',
+    'ink-paper',
     'default-light',
     'default-dark',
     'tokyo-night-day',
@@ -82,5 +84,12 @@ describe('themes', () => {
       ]),
     ];
     for (const [what, fg, bg] of pairs) expect(contrast(fg, bg), `${id} ${what}`).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('墨 Ink uses its own palettes, whatever the colour theme', () => {
+    const base = { familyId: 'kanagawa', darkId: 'kanagawa-wave', style: 'ink' as const };
+    expect(resolveTheme({ ...base, mode: 'dark' }).id).toBe('ink');
+    expect(resolveTheme({ ...base, mode: 'light' }).id).toBe('ink-paper');
+    expect(resolveTheme({ ...base, mode: 'dark', style: 'classic' }).id).toBe('kanagawa-wave');
   });
 });

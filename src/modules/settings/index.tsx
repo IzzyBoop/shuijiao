@@ -12,7 +12,9 @@ import {
 } from '../../core/lang/tts';
 import { speechProblem } from '../../core/ui/chinese';
 import { updateStudyPrefs, useStudyPrefs, type HanziFont } from '../../core/study-prefs';
-import { THEME_FAMILIES, THEME_MODES, type ThemeMode } from '../../core/theme/themes';
+import { THEME_FAMILIES, THEME_MODES, type SiteStyle, type ThemeMode } from '../../core/theme/themes';
+import { ExternalLink } from '../../core/ui/ExternalLink';
+import { reportProblemUrl } from '../../core/report';
 import { setThemeState, useThemeState } from '../../app/ThemeToggle';
 import { SettingRow } from '../../core/ui/SettingRow';
 import { useAsync } from '../../core/ui/useAsync';
@@ -20,10 +22,15 @@ import { AudioCheck } from './AudioCheck';
 import { ImportPage } from './ImportPage';
 import { BackupPanel } from './BackupPanel';
 import { UndoLast } from './UndoLast';
+import { InkFontRow } from './InkFontRow';
 import { requestPersistentStorage } from '../../core/db/persist';
 import { problemFrom, ProblemNotice, type Problem } from '../../core/ui/problem';
 
 const MODE_LABEL: Record<ThemeMode, string> = { light: 'Light', dark: 'Dark', system: 'System' };
+const SITE_STYLES: readonly [SiteStyle, string][] = [
+  ['classic', 'Classic'],
+  ['ink', '墨 Ink (beta)'],
+];
 const FONT_LABEL: Record<HanziFont, string> = {
   sans: 'Sans',
   serif: 'Serif (Song)',
@@ -37,6 +44,26 @@ function AppearancePanel() {
   return (
     <section class="panel">
       <h2>Appearance</h2>
+      <SettingRow
+        id="set-style"
+        label="Site style"
+        hint="墨 Ink is a new look in beta: serif type, ink and paper colours."
+      >
+        <div class="segmented" role="group" aria-label="Site style" id="set-style">
+          {SITE_STYLES.map(([style, label]) => (
+            <button
+              key={style}
+              type="button"
+              aria-pressed={theme.style === style}
+              onClick={() => {
+                setThemeState({ ...theme, style });
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </SettingRow>
       <SettingRow id="set-mode" label="Mode">
         <div class="segmented" role="group" aria-label="Colour mode" id="set-mode">
           {THEME_MODES.map((m) => (
@@ -53,42 +80,63 @@ function AppearancePanel() {
           ))}
         </div>
       </SettingRow>
-      <SettingRow id="set-theme" label="Theme">
-        <select
-          id="set-theme"
-          aria-label="Theme"
-          value={theme.familyId}
-          onChange={(e) => {
-            const f = THEME_FAMILIES.find((x) => x.id === e.currentTarget.value);
-            if (f) setThemeState({ ...theme, familyId: f.id, darkId: f.dark[0]?.id ?? '' });
-          }}
-        >
-          {THEME_FAMILIES.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.label}
-            </option>
-          ))}
-        </select>
-      </SettingRow>
-      {family && family.dark.length > 1 && (
-        <SettingRow id="set-dark" label="Dark variant">
-          <select
-            id="set-dark"
-            aria-label="Dark variant"
-            value={theme.darkId}
-            onChange={(e) => {
-              setThemeState({ ...theme, darkId: e.currentTarget.value });
-            }}
-          >
-            {family.dark.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-        </SettingRow>
+      {theme.style === 'ink' && <InkFontRow />}
+      {theme.style === 'ink' ? (
+        <p class="small muted">
+          墨 Ink has its own colours: black ink in dark mode, paper in light mode. Switch back to Classic to
+          choose a colour theme.{' '}
+          <ExternalLink url={reportProblemUrl('Feedback on the 墨 Ink style (beta).')}>
+            Tell us what you think
+          </ExternalLink>
+        </p>
+      ) : (
+        <>
+          <SettingRow id="set-theme" label="Theme">
+            <select
+              id="set-theme"
+              aria-label="Theme"
+              value={theme.familyId}
+              onChange={(e) => {
+                const f = THEME_FAMILIES.find((x) => x.id === e.currentTarget.value);
+                if (f) setThemeState({ ...theme, familyId: f.id, darkId: f.dark[0]?.id ?? '' });
+              }}
+            >
+              {THEME_FAMILIES.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </SettingRow>
+          {family && family.dark.length > 1 && (
+            <SettingRow id="set-dark" label="Dark variant">
+              <select
+                id="set-dark"
+                aria-label="Dark variant"
+                value={theme.darkId}
+                onChange={(e) => {
+                  setThemeState({ ...theme, darkId: e.currentTarget.value });
+                }}
+              >
+                {family.dark.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </SettingRow>
+          )}
+        </>
       )}
-      <SettingRow id="set-font" label="Character style" hint="Uses fonts installed on your device.">
+      <SettingRow
+        id="set-font"
+        label="Character style"
+        hint={
+          theme.style === 'ink'
+            ? '墨 Ink shows Chinese in a serif, unless you choose Handwriting.'
+            : 'Uses fonts installed on your device.'
+        }
+      >
         <select
           id="set-font"
           aria-label="Character style"

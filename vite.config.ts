@@ -75,6 +75,9 @@ function serviceWorkerPlugin(): Plugin {
             f !== 'sw.js' &&
             !f.startsWith('dict/') &&
             !f.startsWith('media/') &&
+            // Fonts are only needed for the 墨 Ink style: cached when first used (or downloaded).
+            !f.endsWith('.woff2') &&
+            !f.startsWith('fonts/') &&
             f !== 'CNAME' &&
             f !== '.nojekyll',
         )

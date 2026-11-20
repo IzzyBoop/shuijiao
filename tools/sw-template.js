@@ -7,6 +7,7 @@ const PRECACHE = __PRECACHE__;
 const SHELL_CACHE = 'shell-' + VERSION;
 const DICT_CACHE = 'dict';
 const COURSE_CACHE = 'course';
+const FONT_CACHE = 'fonts';
 
 // Files in assets/ have their content's hash in their name: the same name means the
 // same file. Take those from the previous version's cache instead of downloading them
@@ -44,7 +45,10 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== SHELL_CACHE && key !== DICT_CACHE && key !== COURSE_CACHE)
+            .filter(
+              (key) =>
+                key !== SHELL_CACHE && key !== DICT_CACHE && key !== COURSE_CACHE && key !== FONT_CACHE,
+            )
             .map((key) => caches.delete(key)),
         ),
       )
@@ -73,6 +77,24 @@ self.addEventListener('fetch', (event) => {
       caches
         .match('./', { cacheName: SHELL_CACHE, ignoreSearch: true, ignoreVary: true })
         .then((cached) => cached || fetch(request)),
+    );
+    return;
+  }
+
+  if (url.pathname.endsWith('.woff2') || url.pathname.includes('/fonts/')) {
+    // Fonts (content-hashed, or versioned by folder) are only used by the 墨 Ink style, so they
+    // aren't precached: cache each on first use, then serve it from the cache.
+    event.respondWith(
+      caches.open(FONT_CACHE).then((cache) =>
+        cache.match(request, { ignoreVary: true }).then(
+          (cached) =>
+            cached ||
+            fetch(request).then((response) => {
+              if (response.ok && response.type === 'basic') cache.put(request, response.clone());
+              return response;
+            }),
+        ),
+      ),
     );
     return;
   }

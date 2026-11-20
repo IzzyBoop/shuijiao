@@ -1,0 +1,417 @@
+/*
+ * 墨 Ink (beta): the site style switched on in Settings → Appearance (data-style="ink" on
+ * <html>). Black paper and bone ink (or the reverse in light mode), a serif for headings
+ * and Chinese, small spaced capitals for labels, hairlines and square corners, and one
+ * burnt-orange signal colour. Inspired by the Ryoku Linux website (ryoku.dev).
+ *
+ * Everything here is scoped to [data-style='ink'], so the Classic style is untouched. The
+ * fonts (SIL Open Font License, see fonts/LICENSE-*.txt) are only downloaded by browsers
+ * that use them, i.e. with Ink on; the service worker caches them on first use.
+ */
+
+@font-face {
+  font-family: 'Ink Fraunces';
+  src: url('./fonts/fraunces.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ink Fraunces';
+  src: url('./fonts/fraunces-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ink Grotesk';
+  src: url('./fonts/space-grotesk.woff2') format('woff2');
+  font-weight: 300 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ink Mono';
+  src: url('./fonts/space-mono.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+
+[data-style='ink'] {
+  --radius: 2px;
+  --radius-sm: 2px;
+  --font-ui: 'Ink Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Ink Fraunces', ui-serif, Georgia, serif;
+  --font-mono: 'Ink Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --label-size: 0.7rem;
+  --label-track: 0.2em;
+}
+
+/* Chinese in a serif (the device's own, or Noto Serif TC once downloaded), unless the
+   student chose the handwriting style. */
+[data-style='ink']:not([data-hanzi-font='kai']) {
+  --font-hant:
+    'Ink Noto Serif TC', 'Songti TC', 'Noto Serif TC', 'Noto Serif CJK TC', 'Source Han Serif TC', 'PMingLiU',
+    'MingLiU', serif;
+  --font-hans:
+    'Ink Noto Serif TC', 'Songti SC', 'Noto Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'SimSun',
+    serif;
+}
+
+/* A faint paper grain over everything. */
+[data-style='ink'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.06;
+  background-image: url('./grain.svg'); /* a file, not data: (the CSP allows images only from the site) */
+}
+[data-style='ink'][data-theme='ink-paper'] body::before {
+  opacity: 0.1;
+}
+
+[data-style='ink'] body {
+  font-feature-settings: 'ss01' 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Type ---------- */
+
+[data-style='ink'] h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Section headings: "01  DECKS ———————— " with a number and a hairline. */
+[data-style='ink'] main {
+  counter-reset: ink-section;
+}
+[data-style='ink'] h2 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font: 500 var(--label-size) / 1.2 var(--font-ui);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+[data-style='ink'] h2::before {
+  counter-increment: ink-section;
+  content: counter(ink-section, decimal-leading-zero);
+  font: 400 0.72rem/1 var(--font-mono);
+  letter-spacing: 0;
+}
+[data-style='ink'] h2::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+[data-style='ink'] .dialog h2::before {
+  content: none;
+}
+
+[data-style='ink'] h3,
+[data-style='ink'] .field-label,
+[data-style='ink'] .face-label,
+[data-style='ink'] .stat-tile-label,
+[data-style='ink'] .breakdown-title,
+[data-style='ink'] .heat-months,
+[data-style='ink'] .heat-weekdays,
+[data-style='ink'] .forecast-label,
+[data-style='ink'] .dup-label,
+[data-style='ink'] .stat-label,
+[data-style='ink'] legend {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: var(--label-size);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+[data-style='ink'] .kbd,
+[data-style='ink'] .chapter-time,
+[data-style='ink'] .forecast-count,
+[data-style='ink'] .version {
+  font-family: var(--font-mono);
+}
+
+[data-style='ink'] a {
+  color: var(--text);
+  text-decoration-color: var(--sun);
+  text-underline-offset: 3px;
+}
+
+/* ---------- Top bar ---------- */
+
+[data-style='ink'] .topbar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+[data-style='ink'] .brand-mark {
+  background: none;
+  font-size: 0;
+}
+[data-style='ink'] .brand-mark::before {
+  content: '餃';
+  font: 500 26px/1 var(--font-hant);
+  color: var(--text);
+}
+[data-style='ink'] .nav a {
+  border-radius: 0;
+  color: var(--muted);
+  border-bottom: 1px solid transparent;
+}
+[data-style='ink'] .nav a:hover {
+  background: none;
+  color: var(--text);
+}
+[data-style='ink'] .nav a[aria-current='page'] {
+  background: none;
+  color: var(--text);
+  font-weight: 500;
+  border-bottom-color: var(--sun);
+}
+[data-style='ink'] .nav-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* ---------- Surfaces ---------- */
+
+[data-style='ink'] .panel,
+[data-style='ink'] .flashcard,
+[data-style='ink'] .dialog,
+[data-style='ink'] .update-banner,
+[data-style='ink'] .dup-card,
+[data-style='ink'] .confirm-field {
+  border-radius: 2px;
+  box-shadow: none;
+}
+[data-style='ink'] .panel {
+  border: 1px solid var(--border);
+}
+
+[data-style='ink'] .notice {
+  border-radius: 2px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--muted);
+}
+[data-style='ink'] .notice.warn,
+[data-style='ink'] .notice.error {
+  border-left-color: var(--sun);
+}
+[data-style='ink'] .notice.ok {
+  border-left-color: var(--ok);
+}
+
+[data-style='ink'] .badge {
+  border-radius: 2px;
+  background: transparent;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ---------- Controls ---------- */
+
+[data-style='ink'] button,
+[data-style='ink'] .button {
+  background: transparent;
+  border-color: var(--border);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+[data-style='ink'] button:hover,
+[data-style='ink'] .button:hover {
+  border-color: var(--text);
+}
+[data-style='ink'] button.primary,
+[data-style='ink'] .button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+[data-style='ink'] button.danger {
+  border-color: var(--danger);
+}
+[data-style='ink'] button.ghost {
+  border-color: transparent;
+}
+/* Buttons that are really text or Chinese read better as they are. */
+[data-style='ink'] .chip,
+[data-style='ink'] .version,
+[data-style='ink'] .chapters button,
+[data-style='ink'] .release > summary,
+[data-style='ink'] .dup-card > button,
+[data-style='ink'] .infotip-button {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.9rem;
+}
+
+[data-style='ink'] input[type='text'],
+[data-style='ink'] input[type='search'],
+[data-style='ink'] input[type='number'],
+[data-style='ink'] textarea,
+[data-style='ink'] select {
+  border-radius: 2px;
+  background: transparent;
+}
+[data-style='ink'] .segmented {
+  border-radius: 2px;
+}
+[data-style='ink'] .chip {
+  border-radius: 2px;
+}
+[data-style='ink'] input.switch {
+  border-radius: 2px;
+}
+[data-style='ink'] input.switch::before {
+  border-radius: 1px;
+}
+
+/* ---------- Study ---------- */
+
+[data-style='ink'] .stat,
+[data-style='ink'] .stat-tile-value {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+[data-style='ink'] .stat-tiles {
+  gap: 0;
+  border: 1px solid var(--border);
+}
+[data-style='ink'] .stat-tile {
+  background: none;
+  border-radius: 0;
+  border-right: 1px solid var(--border);
+}
+[data-style='ink'] .stat-tile:last-child {
+  border-right: 0;
+}
+
+[data-style='ink'] .flashcard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+[data-style='ink'] .flashcard hr {
+  border-top: 1px solid var(--border);
+}
+[data-style='ink'] .face-traditional {
+  font-weight: 600;
+}
+[data-style='ink'] .face-pinyin {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+}
+[data-style='ink'] .face-meaning {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+/* The four ratings as one joined row; Good, the usual answer, stands out. */
+[data-style='ink'] .grade-bar {
+  gap: 0;
+  border: 1px solid var(--border);
+}
+[data-style='ink'] .grade-bar button {
+  border: 0;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+}
+[data-style='ink'] .grade-bar button:last-child {
+  border-right: 0;
+}
+[data-style='ink'] .grade-bar button.grade-3 {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+[data-style='ink'] .grade-bar button.grade-3 .interval {
+  color: inherit;
+  opacity: 0.75;
+}
+[data-style='ink'] .grade-bar .interval {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+}
+[data-style='ink'] .grade-bar button.span-all {
+  border-right: 0;
+}
+
+[data-style='ink'] .gloss-table td {
+  border-bottom-color: var(--border);
+}
+
+/* Progress: the signal colour for study days and today. */
+[data-style='ink'] .heat-cell {
+  border-radius: 1px;
+}
+[data-style='ink'] .heat-1 {
+  background: color-mix(in srgb, var(--sun) 30%, var(--surface-2));
+}
+[data-style='ink'] .heat-2 {
+  background: color-mix(in srgb, var(--sun) 55%, var(--surface-2));
+}
+[data-style='ink'] .heat-3 {
+  background: color-mix(in srgb, var(--sun) 78%, var(--surface-2));
+}
+[data-style='ink'] .heat-4 {
+  background: var(--sun);
+}
+[data-style='ink'] .forecast-day:first-child .forecast-bar {
+  background: var(--sun);
+}
+[data-style='ink'] .forecast-bar,
+[data-style='ink'] .bar-track,
+[data-style='ink'] .bar-track .bar-fill {
+  border-radius: 0;
+}
+
+/* ---------- Ornament ----------
+   Each page's character (data-ornament on <main>), drawn huge and outlined behind the page
+   on wide screens, as the Ryoku site does with its statue. */
+@media (min-width: 900px) {
+  [data-style='ink'] main {
+    position: relative;
+    isolation: isolate;
+  }
+  [data-style='ink'] main::before {
+    content: attr(data-ornament);
+    position: fixed;
+    right: -4vw;
+    bottom: -6vw;
+    z-index: -1;
+    pointer-events: none;
+    font: 900 min(46vw, 640px) / 1 var(--font-hant);
+    color: transparent;
+    -webkit-text-stroke: 1px var(--border);
+  }
+}
+
+/* ---------- Footer ---------- */
+
+[data-style='ink'] .footer {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  border-top: 1px solid var(--border);
+}
+
+[data-style='ink'] .progress h3 {
+  margin-top: 22px;
+}

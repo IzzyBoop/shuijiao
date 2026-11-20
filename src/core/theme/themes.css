@@ -487,3 +487,45 @@
   --tone4: #4ea3e0;
   --tone5: #8fa0a2;
 }
+
+/* 墨 Ink (beta): its own two palettes, used whatever the theme (see styles/ink.css).
+   Black paper and bone ink, or bone paper and black ink, with one burnt-orange signal. */
+[data-theme='ink'] {
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-2: #151413;
+  --border: #3a3632;
+  --text: #cdc4ba;
+  --muted: #a29b92;
+  --accent: #cdc4ba;
+  --on-accent: #000000;
+  --ok: #6daf8c;
+  --warn: #c9a35a;
+  --danger: #e2714d;
+  --sun: #ce5e32;
+  --tone1: #e2714d;
+  --tone2: #c9a35a;
+  --tone3: #6daf8c;
+  --tone4: #6ea5cf;
+  --tone5: #a29b92;
+}
+
+[data-theme='ink-paper'] {
+  --bg: #e9e3d8;
+  --surface: #efeae0;
+  --surface-2: #e2dbcf;
+  --border: #c4bbad;
+  --text: #141210;
+  --muted: #554f48;
+  --accent: #141210;
+  --on-accent: #efeae0;
+  --ok: #3b7556;
+  --warn: #7d5f17;
+  --danger: #a8421b;
+  --sun: #b4471d;
+  --tone1: #a8421b;
+  --tone2: #7d5f17;
+  --tone3: #3b7556;
+  --tone4: #33618a;
+  --tone5: #554f48;
+}

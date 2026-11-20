@@ -11,8 +11,8 @@ The portal is a fully static site. There is no server, no account system, no dat
 
 - **Student data** (cards, review history, settings) lives only in the student's own browser
   (IndexedDB and localStorage). It is never sent anywhere. Backups are files the student downloads.
-- **No third-party requests.** No CDNs, web fonts, analytics, or trackers. Every file is served from
-  the portal's own origin.
+- **No third-party requests.** No CDNs, third-party fonts, analytics, or trackers. Every file is
+  served from the portal's own origin, including the 墨 Ink style's fonts (bundled with the site).
 - **Content Security Policy** (delivered as `<meta>`, because GitHub Pages cannot set headers):
   `default-src 'none'`, scripts/styles/images only from `'self'`, no inline script or style,
   `base-uri 'none'`, `form-action 'none'`, and **Trusted Types enforced**

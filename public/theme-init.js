@@ -1,5 +1,5 @@
 // Runs before first paint (an external file, because the CSP forbids inline scripts).
-// 1. Applies the saved theme so the page never flashes the wrong colours.
+// 1. Applies the saved theme (and site style) so the page never flashes the wrong look.
 // 2. Refuses to show the app inside a frame (GitHub Pages cannot send frame-ancestors).
 (function () {
   'use strict';
@@ -21,10 +21,12 @@
   }
 
   var mode = read('portal.theme.mode', 'system');
+  var ink = read('portal.theme.style', 'classic') === 'ink';
   var light = read('portal.theme.light', 'default-light');
   var dark = read('portal.theme.dark', 'catppuccin-macchiato');
   var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   var useDark = mode === 'dark' || (mode !== 'light' && prefersDark);
-  root.setAttribute('data-theme', useDark ? dark : light);
+  if (ink) root.setAttribute('data-style', 'ink');
+  root.setAttribute('data-theme', ink ? (useDark ? 'ink' : 'ink-paper') : useDark ? dark : light);
   root.style.colorScheme = useDark ? 'dark' : 'light';
 })();

@@ -53,6 +53,11 @@ function AboutPage() {
           Built with Preact, Dexie, opencc-js, pinyin-pro, ts-fsrs, and Valibot (MIT, Apache-2.0, and
           BSD-3-Clause licences). Icons adapted from Feather (MIT).
         </p>
+        <p>
+          The 墨 Ink style is inspired by the website of{' '}
+          <ExternalLink url="https://ryoku.dev/">Ryoku Linux</ExternalLink>. Its fonts are Fraunces, Space
+          Grotesk, and Space Mono (SIL Open Font License).
+        </p>
       </section>
     </>
   );
