@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-11-20
+
 ### Fixed
 
 - **Tone marks in 墨 Ink.** First tones (tā, shēng) had their tone mark drawn off to the right,
