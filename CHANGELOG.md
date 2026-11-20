@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-11-20
+
 ### Changed
 
 - **A new app icon** in the 墨 Ink look: a serif 餃 on black with an orange underline, in the

@@ -1,6 +1,6 @@
 {
   "name": "shuijiao",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "private": true,
   "description": "A static, offline-capable Mandarin flashcard portal. All study data stays in the student's browser.",
   "license": "MIT",
