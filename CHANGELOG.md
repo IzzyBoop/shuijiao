@@ -9,6 +9,8 @@ release date (UTC), with `-1`, `-2`, … for more releases the same day; up to 1
 
 ## [Unreleased]
 
+## [2026.11.22] - 2026-11-22
+
 ### Changed
 
 - **Version numbers are now the release date**, like 2026.11.22. A second release the same day
