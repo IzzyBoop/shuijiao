@@ -1,7 +1,7 @@
 name: CI and deploy
 
 # Every push and pull request is checked. Students only get a new version when a release
-# tag (v1.2.0, made by tools/release.sh) is pushed, or when it is deployed by hand from the
+# tag (v2026.11.21, made by tools/release.sh) is pushed, or when it is deployed by hand from the
 # Actions tab ("Run workflow"), which can also ship the service-worker kill switch.
 on:
   push:

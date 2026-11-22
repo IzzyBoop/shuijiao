@@ -61,21 +61,24 @@ published too. Everything in that file is public once it's pushed.
 
 ## Versions and releases
 
-Versions follow [Semantic Versioning](https://semver.org/): `0.1.0-beta.1`, `0.1.0-beta.2`, … then
-`0.1.0`. The current version is shown in the app's footer and on the About page, together with
-"What's new", which is built from [CHANGELOG.md](CHANGELOG.md).
+Versions are the release date: `2026.11.21`. A second release the same day is `2026.11.21-1`,
+then `2026.11.21-2`, and so on. Dates are UTC, like every commit and tag in this repository.
+(Releases up to `1.6.0` used Semantic Versioning.) The current version is shown in the app's
+footer, on the Study page, and on the About page, together with "What's new", which is built from
+[CHANGELOG.md](CHANGELOG.md).
 
 1. As you make changes, add a line for each under `## [Unreleased]` in `CHANGELOG.md`
    (sections: Added, Changed, Fixed, Removed, Security, Known issues).
 2. To release, with everything committed, run:
 
    ```sh
-   tools/release.sh 0.1.0-beta.2
+   tools/release.sh
    ```
 
-   It stamps the version and today's date (UTC) into `package.json` and the changelog, runs
-   every check, build, and end-to-end test, then creates a `chore(release)` commit and an
-   annotated tag `v0.1.0-beta.2`. If anything fails, it puts the files back. It never pushes.
+   It works out the version from today's date and the existing tags, stamps it and the date into
+   `package.json` and the changelog, runs every check, build, and end-to-end test, then creates a
+   `chore(release)` commit and an annotated tag such as `v2026.11.21`. If anything fails, it puts
+   the files back. It never pushes.
 
 3. Publish with `git push --follow-tags`. Pushing the tag is what deploys the new version to
    students: CI checks everything again and then publishes it to GitHub Pages.

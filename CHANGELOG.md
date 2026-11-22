@@ -2,11 +2,20 @@
 
 All notable changes to 水餃 (Shuǐjiǎo) are listed here. The newest version is at the top.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version
-numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
-**Unreleased**; `tools/release.sh` turns that section into the next version.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions are the
+release date (UTC), with `-1`, `-2`, … for more releases the same day; up to 1.6.0 they followed
+[Semantic Versioning](https://semver.org/). Add new entries under **Unreleased**;
+`tools/release.sh` turns that section into the next version.
 
 ## [Unreleased]
+
+### Changed
+
+- **Version numbers are now the release date**, like 2026.11.22. A second release the same day
+  adds a number: 2026.11.22-1.
+- **Course cards updated**: 111 cards in Classroom Expressions, Lesson 1, and Lesson 2, with
+  new Lesson 2 sentences. Open Course cards on the Study page to add the new ones; cards you
+  already have aren't added twice.
 
 ## [1.6.0] - 2026-11-22
 
