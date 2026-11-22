@@ -8,6 +8,11 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Fixed
+
+- **Card characters in 墨 Ink** are no longer extra bold. They now use the same regular weight
+  as Classic, in all three character styles.
+
 ## [1.5.2] - 2026-11-20
 
 ### Fixed

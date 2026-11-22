@@ -353,9 +353,6 @@
 [data-style='ink'] .flashcard hr {
   border-top: 1px solid var(--border);
 }
-[data-style='ink'] .face-traditional {
-  font-weight: 600;
-}
 /* Pinyin in Space Grotesk, which has every pinyin letter. Fraunces lacks the 3rd tones and
    ü tones (ǎ ǐ ǒ ǔ ǖ ǘ ǚ ǜ), which would come out mismatched or with loose tone marks. */
 [data-style='ink'] .face-pinyin,

@@ -2120,9 +2120,23 @@ test('the character style applies in Classic and 墨 Ink; Ink decoration stays s
       span.remove();
       return font;
     });
+  // The big characters on a card: the same regular weight in both looks (Ink once made them heavy).
+  const cardWeight = () =>
+    page.evaluate(() => {
+      const card = document.createElement('div');
+      card.className = 'flashcard';
+      const face = document.createElement('div');
+      face.className = 'face-traditional hanzi-trad';
+      card.append(face);
+      document.body.append(card);
+      const weight = getComputedStyle(face).fontWeight;
+      card.remove();
+      return weight;
+    });
 
   for (const look of ['Classic', '墨 Ink (beta)']) {
     await page.getByRole('button', { name: look, exact: true }).click();
+    expect(await cardWeight()).toBe('400');
     await style.selectOption('sans');
     expect(await hanzi()).toContain('PingFang TC');
     await style.selectOption('serif');
