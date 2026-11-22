@@ -8,6 +8,8 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-22
+
 ### Changed
 
 - **"Cards you keep forgetting" lets cards go.** Once you've remembered a card 3 times in a
