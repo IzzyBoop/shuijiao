@@ -240,7 +240,7 @@ test('the Study page shows your progress below the decks', async ({ page }) => {
   await expect(progress.getByRole('img', { name: /you studied on 1 day\./ })).toBeVisible();
   await expect(progress.getByRole('img', { name: /^Cards due: Today/ })).toBeVisible();
   await expect(progress).toContainText('Good or Easy, of 1 answer');
-  await expect(progress).toContainText('None so far');
+  await expect(progress).toContainText('None right now');
 });
 
 test('you can study or flip through just the cards with one tag', async ({ page }, testInfo) => {

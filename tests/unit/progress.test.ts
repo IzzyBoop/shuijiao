@@ -6,6 +6,7 @@ import {
   forecast,
   heatmap,
   streaks,
+  RECOVERED_AFTER,
   troubleCards,
 } from '../../src/modules/flashcards/progress-stats';
 
@@ -129,10 +130,59 @@ describe('progress', () => {
         state('c', 1),
       ],
       [card('a'), card('b'), card('c')],
+      [],
     );
     expect(rows.map((r) => [r.card.id, r.lapses])).toEqual([
       ['b', 4],
       ['a', 1],
     ]);
+  });
+
+  /** A card type's history: ratings at its spaced reviews, an hour apart, in order. */
+  const history = (cardId: string, ratings: (1 | 2 | 3 | 4)[], templateId = 'tpl-reading') =>
+    ratings.map((rating, i) => ({ ...log(cardId, rating), templateId, review: at(1) + i * 3_600_000 }));
+
+  it(`drops a card once it's remembered ${RECOVERED_AFTER} times in a row since it was last forgotten`, () => {
+    const states = [state('a', 1, { lapses: 1 }), state('b', 1, { lapses: 2 }), state('c', 1, { lapses: 1 })];
+    const rows = troubleCards(
+      states,
+      [card('a'), card('b'), card('c')],
+      [
+        ...history('a', [3, 1, 3, 2, 4]), // forgotten, then remembered 3 times (Hard counts): stuck
+        ...history('b', [1, 3, 3, 3, 1, 3]), // stuck once, then forgotten again: still listed
+        ...history('c', [1, 3, 3]), // only twice so far
+      ],
+    );
+    expect(rows.map((r) => r.card.id)).toEqual(['b', 'c']);
+  });
+
+  it('only counts spaced reviews, not the quick re-learning tries after forgetting', () => {
+    const relearning = [1, 2, 3].map((n) => ({
+      ...log('a', 3),
+      state: 3 as const,
+      review: at(1) + n * 60_000,
+    }));
+    const rows = troubleCards(
+      [state('a', 1, { lapses: 1 })],
+      [card('a')],
+      [...history('a', [1]), ...relearning],
+    );
+    expect(rows.map((r) => r.card.id)).toEqual(['a']);
+  });
+
+  it('keeps a card until every card type it was forgotten in has stuck again', () => {
+    const states = [
+      state('a', 1, { lapses: 1 }),
+      { ...state('a', 1, { lapses: 1 }), key: 'a|tpl-listening', templateId: 'tpl-listening' },
+    ];
+    const reading = history('a', [1, 3, 3, 3]);
+    expect(troubleCards(states, [card('a')], reading).map((r) => r.card.id)).toEqual(['a']);
+    const listening = history('a', [1, 4, 4, 4], 'tpl-listening');
+    expect(troubleCards(states, [card('a')], [...reading, ...listening])).toEqual([]);
+  });
+
+  it("keeps a card when its history doesn't reach back to when it was forgotten", () => {
+    const rows = troubleCards([state('a', 1, { lapses: 1 })], [card('a')], history('a', [3, 3, 3, 3]));
+    expect(rows.map((r) => r.card.id)).toEqual(['a']);
   });
 });

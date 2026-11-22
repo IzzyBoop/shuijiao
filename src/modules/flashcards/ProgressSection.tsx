@@ -9,6 +9,7 @@ import {
   forecast,
   heatmap,
   streaks,
+  RECOVERED_AFTER,
   troubleCards,
   type Forecast,
   type HeatDay,
@@ -45,17 +46,18 @@ export function ProgressSection({ decks }: { decks: readonly Deck[] }) {
       live.has(s.cardId),
     );
     const activeIds = new Set(active.map((t) => t.id));
+    const studied = states.filter((s) => activeIds.has(s.templateId));
+    // Only the forgotten cards' history is needed, to see which have stuck again since.
+    const forgotten = [...new Set(studied.filter((s) => s.lapses > 0).map((s) => s.cardId))];
+    const forgottenLogs = await store.listReviewLogsForCards(forgotten);
     return {
       reviewed: times.length > 0,
       streak: streaks(times, now),
       weeks: heatmap(times, now),
-      coming: forecast(
-        states.filter((s) => activeIds.has(s.templateId)),
-        now,
-      ),
+      coming: forecast(studied, now),
       answers30: logs.length,
       accuracy: accuracyByDeck(logs, cards, decks),
-      trouble: troubleCards(states, cards),
+      trouble: troubleCards(studied, cards, forgottenLogs),
     };
   }, [decks]);
 
@@ -111,12 +113,15 @@ export function ProgressSection({ decks }: { decks: readonly Deck[] }) {
 
           <h3>Cards you keep forgetting</h3>
           {p.trouble.length === 0 ? (
-            <p class="muted small">None so far: once you've learned a card, you haven't forgotten it.</p>
+            <p class="muted small">
+              None right now. A card you forget after learning it shows up here until you've remembered it{' '}
+              {RECOVERED_AFTER} times in a row.
+            </p>
           ) : (
             <>
               <p class="muted small">
                 Forgotten after you'd learned them. A note or an example sentence on the card can help it
-                stick.
+                stick. Remember one {RECOVERED_AFTER} times in a row and it leaves this list.
               </p>
               <ul class="list trouble-list">
                 {p.trouble.map(({ card, lapses }) => (

@@ -156,6 +156,8 @@ export interface StudyStore {
   /** When every review happened (from the index, so it stays quick with many reviews). */
   listReviewTimes(): Promise<number[]>;
   listReviewLogsSince(time: number): Promise<ReviewLog[]>;
+  /** The whole review history of these cards. */
+  listReviewLogsForCards(cardIds: readonly string[]): Promise<ReviewLog[]>;
 
   listLinks(): Promise<StudentLink[]>;
   saveLink(link: StudentLink): Promise<void>;
@@ -386,6 +388,14 @@ export class LocalStudyStore implements StudyStore {
   }
   async listReviewLogsSince(time: number) {
     return this.db.reviewLogs.where('review').aboveOrEqual(time).toArray();
+  }
+  async listReviewLogsForCards(cardIds: readonly string[]): Promise<ReviewLog[]> {
+    return cardIds.length === 0
+      ? []
+      : this.db.reviewLogs
+          .where('cardId')
+          .anyOf([...cardIds])
+          .toArray();
   }
   async countReviewsSince(time: number, newOnly: boolean) {
     const q = this.db.reviewLogs.where('review').aboveOrEqual(time);

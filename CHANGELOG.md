@@ -8,6 +8,12 @@ numbers follow [Semantic Versioning](https://semver.org/). Add new entries under
 
 ## [Unreleased]
 
+### Changed
+
+- **"Cards you keep forgetting" lets cards go.** Once you've remembered a card 3 times in a
+  row at its reviews since you last forgot it, it leaves the list, so the list shows what you're
+  struggling with now. Quick re-learning tries right after forgetting don't count.
+
 ### Fixed
 
 - **Card characters in 墨 Ink** are no longer extra bold. They now use the same regular weight

@@ -146,17 +146,60 @@ export interface TroubleCard {
   lapses: number;
 }
 
+/** Remembered this many times in a row (at its spaced reviews) since it was last forgotten,
+ *  a card has stuck again and leaves "Cards you keep forgetting". */
+export const RECOVERED_AFTER = 3;
+
+/**
+ * Whether a card type that was forgotten has been remembered RECOVERED_AFTER times in a row
+ * since. Only answers at its spaced reviews count (state 2, Review): the quick re-learning
+ * tries just after forgetting don't show it has stuck. If the review history doesn't reach
+ * back to the last time it was forgotten, it isn't counted as recovered.
+ */
+function recovered(logs: readonly ReviewLog[]): boolean {
+  let forgotten = false;
+  let inARow = 0;
+  for (const l of [...logs].sort((a, b) => a.review - b.review)) {
+    if (l.state !== 2) continue;
+    if (l.rating === 1) {
+      forgotten = true;
+      inARow = 0;
+    } else {
+      inARow += 1;
+    }
+  }
+  return forgotten && inARow >= RECOVERED_AFTER;
+}
+
+/**
+ * The cards most often forgotten after being learned, leaving out those that have stuck
+ * again since (see RECOVERED_AFTER). `states` are those of the card types being studied;
+ * `logs` the review history of their cards.
+ */
 export function troubleCards(
   states: readonly ReviewState[],
   cards: readonly Card[],
+  logs: readonly ReviewLog[],
   limit = 8,
 ): TroubleCard[] {
+  const history = new Map<string, ReviewLog[]>();
+  for (const l of logs) {
+    const key = `${l.cardId}|${l.templateId}`;
+    const list = history.get(key);
+    if (list) list.push(l);
+    else history.set(key, [l]);
+  }
   const lapses = new Map<string, number>();
-  for (const s of states) if (s.lapses > 0) lapses.set(s.cardId, (lapses.get(s.cardId) ?? 0) + s.lapses);
+  const stillForgotten = new Set<string>();
+  for (const s of states) {
+    if (s.lapses === 0) continue;
+    lapses.set(s.cardId, (lapses.get(s.cardId) ?? 0) + s.lapses);
+    if (!recovered(history.get(`${s.cardId}|${s.templateId}`) ?? [])) stillForgotten.add(s.cardId);
+  }
   return cards
     .flatMap((card) => {
       const n = lapses.get(card.id);
-      return n ? [{ card, lapses: n }] : [];
+      return n && stillForgotten.has(card.id) ? [{ card, lapses: n }] : [];
     })
     .sort((a, b) => b.lapses - a.lapses || a.card.createdAt - b.card.createdAt)
     .slice(0, limit);
