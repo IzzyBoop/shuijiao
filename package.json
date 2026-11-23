@@ -29,7 +29,7 @@
     "hanzi-writer": "3.7.3",
     "opencc-js": "1.4.2",
     "pinyin-pro": "3.29.5",
-    "preact": "11.1.1",
+    "preact": "11.2.0",
     "ts-fsrs": "6.0.0",
     "valibot": "1.5.0"
   },
